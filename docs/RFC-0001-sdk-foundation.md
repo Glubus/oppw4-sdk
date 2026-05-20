@@ -9,7 +9,7 @@ Draft.
 OPPW4 modding should be split into two Git projects:
 
 - `oppw4-loader`: the minimal native `dinput8.dll` loader.
-- `oppw4-sdk`: the real modding platform, shipped as `sdk_core.dll` plus SDK crates, Lua standard modules, resources, examples, and official plugins.
+- `oppw4-sdk`: the real modding platform, shipped as `sdk.dll` plus SDK crates, Lua standard modules, resources, examples, and official plugins.
 
 The loader must become boring and small. The SDK must become the place where modding concepts live: plugins, Lua, character metadata, LinkData/RDB helpers, hooks, signals, logs, configuration, and user-facing APIs.
 
@@ -26,8 +26,8 @@ It owns:
 - DirectInput proxying;
 - game root discovery;
 - minimal boot/fatal logging;
-- loading `plugins/sdk_core/plugin.toml`;
-- loading `sdk_core.dll` before anything else;
+- loading `plugins/sdk/sdk.dll`;
+- loading `sdk.dll` before anything else;
 - exposing a small host ABI to SDK core.
 
 It does not own:
@@ -44,7 +44,7 @@ The SDK repository builds the official SDK and official plugins.
 
 It owns:
 
-- `sdk_core.dll`;
+- `sdk.dll`;
 - SDK ABI/API crates;
 - Lua runtime and Lua standard modules;
 - character bank resources;
@@ -64,8 +64,8 @@ Boot order:
 1. Load and forward the real system DirectInput DLL.
 2. Locate the OPPW4 game root.
 3. Initialize minimal loader logging.
-4. Locate `OPPW4/plugins/sdk_core/plugin.toml`.
-5. Load `sdk_core.dll`.
+4. Locate `OPPW4/plugins/sdk/sdk.dll`.
+5. Load `sdk.dll`.
 6. Pass the host ABI to SDK core.
 7. SDK core takes over plugin/mod orchestration.
 
@@ -246,7 +246,7 @@ Initial official plugins:
 Configuration ownership:
 
 - loader: minimal boot/debug config only;
-- SDK: `plugins/sdk_core/config.toml`;
+- SDK: `plugins/sdk/config.toml`;
 - plugin: `plugins/<plugin_id>/config.toml`;
 - mod: `mods/<mod_id>/mod.toml` and optional mod-local config files.
 

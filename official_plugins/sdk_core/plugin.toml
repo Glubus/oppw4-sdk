@@ -1,7 +1,7 @@
 [plugin]
-id = "sdk_core"
+id = "sdk.core"
 version = "0.1.0"
-entry = "sdk_core.dll"
+entry = "sdk.dll"
 
 [capabilities]
 provides = [

@@ -8,8 +8,8 @@ Current checkpoint:
 
 - [x] physical split exists under `oppw4-sdk-split/oppw4-loader` and `oppw4-sdk-split/oppw4-sdk`;
 - [x] SDK workspace builds and tests independently;
-- [x] SDK core can now be built as `sdk_core.dll`;
-- [x] loader workspace builds independently and loads `plugins/sdk_core/sdk_core.dll` dynamically;
+- [x] SDK core can now be built as `sdk.dll`;
+- [x] loader workspace builds independently and loads `plugins/sdk/sdk.dll` dynamically;
 - [x] SDK memory primitives are routed back into loader-owned hooks through the loader ABI;
 - [x] SDK file providers are routed back into loader-owned hooks through the loader ABI;
 - [x] SDK core resolves optional SDK service DLLs from `plugins/sdk/`;
@@ -24,7 +24,7 @@ Current checkpoint:
 - [x] Lua mods can use `require("std.character")`;
 - [x] legacy global `character` remains only as a transition alias;
 - [x] SDK `lua-api` owns current-mod file reads for directory and zip mods;
-- [x] SDK `lua-api` reports mod-scoped `std.log` entries back to `sdk_core`;
+- [x] SDK `lua-api` reports mod-scoped `std.log` entries back to SDK core;
 - [x] SDK core writes `std.log` entries into per-mod log folders under `mods/_oppw4/logs/mods/<mod_id>/`;
 - [x] Lua mods run with `os`, `io`, `debug`, and global `package` hidden by the SDK sandbox;
 - [x] plugin manifests can declare dependencies, Lua modules, and required/provided capabilities;
@@ -92,7 +92,7 @@ Deliverables:
 - [x] loader-owned memory primitive callbacks;
 - [x] loader-owned file provider registration callback;
 - [x] no loader-owned game status or active character callbacks;
-- [x] `plugins/sdk_core/sdk_core.dll` discovery rules;
+- [x] `plugins/sdk/sdk.dll` discovery rules;
 - [x] missing SDK core disables SDK features without aborting the game;
 - [ ] tests for missing SDK core and incompatible SDK core.
 
@@ -110,7 +110,7 @@ Goals:
 
 - [x] Create the SDK workspace as its own Git project.
 - [x] Move or recreate SDK-facing crates.
-- [x] Add `sdk_core`.
+- [x] Add SDK core.
 - [x] Add character bank resources.
 - [x] Resolve optional SDK service DLLs from `plugins/sdk/`.
 - [x] Move LinkData patching/virtualization out of SDK core into `sdk.linkdata`.
@@ -123,7 +123,10 @@ Target workspace:
 oppw4-sdk/
   crates/
   official_plugins/
-    sdk_core/
+    sdk_core/       # builds sdk.dll
+    sdk_runtime/    # builds runtime.dll
+    sdk_linkdata/   # builds linkdata.dll
+    sdk_rdb/        # builds rdb.dll
     skin_patcher/
     fx_director/
     moveset_patcher/
@@ -138,7 +141,7 @@ Exit criteria:
 - [x] SDK core can be packaged as a plugin;
 - [x] loader can consume SDK via the shared ABI during development.
 
-Status: mostly complete for the split prototype. The workspace exists, tests pass, `official_plugins/sdk_core` can build `sdk_core.dll`, and the loader consumes it dynamically through `Oppw4LoaderSdkInit`.
+Status: mostly complete for the split prototype. The workspace exists, tests pass, `official_plugins/sdk_core` can build `sdk.dll`, and the loader consumes it dynamically through `Oppw4LoaderSdkInit`.
 
 ## Phase 3: Lua Standard Runtime
 
@@ -166,7 +169,7 @@ Exit criteria:
 - [x] directory mods can hot reload;
 - [x] finalize log level/filter policy.
 
-Status: in progress. `std.character`, `std.files`, `std.mod`, and `std.log` are implemented. SDK-owned mod-file reads exist in Rust and Lua. `std.log` entries now return to `sdk_core` after each mod run and are written into per-mod log folders. Release host logs mirror only mod `warn` and `error` entries. Lua mods run with unsafe filesystem/process/debug globals hidden, while SDK-controlled `require` remains available.
+Status: in progress. `std.character`, `std.files`, `std.mod`, and `std.log` are implemented. SDK-owned mod-file reads exist in Rust and Lua. `std.log` entries now return to SDK core after each mod run and are written into per-mod log folders. Release host logs mirror only mod `warn` and `error` entries. Lua mods run with unsafe filesystem/process/debug globals hidden, while SDK-controlled `require` remains available.
 
 ## Phase 4: Character Bank
 
