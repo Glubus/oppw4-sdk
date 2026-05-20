@@ -52,7 +52,7 @@ Deliverables:
 - [x] `docs/ROADMAP.md`;
 - [x] `docs/RULES.md`;
 - [x] `docs/API-SURFACES.md`;
-- [ ] updated README references when the plan is accepted.
+- [x] updated README references when the plan is accepted.
 
 Exit criteria:
 
@@ -62,7 +62,7 @@ Exit criteria:
 - [x] character bank ownership is explicit;
 - [x] official plugin ownership is explicit.
 
-Status: complete enough for implementation. The docs remain living architecture notes and must be updated when ownership changes.
+Status: complete for the current foundation pass. The docs remain living architecture notes and must be updated when ownership changes.
 
 ## Phase 1: Loader And SDK Contract
 

@@ -49,3 +49,10 @@ cargo test --workspace
 
 Official plugins can be built from this workspace once the loader and SDK
 contract has stabilized.
+
+## Architecture Docs
+
+- [SDK foundation RFC](docs/RFC-0001-sdk-foundation.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Architecture rules](docs/RULES.md)
+- [API surfaces](docs/API-SURFACES.md)
