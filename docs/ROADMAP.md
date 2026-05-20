@@ -282,7 +282,7 @@ Deliverables:
 - [x] first Lua mod example;
 - [x] first Rust plugin example;
 - [x] character extension example;
-- [ ] LinkData patch example;
+- [x] LinkData patch example;
 - [ ] asset replacement example;
 - [x] `plugin.toml` validator;
 - [x] `mod.toml` validator.
