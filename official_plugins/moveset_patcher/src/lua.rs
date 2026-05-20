@@ -318,11 +318,7 @@ mod tests {
 
     #[test]
     fn replace_movesets_targets_character_entry_before_source_entry() {
-        crate::state::initialize(
-            plugin_sdk::HostApi::from(&test_linkdata_api()),
-            PathBuf::from(r"C:\missing-mods-root"),
-        )
-        .ok();
+        crate::state::initialize(plugin_sdk::HostApi::from(&test_linkdata_api())).ok();
 
         let lua = Lua::new();
         let character = lua

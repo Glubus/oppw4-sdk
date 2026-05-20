@@ -21,7 +21,7 @@ pub fn initialize(host: HostApi<'_>) -> i32 {
         return -3;
     };
     let Some(mods_root) = host.paths().mods_root() else {
-        log::write_line("skin_patcher: missing plugin mods root");
+        log::write_line("skin_patcher: missing mods root");
         return -4;
     };
     let config_root = host

@@ -21,15 +21,11 @@ export_plugin!(MovesetPatcher);
 
 fn initialize(host: HostApi<'_>) -> Result<(), String> {
     log::init(host);
-    let mods_root = host
-        .paths()
-        .mods_root()
-        .ok_or_else(|| "missing mods root".to_string())?;
-    state::initialize(host, mods_root)?;
+    state::initialize(host)?;
     let edits = state::edit_count();
     log::write(
         host,
-        format!("moveset_patcher initialized legacy_entry_patches={edits}"),
+        format!("moveset_patcher initialized entry_patches={edits}"),
     );
     lua::register(host);
     Ok(())

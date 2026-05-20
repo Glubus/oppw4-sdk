@@ -1,21 +1,3 @@
-use std::{fs, path::Path};
-
-pub(crate) fn read_payload(path: &Path) -> Result<Vec<u8>, String> {
-    match path.extension().and_then(|extension| extension.to_str()) {
-        Some(extension) if extension.eq_ignore_ascii_case("bin") => {
-            fs::read(path).map_err(|error| error.to_string())
-        }
-        Some(extension)
-            if extension.eq_ignore_ascii_case("txt") || extension.eq_ignore_ascii_case("hex") =>
-        {
-            let text = fs::read_to_string(path).map_err(|error| error.to_string())?;
-            parse_payload(&text)
-        }
-        Some(extension) => Err(format!("unsupported patch extension: {extension}")),
-        None => Err("patch missing extension".to_string()),
-    }
-}
-
 pub(crate) fn parse_payload(text: &str) -> Result<Vec<u8>, String> {
     let mut hex = String::new();
     for line in text.lines() {
