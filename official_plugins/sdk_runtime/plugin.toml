@@ -1,0 +1,14 @@
+[plugin]
+id = "sdk.runtime"
+version = "0.1.0"
+entry = "runtime.dll"
+
+[capabilities]
+requires = [
+  "plugin.host",
+]
+provides = [
+  "game.runtime",
+  "game.active_character",
+  "game.status",
+]

@@ -77,6 +77,10 @@ plugins/
 `sdk.dll` starts independently. Missing service DLLs disable only the plugins
 that depend on those services.
 
+Game telemetry providers register through the SDK ABI. `sdk.runtime` owns the
+OPPW4-specific probes and publishes `game.status` / `game.active_character` to
+the core; the core only routes those callbacks to consumers.
+
 ## Plugin Manifest Surface
 
 `plugin.toml` declares static intent.

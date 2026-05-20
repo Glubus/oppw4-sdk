@@ -15,6 +15,7 @@ members = [
     "tools/rdb-tool",
     "official_plugins/skin_patcher",
     "official_plugins/sdk_core",
+    "official_plugins/sdk_runtime",
     "official_plugins/fx_director",
     "official_plugins/moveset_patcher",
 ]

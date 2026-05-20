@@ -346,6 +346,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "oppw4-sdk-runtime-plugin"
+version = "0.1.0"
+dependencies = [
+ "asm",
+ "hooks",
+ "plugin-sdk",
+]
+
+[[package]]
 name = "oppw4-skin-patcher-plugin"
 version = "0.1.0"
 dependencies = [

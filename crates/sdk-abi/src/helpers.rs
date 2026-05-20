@@ -46,5 +46,7 @@ pub const fn null_api() -> Oppw4PluginApi {
         replace_linkdata_entry: None,
         patch_linkdata_row: None,
         require_capability: None,
+        register_game_status_provider: None,
+        register_active_character_provider: None,
     }
 }

@@ -10,7 +10,10 @@ use super::{
     memory::{host_module_base, host_read_memory, host_scan_memory, host_write_memory},
     mods::{host_for_each_plugin_mod, host_for_each_plugin_mod_zip},
     providers::host_register_file_provider,
-    status::host_debug_enabled,
+    status::{
+        host_active_character, host_debug_enabled, host_game_status,
+        host_register_active_character_provider, host_register_game_status_provider,
+    },
 };
 
 use plugin_abi::optional_cstr;
@@ -37,13 +40,15 @@ pub(crate) fn build_api(
         for_each_plugin_mod_zip: Some(host_for_each_plugin_mod_zip),
         for_each_plugin_mod: Some(host_for_each_plugin_mod),
         register_file_provider: Some(host_register_file_provider),
-        game_status: None,
+        game_status: Some(host_game_status),
         register_lua_module: Some(host_register_lua_module),
-        active_character: None,
+        active_character: Some(host_active_character),
         debug_enabled: Some(host_debug_enabled),
         replace_linkdata_entry: Some(host_replace_linkdata_entry),
         patch_linkdata_row: Some(host_patch_linkdata_row),
         require_capability: Some(host_require_capability),
+        register_game_status_provider: Some(host_register_game_status_provider),
+        register_active_character_provider: Some(host_register_active_character_provider),
     }
 }
 

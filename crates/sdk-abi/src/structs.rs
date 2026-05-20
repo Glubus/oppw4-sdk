@@ -3,7 +3,8 @@ use std::ffi::{c_char, c_void};
 use super::ffi::{
     HostActiveCharacterFn, HostDebugEnabledFn, HostForEachPluginModFn, HostForEachPluginModZipFn,
     HostGameStatusFn, HostLogFn, HostModuleBaseFn, HostPatchLinkDataRowFn, HostReadMemoryFn,
-    HostRegisterFileProviderFn, HostRegisterLuaModuleFn, HostReplaceLinkDataEntryFn,
+    HostRegisterActiveCharacterProviderFn, HostRegisterFileProviderFn,
+    HostRegisterGameStatusProviderFn, HostRegisterLuaModuleFn, HostReplaceLinkDataEntryFn,
     HostRequireCapabilityFn, HostScanMemoryFn, HostWriteMemoryFn, Oppw4LuaRegisterFn,
     Oppw4ProviderCloseFn, Oppw4ProviderFileTimeFn, Oppw4ProviderOpenPathFn,
     Oppw4ProviderPatchReadFn, Oppw4ProviderReadFn, Oppw4ProviderSeekFn, Oppw4ProviderSizeFn,
@@ -32,6 +33,8 @@ pub struct Oppw4PluginApi {
     pub replace_linkdata_entry: Option<HostReplaceLinkDataEntryFn>,
     pub patch_linkdata_row: Option<HostPatchLinkDataRowFn>,
     pub require_capability: Option<HostRequireCapabilityFn>,
+    pub register_game_status_provider: Option<HostRegisterGameStatusProviderFn>,
+    pub register_active_character_provider: Option<HostRegisterActiveCharacterProviderFn>,
 }
 
 #[repr(C)]

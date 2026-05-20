@@ -8,9 +8,10 @@ pub use manifest::{
     PLUGIN_MODS_DIR,
 };
 pub use plugin_abi::{
-    Oppw4ActiveCharacter, Oppw4GameStatus, Oppw4LinkDataEntryPatch, Oppw4LuaRegisterFn,
-    Oppw4PluginApi, PluginModInfo, OPPW4_GAME_FLAG_DLC_CHARACTER_SEEN,
-    OPPW4_GAME_FLAG_VIRTUAL_RESOURCE_SEEN, OPPW4_PLUGIN_API_VERSION,
+    HostActiveCharacterFn, HostGameStatusFn, Oppw4ActiveCharacter, Oppw4GameStatus,
+    Oppw4LinkDataEntryPatch, Oppw4LuaRegisterFn, Oppw4PluginApi, PluginModInfo,
+    OPPW4_GAME_FLAG_DLC_CHARACTER_SEEN, OPPW4_GAME_FLAG_VIRTUAL_RESOURCE_SEEN,
+    OPPW4_PLUGIN_API_VERSION,
 };
 
 mod api;

@@ -1,4 +1,4 @@
-pub const OPPW4_PLUGIN_API_VERSION: u32 = 13;
+pub const OPPW4_PLUGIN_API_VERSION: u32 = 14;
 pub const OPPW4_PLUGIN_INIT_SYMBOL: &[u8] = b"oppw4_plugin_init\0";
 
 pub const OPPW4_GAME_PHASE_UNKNOWN: u32 = 0;

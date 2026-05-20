@@ -44,10 +44,20 @@ pub type HostRegisterFileProviderFn =
     unsafe extern "system" fn(host_context: *mut c_void, provider: *const Oppw4FileProvider) -> i32;
 pub type HostGameStatusFn =
     unsafe extern "system" fn(host_context: *mut c_void, out_status: *mut Oppw4GameStatus) -> i32;
+pub type HostRegisterGameStatusProviderFn = unsafe extern "system" fn(
+    host_context: *mut c_void,
+    provider_context: *mut c_void,
+    callback: Option<HostGameStatusFn>,
+) -> i32;
 pub type HostRegisterLuaModuleFn =
     unsafe extern "system" fn(host_context: *mut c_void, module: *const Oppw4LuaModule) -> i32;
 pub type HostActiveCharacterFn =
     unsafe extern "system" fn(host_context: *mut c_void, out: *mut Oppw4ActiveCharacter) -> i32;
+pub type HostRegisterActiveCharacterProviderFn = unsafe extern "system" fn(
+    host_context: *mut c_void,
+    provider_context: *mut c_void,
+    callback: Option<HostActiveCharacterFn>,
+) -> i32;
 pub type HostDebugEnabledFn = unsafe extern "system" fn(host_context: *mut c_void) -> i32;
 pub type HostReplaceLinkDataEntryFn = unsafe extern "system" fn(
     host_context: *mut c_void,
