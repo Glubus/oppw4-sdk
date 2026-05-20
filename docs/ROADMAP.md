@@ -10,6 +10,7 @@ Current checkpoint:
 - [x] SDK workspace builds and tests independently;
 - [x] SDK core can now be built as `sdk_core.dll`;
 - [x] loader workspace builds independently and loads `plugins/sdk_core/sdk_core.dll` dynamically;
+- [x] SDK file providers are routed back into loader-owned hooks through the loader ABI;
 - [x] character bank editable sources are split per character and generated into SDK-facing views;
 - [x] Lua mods can use `require("std.character")`;
 - [x] legacy global `character` remains only as a transition alias;
@@ -71,7 +72,7 @@ Progress: partially complete.
 
 Goals:
 
-- [x] Define the minimal loader-to-SDK ABI.
+- [x] Define the initial loader-to-SDK ABI.
 - [x] Define initial SDK core discovery.
 - [x] Define initial SDK missing/incompatible behavior.
 - [ ] Remove business concepts from the loader contract.
@@ -79,6 +80,7 @@ Goals:
 Deliverables:
 
 - [x] host ABI structs and version constants;
+- [x] loader-owned file provider registration callback;
 - [x] `plugins/sdk_core/sdk_core.dll` discovery rules;
 - [x] boot/fatal log behavior for missing SDK core;
 - [ ] tests for missing SDK core and incompatible SDK core.

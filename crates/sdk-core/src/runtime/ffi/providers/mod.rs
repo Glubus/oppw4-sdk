@@ -21,6 +21,9 @@ fn register_file_provider(provider: &Oppw4FileProvider, plugin_id: Option<&CStr>
     let Some(required) = required_provider_fns(provider) else {
         return -2;
     };
+    if let Some(result) = crate::runtime::loader_services::register_file_provider(provider) {
+        return result;
+    }
     hooks::register_file_provider(hooks::FileProviderRegistration {
         plugin_id,
         provider_context: provider.provider_context,

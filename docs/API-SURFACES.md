@@ -25,6 +25,7 @@ Current SDK core bootstrap ABI:
 - `Oppw4LoaderSdkInit`;
 - `oppw4_sdk_core_initialize`;
 - loader log callback forwarding.
+- loader-owned file provider registration callback.
 
 Not allowed in the loader ABI:
 

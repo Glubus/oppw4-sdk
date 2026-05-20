@@ -30,6 +30,10 @@ pub unsafe extern "system" fn oppw4_sdk_core_initialize(init: *const Oppw4Loader
         });
         plugin_host::set_logger(forward_log_to_loader);
     }
+    plugin_host::set_debug_enabled(init.debug_enabled != 0);
+    if let Some(register_file_provider) = init.register_file_provider {
+        plugin_host::set_file_provider_registrar(init.host_context, register_file_provider);
+    }
 
     let Some(game_root) = path_from_cstr(init.game_root_utf8) else {
         return -3;
