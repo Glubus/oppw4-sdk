@@ -51,6 +51,12 @@ cargo test --workspace
 Official plugins can be built from this workspace once the loader and SDK
 contract has stabilized.
 
+Validate a plugin manifest:
+
+```powershell
+cargo run -p plugin-manifest-tool -- official_plugins/fx_director/plugin.toml
+```
+
 ## Architecture Docs
 
 - [SDK foundation RFC](docs/RFC-0001-sdk-foundation.md)

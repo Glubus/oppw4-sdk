@@ -284,7 +284,7 @@ Deliverables:
 - [ ] character extension example;
 - [ ] LinkData patch example;
 - [ ] asset replacement example;
-- [ ] `plugin.toml` validator;
+- [x] `plugin.toml` validator;
 - [ ] `mod.toml` validator.
 
 Exit criteria:

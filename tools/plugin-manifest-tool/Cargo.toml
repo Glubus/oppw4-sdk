@@ -1,0 +1,12 @@
+[package]
+name = "plugin-manifest-tool"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "plugin-manifest"
+path = "src/main.rs"
+
+[dependencies]
+plugin-sdk.workspace = true

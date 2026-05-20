@@ -394,6 +394,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "plugin-manifest-tool"
+version = "0.1.0"
+dependencies = [
+ "plugin-sdk",
+]
+
+[[package]]
 name = "plugin-sdk"
 version = "0.1.0"
 dependencies = [
