@@ -94,6 +94,11 @@ service DLL registers successfully.
 patch consumers can keep using file-provider patch reads during migration, but
 new RDB-specific behavior should move behind the RDB service.
 
+RDB patch providers register through `host.rdb()`. `sdk.rdb` owns the file
+provider `patch_read` hook and dispatches RDB read patches to registered
+providers; consumers should not register RDB `patch_read` callbacks directly as
+file providers.
+
 ## Plugin Manifest Surface
 
 `plugin.toml` declares static intent.

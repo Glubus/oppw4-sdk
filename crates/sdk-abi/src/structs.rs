@@ -5,8 +5,9 @@ use super::ffi::{
     HostGameStatusFn, HostLogFn, HostModuleBaseFn, HostPatchLinkDataRowFn, HostReadMemoryFn,
     HostRegisterActiveCharacterProviderFn, HostRegisterFileProviderFn,
     HostRegisterGameStatusProviderFn, HostRegisterLinkDataProviderFn, HostRegisterLuaModuleFn,
-    HostReplaceLinkDataEntryFn, HostRequireCapabilityFn, HostScanMemoryFn, HostWriteMemoryFn,
-    Oppw4LuaRegisterFn, Oppw4ProviderCloseFn, Oppw4ProviderFileTimeFn, Oppw4ProviderOpenPathFn,
+    HostRegisterRdbPatchProviderFn, HostRegisterRdbServiceFn, HostReplaceLinkDataEntryFn,
+    HostRequireCapabilityFn, HostScanMemoryFn, HostWriteMemoryFn, Oppw4LuaRegisterFn,
+    Oppw4ProviderCloseFn, Oppw4ProviderFileTimeFn, Oppw4ProviderOpenPathFn,
     Oppw4ProviderPatchReadFn, Oppw4ProviderReadFn, Oppw4ProviderSeekFn, Oppw4ProviderSizeFn,
 };
 
@@ -36,6 +37,8 @@ pub struct Oppw4PluginApi {
     pub register_game_status_provider: Option<HostRegisterGameStatusProviderFn>,
     pub register_active_character_provider: Option<HostRegisterActiveCharacterProviderFn>,
     pub register_linkdata_provider: Option<HostRegisterLinkDataProviderFn>,
+    pub register_rdb_service: Option<HostRegisterRdbServiceFn>,
+    pub register_rdb_patch_provider: Option<HostRegisterRdbPatchProviderFn>,
 }
 
 #[repr(C)]

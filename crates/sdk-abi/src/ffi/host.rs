@@ -78,3 +78,21 @@ pub type HostRequireCapabilityFn = unsafe extern "system" fn(
     plugin_id: *const c_char,
     capability: *const c_char,
 ) -> i32;
+pub type HostRdbPatchReadFn = unsafe extern "system" fn(
+    provider_context: *mut c_void,
+    path_utf8: *const c_char,
+    os_handle: usize,
+    read_offset: u64,
+    buffer: *mut u8,
+    len: usize,
+) -> i32;
+pub type HostRegisterRdbPatchProviderFn = unsafe extern "system" fn(
+    host_context: *mut c_void,
+    provider_context: *mut c_void,
+    patch_read: Option<HostRdbPatchReadFn>,
+) -> i32;
+pub type HostRegisterRdbServiceFn = unsafe extern "system" fn(
+    host_context: *mut c_void,
+    service_context: *mut c_void,
+    register_patch_provider: Option<HostRegisterRdbPatchProviderFn>,
+) -> i32;

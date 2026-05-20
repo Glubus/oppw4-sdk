@@ -9,6 +9,7 @@ mod lua;
 mod memory;
 mod mods;
 mod paths;
+mod rdb;
 mod r#unsafe;
 
 pub use capabilities::CapabilityService;
@@ -22,3 +23,4 @@ pub use lua::LuaService;
 pub use memory::MemoryService;
 pub use mods::ModService;
 pub use paths::PathService;
+pub use rdb::RdbService;

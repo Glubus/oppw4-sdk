@@ -7,6 +7,7 @@ mod logs;
 mod lua;
 mod manifest;
 mod mods;
+mod rdb;
 mod time;
 mod win;
 
