@@ -9,7 +9,7 @@ Current checkpoint:
 - [x] physical split exists under `oppw4-sdk-split/oppw4-loader` and `oppw4-sdk-split/oppw4-sdk`;
 - [x] SDK workspace builds and tests independently;
 - [x] SDK core can now be built as `sdk_core.dll`;
-- [x] loader workspace builds independently while still depending on SDK crates by local path;
+- [x] loader workspace builds independently and loads `plugins/sdk_core/sdk_core.dll` dynamically;
 - [x] character bank editable sources are split per character and generated into SDK-facing views;
 - [x] Lua mods can use `require("std.character")`;
 - [x] legacy global `character` remains only as a transition alias;
@@ -72,21 +72,21 @@ Progress: partially complete.
 Goals:
 
 - [x] Define the minimal loader-to-SDK ABI.
-- [ ] Define final SDK core discovery.
-- [ ] Define SDK missing/incompatible behavior.
+- [x] Define initial SDK core discovery.
+- [x] Define initial SDK missing/incompatible behavior.
 - [ ] Remove business concepts from the loader contract.
 
 Deliverables:
 
 - [x] host ABI structs and version constants;
-- [ ] `plugins/sdk_core/plugin.toml` discovery rules;
-- [ ] boot/fatal log behavior;
+- [x] `plugins/sdk_core/sdk_core.dll` discovery rules;
+- [x] boot/fatal log behavior for missing SDK core;
 - [ ] tests for missing SDK core and incompatible SDK core.
 
 Exit criteria:
 
-- [ ] loader can boot with SDK core;
-- [ ] loader can report SDK boot failure clearly;
+- [x] loader can boot with SDK core;
+- [x] loader can report SDK boot failure clearly;
 - [ ] loader does not know official plugin names.
 
 ## Phase 2: SDK Workspace
@@ -119,9 +119,9 @@ Exit criteria:
 
 - [x] SDK workspace builds independently;
 - [x] SDK core can be packaged as a plugin;
-- [ ] loader can consume SDK via Git dependency during development.
+- [x] loader can consume SDK via the shared ABI during development.
 
-Status: partially complete. The workspace exists, tests pass, and `official_plugins/sdk_core` can build `sdk_core.dll`. The loader still needs to consume this SDK package dynamically instead of linking SDK core directly.
+Status: mostly complete for the split prototype. The workspace exists, tests pass, `official_plugins/sdk_core` can build `sdk_core.dll`, and the loader consumes it dynamically through `Oppw4LoaderSdkInit`.
 
 ## Phase 3: Lua Standard Runtime
 
