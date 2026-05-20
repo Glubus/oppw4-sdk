@@ -3,17 +3,23 @@ param(
     [ValidateSet("debug", "release")]
     [string]$Profile = "release",
     [string]$OutDir = "dist/oppw4-sdk",
+    [string]$LoaderRoot = "",
+    [switch]$NoLoader,
     [switch]$SkipBuild
 )
 
 $ErrorActionPreference = "Stop"
 
 $root = Resolve-Path (Join-Path $PSScriptRoot "..")
+if (!$LoaderRoot) {
+    $LoaderRoot = Join-Path $root "../oppw4-modloader"
+}
 $outRoot = Join-Path $root $OutDir
 $pluginsRoot = Join-Path $outRoot "plugins"
 $sdkRoot = Join-Path $pluginsRoot "sdk"
 $targetProfile = if ($Profile -eq "release") { "release" } else { "debug" }
 $targetDir = Join-Path $root "target/$Target/$targetProfile"
+$loaderTargetDir = Join-Path $LoaderRoot "target/$Target/$targetProfile"
 $dataRoot = Join-Path $root "oppw4-data"
 
 $sdkPackages = @(
@@ -58,6 +64,20 @@ function Copy-RequiredDirectory($source, $destination) {
 
 if (!$SkipBuild) {
     $releaseFlag = if ($Profile -eq "release") { "--release" } else { "" }
+    if (!$NoLoader) {
+        $loaderManifest = Join-Path $LoaderRoot "Cargo.toml"
+        if (!(Test-Path $loaderManifest)) {
+            throw "missing loader workspace: $LoaderRoot"
+        }
+        $args = @("build", "--manifest-path", $loaderManifest, "-p", "oppw4-dinput8-proxy", "--target", $Target)
+        if ($releaseFlag) {
+            $args += $releaseFlag
+        }
+        & cargo @args
+        if ($LASTEXITCODE -ne 0) {
+            throw "cargo build failed for oppw4-dinput8-proxy"
+        }
+    }
     foreach ($package in ($sdkPackages + $officialPackages)) {
         $args = @("build", "-p", $package, "--target", $Target)
         if ($releaseFlag) {
@@ -74,6 +94,10 @@ if (Test-Path $outRoot) {
     Remove-Item -Recurse -Force $outRoot
 }
 New-Item -ItemType Directory -Force -Path $sdkRoot | Out-Null
+
+if (!$NoLoader) {
+    Copy-RequiredFile (Join-Path $loaderTargetDir "dinput8.dll") (Join-Path $outRoot "dinput8.dll")
+}
 
 foreach ($dll in $sdkDlls) {
     Copy-RequiredFile (Join-Path $targetDir $dll.File) (Join-Path $sdkRoot $dll.File)

@@ -81,10 +81,16 @@ On Linux or WSL:
 tools/package-sdk.sh
 ```
 
-The package is written under `dist/oppw4-sdk/` with SDK services in
-`plugins/sdk/`, official plugins in their own plugin folders, and the mandatory
-data repository under `oppw4-data/`. Active mods are not copied into plugin
-folders; runtime mods belong under the game-level `mods/` directory.
+The package is written under `dist/oppw4-sdk/` with the loader proxy as
+`dinput8.dll`, SDK services in `plugins/sdk/`, official plugins in their own
+plugin folders, and the mandatory data repository under `oppw4-data/`. Active
+mods are not copied into plugin folders; runtime mods belong under the
+game-level `mods/` directory.
+
+By default the package script also builds the sibling loader workspace at
+`../oppw4-modloader`. Use `LOADER_ROOT=/path/to/oppw4-modloader` on shell or
+`-LoaderRoot path\to\oppw4-modloader` on PowerShell when the loader repository
+is elsewhere.
 
 Examples are documented in [examples/README.md](examples/README.md).
 
@@ -94,3 +100,4 @@ Examples are documented in [examples/README.md](examples/README.md).
 - [Roadmap](docs/ROADMAP.md)
 - [Architecture rules](docs/RULES.md)
 - [API surfaces](docs/API-SURFACES.md)
+- [Plugin development](docs/PLUGIN-DEVELOPMENT.md)

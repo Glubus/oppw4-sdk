@@ -5,12 +5,15 @@ TARGET="${TARGET:-x86_64-pc-windows-gnu}"
 PROFILE="${PROFILE:-release}"
 OUT_DIR="${OUT_DIR:-dist/oppw4-sdk}"
 SKIP_BUILD="${SKIP_BUILD:-0}"
+INCLUDE_LOADER="${INCLUDE_LOADER:-1}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LOADER_ROOT="${LOADER_ROOT:-"$ROOT/../oppw4-modloader"}"
 OUT_ROOT="$ROOT/$OUT_DIR"
 PLUGINS_ROOT="$OUT_ROOT/plugins"
 SDK_ROOT="$PLUGINS_ROOT/sdk"
 TARGET_DIR="$ROOT/target/$TARGET/$PROFILE"
+LOADER_TARGET_DIR="$LOADER_ROOT/target/$TARGET/$PROFILE"
 DATA_ROOT="$ROOT/oppw4-data"
 
 SDK_PACKAGES=(
@@ -53,6 +56,13 @@ if [[ "$SKIP_BUILD" != "1" ]]; then
   if [[ "$PROFILE" == "release" ]]; then
     release_args+=(--release)
   fi
+  if [[ "$INCLUDE_LOADER" == "1" ]]; then
+    if [[ ! -f "$LOADER_ROOT/Cargo.toml" ]]; then
+      echo "missing loader workspace: $LOADER_ROOT" >&2
+      exit 1
+    fi
+    cargo build --manifest-path "$LOADER_ROOT/Cargo.toml" -p oppw4-dinput8-proxy --target "$TARGET" "${release_args[@]}"
+  fi
   for package in "${SDK_PACKAGES[@]}" "${OFFICIAL_PACKAGES[@]}"; do
     cargo build -p "$package" --target "$TARGET" "${release_args[@]}"
   done
@@ -61,6 +71,9 @@ fi
 rm -rf "$OUT_ROOT"
 mkdir -p "$SDK_ROOT"
 
+if [[ "$INCLUDE_LOADER" == "1" ]]; then
+  copy_required_file "$LOADER_TARGET_DIR/dinput8.dll" "$OUT_ROOT/dinput8.dll"
+fi
 copy_required_file "$TARGET_DIR/sdk.dll" "$SDK_ROOT/sdk.dll"
 copy_required_file "$TARGET_DIR/runtime.dll" "$SDK_ROOT/runtime.dll"
 copy_required_file "$TARGET_DIR/linkdata.dll" "$SDK_ROOT/linkdata.dll"

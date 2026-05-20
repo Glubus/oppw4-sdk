@@ -36,6 +36,8 @@ Current checkpoint:
 - [x] SDK core enforces declared capabilities for Lua module registration, `std.character` extension, file virtualization, LinkData patching, and memory read/scan/write APIs;
 - [x] Lua module registration now requires both `lua.module` and an explicit `[lua].modules` manifest entry;
 - [x] `moveset_patcher` no longer owns mod-file/zip lookup and only consumes SDK helpers for that context.
+- [x] `moveset_patcher` no longer scans legacy `mods/LINKDATA_A` folders directly.
+- [x] SDK packaging script assembles loader `dinput8.dll`, SDK services, official plugins, data, and root `mods/`.
 
 ## Progress Checklist
 
@@ -45,10 +47,10 @@ Current checkpoint:
 - [ ] Phase 3: Lua Standard Runtime
 - [ ] Phase 4: Character Bank
 - [ ] Phase 5: Plugin Registration And Capabilities
-- [ ] Phase 6: Official Plugin Migration
-- [ ] Phase 7: Loader Reduction
-- [ ] Phase 8: Developer Experience
-- [ ] Phase 9: Release Packaging
+- [x] Phase 6: Official Plugin Migration
+- [x] Phase 7: Loader Reduction
+- [x] Phase 8: Developer Experience
+- [x] Phase 9: Release Packaging
 
 ## Phase 0: Design Freeze
 
@@ -251,8 +253,8 @@ Progress: in progress.
 Goals:
 
 - [x] Move official plugins into the SDK repository.
-- [ ] Rebuild official plugins fully on top of SDK services.
-- [ ] Remove direct Lua global mutation.
+- [x] Rebuild official plugins fully on top of SDK services.
+- [x] Remove direct Lua global mutation.
 
 Plugins:
 
@@ -264,10 +266,10 @@ Exit criteria:
 
 - [x] plugins register Lua modules through SDK;
 - [x] plugins extend `std.character` through SDK;
-- [ ] plugins use SDK LinkData/RDB/file services completely;
-- [ ] plugin logs/config are routed by SDK completely.
+- [x] plugins use SDK LinkData/RDB/file services completely;
+- [x] plugin logs/config are routed by SDK completely.
 
-Status: in progress. Official plugins live in the SDK repo. `moveset_patcher` is being reduced toward “register functions only”; `skin_patcher` and `fx_director` still contain more transitional runtime glue than desired.
+Status: complete for the current SDK split. Official plugins live in the SDK repo, register Lua modules through SDK APIs, route LinkData/RDB/file operations through SDK services, and use SDK log/config roots. Remaining plugin work is feature-level cleanup, not loader/SDK boundary migration.
 
 ## Phase 7: Loader Reduction
 
@@ -275,15 +277,15 @@ Progress: started.
 
 Goals:
 
-- [ ] Remove plugin orchestration from loader.
-- [ ] Remove Lua runtime from loader.
+- [x] Remove plugin orchestration from loader.
+- [x] Remove Lua runtime from loader.
 - [x] Remove business services from loader.
 - [x] Keep boot/proxy/primitives only.
 
 Exit criteria:
 
-- [ ] loader repository builds independently;
-- [ ] loader has no dependency on official plugins;
+- [x] loader repository builds independently;
+- [x] loader has no dependency on official plugins;
 - [x] loader has no dependency on character bank data;
 - [x] loader only exposes the minimal host ABI.
 
@@ -293,7 +295,7 @@ Progress: started.
 
 Goals:
 
-- [ ] Make the SDK usable by third-party modders.
+- [x] Make the SDK usable by third-party modders.
 - [x] Provide examples and templates.
 - [x] Add validation tools.
 
@@ -313,6 +315,10 @@ Exit criteria:
 - [x] a new developer can create a Rust plugin from a template;
 - [x] SDK docs explain where each feature belongs.
 
+Status: complete for the current split. Examples, manifest validators, and
+plugin development notes exist. Future public docs can expand API examples, but
+the repository now has enough structure for third-party plugin/mod work.
+
 ## Phase 9: Release Packaging
 
 Progress: in progress.
@@ -321,7 +327,7 @@ Goals:
 
 - [x] Define SDK release layout.
 - [x] Package SDK services and official plugins for end users.
-- [ ] Package loader and SDK together for end users.
+- [x] Package loader and SDK together for end users.
 
 Expected package:
 
@@ -347,6 +353,6 @@ OPPW4/
 Exit criteria:
 
 - [x] package contains mandatory data without embedding it in plugin folders;
-- [ ] release package can be copied into a clean game folder;
-- [ ] missing SDK/plugin errors are readable;
-- [ ] examples are documented but not accidentally enabled.
+- [x] release package can be copied into a clean game folder;
+- [x] missing SDK/plugin errors are readable;
+- [x] examples are documented but not accidentally enabled.
