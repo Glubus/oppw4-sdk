@@ -4,9 +4,9 @@ use super::ffi::{
     HostActiveCharacterFn, HostDebugEnabledFn, HostForEachPluginModFn, HostForEachPluginModZipFn,
     HostGameStatusFn, HostLogFn, HostModuleBaseFn, HostPatchLinkDataRowFn, HostReadMemoryFn,
     HostRegisterFileProviderFn, HostRegisterLuaModuleFn, HostReplaceLinkDataEntryFn,
-    HostScanMemoryFn, HostWriteMemoryFn, Oppw4LuaRegisterFn, Oppw4ProviderCloseFn,
-    Oppw4ProviderFileTimeFn, Oppw4ProviderOpenPathFn, Oppw4ProviderPatchReadFn,
-    Oppw4ProviderReadFn, Oppw4ProviderSeekFn, Oppw4ProviderSizeFn,
+    HostRequireCapabilityFn, HostScanMemoryFn, HostWriteMemoryFn, Oppw4LuaRegisterFn,
+    Oppw4ProviderCloseFn, Oppw4ProviderFileTimeFn, Oppw4ProviderOpenPathFn,
+    Oppw4ProviderPatchReadFn, Oppw4ProviderReadFn, Oppw4ProviderSeekFn, Oppw4ProviderSizeFn,
 };
 
 #[repr(C)]
@@ -31,6 +31,7 @@ pub struct Oppw4PluginApi {
     pub debug_enabled: Option<HostDebugEnabledFn>,
     pub replace_linkdata_entry: Option<HostReplaceLinkDataEntryFn>,
     pub patch_linkdata_row: Option<HostPatchLinkDataRowFn>,
+    pub require_capability: Option<HostRequireCapabilityFn>,
 }
 
 #[repr(C)]

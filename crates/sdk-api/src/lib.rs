@@ -23,8 +23,9 @@ mod plugin;
 mod r#unsafe;
 
 pub use api::{
-    FileService, GameService, HostApi, LinkDataRowTarget, LinkDataService, LogService, LuaService,
-    MemoryService, ModService, OwnedHostApi, PathService, VirtualFileProvider,
+    CapabilityService, FileService, GameService, HookService, HostApi, LinkDataRowTarget,
+    LinkDataService, LogService, LuaService, MemoryService, ModService, OwnedHostApi, PathService,
+    VirtualFileProvider,
 };
 pub use context::PluginContext;
 pub use entry::{plugin_abi_from_raw, PluginInitError};

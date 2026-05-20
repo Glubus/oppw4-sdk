@@ -1,6 +1,6 @@
 use plugin_sdk::HostApi;
 
-use crate::memory;
+use crate::{memory, PLUGIN_ID};
 
 pub(super) const CAVE_ARENA_SIZE: usize = 0x10000;
 
@@ -66,6 +66,9 @@ impl InlineHook {
         detour: usize,
         overwrite_len: usize,
     ) -> Result<Self, String> {
+        api.hooks()
+            .require_install(PLUGIN_ID)
+            .map_err(|error| format!("hooks.install capability refused: {error}"))?;
         if overwrite_len < 12 {
             return Err("inline hook overwrite_len must fit absolute jump".to_string());
         }
@@ -95,6 +98,9 @@ pub(super) unsafe fn patch_jump(
     target: usize,
     overwrite_len: usize,
 ) -> Result<(), String> {
+    api.hooks()
+        .require_install(PLUGIN_ID)
+        .map_err(|error| format!("hooks.install capability refused: {error}"))?;
     let mut patch = vec![0x90; overwrite_len];
     asm::write_rel32_jump(&mut patch, site, 5, target)?;
     api.memory()

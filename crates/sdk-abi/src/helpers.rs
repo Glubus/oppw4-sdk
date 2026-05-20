@@ -45,5 +45,6 @@ pub const fn null_api() -> Oppw4PluginApi {
         debug_enabled: None,
         replace_linkdata_entry: None,
         patch_linkdata_row: None,
+        require_capability: None,
     }
 }

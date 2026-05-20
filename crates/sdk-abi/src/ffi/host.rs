@@ -57,3 +57,8 @@ pub type HostPatchLinkDataRowFn = unsafe extern "system" fn(
     host_context: *mut c_void,
     patch: *const Oppw4LinkDataRowPatch,
 ) -> i32;
+pub type HostRequireCapabilityFn = unsafe extern "system" fn(
+    host_context: *mut c_void,
+    plugin_id: *const c_char,
+    capability: *const c_char,
+) -> i32;

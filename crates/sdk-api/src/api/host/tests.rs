@@ -42,6 +42,20 @@ unsafe extern "system" fn debug_enabled(_host_context: *mut c_void) -> i32 {
     1
 }
 
+unsafe extern "system" fn require_capability(
+    _host_context: *mut c_void,
+    plugin_id: *const c_char,
+    capability: *const c_char,
+) -> i32 {
+    let plugin_id = CStr::from_ptr(plugin_id).to_string_lossy();
+    let capability = CStr::from_ptr(capability).to_string_lossy();
+    if plugin_id == "fx_director" && capability == "hooks.install" {
+        0
+    } else {
+        -22
+    }
+}
+
 #[test]
 fn api_keeps_access_to_raw_abi_when_needed() {
     let abi = null_api();
@@ -110,6 +124,31 @@ fn host_game_service_reports_debug_flag() {
     };
 
     assert!(HostApi::from(&api).game().debug_enabled());
+}
+
+#[test]
+fn host_hook_service_requires_install_capability() {
+    let api = Oppw4PluginApi {
+        require_capability: Some(require_capability),
+        ..null_api()
+    };
+
+    assert_eq!(
+        HostApi::from(&api).hooks().require_install("fx_director"),
+        Ok(())
+    );
+
+    let error = HostApi::from(&api)
+        .hooks()
+        .require_install("skin_patcher")
+        .expect_err("missing capability should be rejected");
+    assert_eq!(
+        error,
+        crate::PluginError::HostCallFailed {
+            operation: "require_capability",
+            code: -22
+        }
+    );
 }
 
 #[allow(dead_code)]

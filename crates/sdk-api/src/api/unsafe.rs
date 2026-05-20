@@ -1,4 +1,4 @@
-use std::ffi::{c_char, c_void, CString};
+use std::ffi::{c_char, c_void, CStr, CString};
 
 use crate::{PluginError, PluginModInfo, PluginResult};
 use plugin_abi::{
@@ -6,9 +6,9 @@ use plugin_abi::{
     HostForEachPluginModZipFn, HostGameStatusFn, HostLogFn, HostModuleBaseFn,
     HostPatchLinkDataRowFn, HostPluginModVisitorFn, HostPluginModZipVisitorFn, HostReadMemoryFn,
     HostRegisterFileProviderFn, HostRegisterLuaModuleFn, HostReplaceLinkDataEntryFn,
-    HostScanMemoryFn, HostWriteMemoryFn, Oppw4ActiveCharacter, Oppw4FileProvider, Oppw4GameStatus,
-    Oppw4LinkDataEntryPatch, Oppw4LinkDataRowPatch, Oppw4LogEntry, Oppw4LuaModule,
-    Oppw4PluginModEntry,
+    HostRequireCapabilityFn, HostScanMemoryFn, HostWriteMemoryFn, Oppw4ActiveCharacter,
+    Oppw4FileProvider, Oppw4GameStatus, Oppw4LinkDataEntryPatch, Oppw4LinkDataRowPatch,
+    Oppw4LogEntry, Oppw4LuaModule, Oppw4PluginModEntry,
 };
 
 pub(super) fn host_log(
@@ -53,6 +53,15 @@ pub(super) fn scan_memory(
     mask: &[u8],
 ) -> usize {
     unsafe { scan(host_context, pattern.as_ptr(), mask.as_ptr(), pattern.len()) }
+}
+
+pub(super) fn require_capability(
+    host_context: *mut c_void,
+    require: HostRequireCapabilityFn,
+    plugin_id: &CStr,
+    capability: &CStr,
+) -> i32 {
+    unsafe { require(host_context, plugin_id.as_ptr(), capability.as_ptr()) }
 }
 
 pub(super) fn register_file_provider(

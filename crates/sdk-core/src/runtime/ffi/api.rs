@@ -13,6 +13,8 @@ use super::{
     status::{host_active_character, host_debug_enabled, host_game_status},
 };
 
+use plugin_abi::optional_cstr;
+
 pub(crate) fn build_api(
     game_root: &Path,
     game_root_utf8: &CString,
@@ -41,5 +43,26 @@ pub(crate) fn build_api(
         debug_enabled: Some(host_debug_enabled),
         replace_linkdata_entry: Some(host_replace_linkdata_entry),
         patch_linkdata_row: Some(host_patch_linkdata_row),
+        require_capability: Some(host_require_capability),
+    }
+}
+
+unsafe extern "system" fn host_require_capability(
+    host_context: *mut std::ffi::c_void,
+    plugin_id: *const std::ffi::c_char,
+    capability: *const std::ffi::c_char,
+) -> i32 {
+    let context = match super::context::context_from_raw(host_context) {
+        Ok(context) => context,
+        Err(code) => return code,
+    };
+    let Some(capability) = optional_cstr(capability) else {
+        return -25;
+    };
+    match context
+        .require_capability_for_cstr(optional_cstr(plugin_id), &capability.to_string_lossy())
+    {
+        Ok(()) => 0,
+        Err(code) => code,
     }
 }

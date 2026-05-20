@@ -6,10 +6,12 @@ mod mods;
 
 use plugin_sdk::{export_plugin, Plugin, PluginContext, PluginError, PluginResult};
 
+pub(crate) const PLUGIN_ID: &str = "fx_director";
+
 struct FxDirector;
 
 impl Plugin for FxDirector {
-    const ID: &'static str = "fx_director";
+    const ID: &'static str = PLUGIN_ID;
 
     fn init(context: PluginContext<'_>) -> PluginResult<()> {
         let host = context.host();

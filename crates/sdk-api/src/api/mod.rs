@@ -1,5 +1,7 @@
+mod capabilities;
 mod files;
 mod game;
+mod hooks;
 mod host;
 mod linkdata;
 mod log;
@@ -9,8 +11,10 @@ mod mods;
 mod paths;
 mod r#unsafe;
 
+pub use capabilities::CapabilityService;
 pub use files::{FileService, VirtualFileProvider};
 pub use game::GameService;
+pub use hooks::HookService;
 pub use host::{HostApi, OwnedHostApi};
 pub use linkdata::{LinkDataRowTarget, LinkDataService};
 pub use log::LogService;

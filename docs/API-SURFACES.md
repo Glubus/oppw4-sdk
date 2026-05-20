@@ -28,6 +28,7 @@ Current SDK core bootstrap ABI:
 - loader-owned memory module base/read/write/scan callbacks.
 - loader-owned file provider registration callback.
 - loader-owned game status and active character snapshot callbacks.
+- SDK-owned plugin capability validation callback.
 
 Not allowed in the loader ABI:
 
@@ -102,6 +103,7 @@ SDK core currently resolves plugin load order from `[dependencies].plugins` and 
 - `lua.module`;
 - `std.character.extend`;
 - `files.virtualize`;
+- `hooks.install`;
 - `rdb.patch` for file providers that patch existing RDB reads;
 - `linkdata.patch`;
 - `memory.read`;
@@ -134,6 +136,7 @@ Current validation rules:
 - duplicate Lua module names from different plugins are rejected;
 - `std.character` method extension requires `std.character.extend`;
 - file providers require `files.virtualize`;
+- hook installation helpers require `hooks.install`;
 - file providers with `patch_read` require `rdb.patch`;
 - LinkData entry/row patches require `linkdata.patch`;
 - memory read/scan/write callbacks require their matching memory capabilities.
