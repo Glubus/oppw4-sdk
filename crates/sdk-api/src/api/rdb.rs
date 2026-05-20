@@ -2,7 +2,7 @@ use std::ffi::c_void;
 
 use plugin_abi::{HostRdbPatchReadFn, HostRegisterRdbPatchProviderFn, Oppw4PluginApi};
 
-use crate::{error::PluginError, PluginResult};
+use crate::{api::VirtualFileProvider, cstring_lossy, error::PluginError, PluginResult};
 
 #[derive(Clone, Copy)]
 pub struct RdbService<'api> {
@@ -32,6 +32,33 @@ impl<'api> RdbService<'api> {
                 self.abi.host_context,
                 service_context,
                 Some(register_patch_provider),
+                None,
+            )
+        };
+        host_code_result("register_rdb_service", code)
+    }
+
+    /// # Safety
+    ///
+    /// `service_context`, `register_patch_provider`, and
+    /// `register_virtual_provider` must remain valid while the service plugin
+    /// is loaded.
+    pub unsafe fn register_service_with_virtual_provider(
+        self,
+        service_context: *mut c_void,
+        register_patch_provider: HostRegisterRdbPatchProviderFn,
+        register_virtual_provider: plugin_abi::HostRegisterRdbVirtualProviderFn,
+    ) -> PluginResult<()> {
+        let register = self
+            .abi
+            .register_rdb_service
+            .ok_or(PluginError::MissingHostFunction("register_rdb_service"))?;
+        let code = unsafe {
+            register(
+                self.abi.host_context,
+                service_context,
+                Some(register_patch_provider),
+                Some(register_virtual_provider),
             )
         };
         host_code_result("register_rdb_service", code)
@@ -55,6 +82,19 @@ impl<'api> RdbService<'api> {
                 ))?;
         let code = unsafe { register(self.abi.host_context, provider_context, Some(patch_read)) };
         host_code_result("register_rdb_patch_provider", code)
+    }
+
+    pub fn register_virtual_provider(self, provider: VirtualFileProvider<'_>) -> PluginResult<()> {
+        let register =
+            self.abi
+                .register_rdb_virtual_provider
+                .ok_or(PluginError::MissingHostFunction(
+                    "register_rdb_virtual_provider",
+                ))?;
+        let plugin_id = cstring_lossy(provider.plugin_id());
+        let raw = provider.into_raw(plugin_id.as_ptr());
+        let code = unsafe { register(self.abi.host_context, &raw) };
+        host_code_result("register_rdb_virtual_provider", code)
     }
 }
 

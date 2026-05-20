@@ -35,28 +35,17 @@ pub fn register_replacements(
 
     let provider = VirtualFileProvider::new(plugin_id, open_path, read, close, size)
         .file_time(file_time)
-        .seek(seek);
-    let registered = match host.files().register_virtual_provider(provider) {
-        Ok(()) => 0,
-        Err(PluginError::HostCallFailed { code, .. }) => code,
-        Err(_) => -1,
-    };
-    let rdb_registered = match unsafe {
-        host.rdb()
-            .register_patch_provider(std::ptr::null_mut(), patch_read)
-    } {
+        .seek(seek)
+        .patch_read(patch_read);
+    let registered = match host.rdb().register_virtual_provider(provider) {
         Ok(()) => 0,
         Err(PluginError::HostCallFailed { code, .. }) => code,
         Err(_) => -1,
     };
     log::write_line(format!(
-        "skin_patcher file provider result={registered} rdb_patch_provider={rdb_registered} replacements={count}"
+        "skin_patcher rdb virtual provider result={registered} replacements={count}"
     ));
-    if registered < 0 {
-        registered
-    } else {
-        rdb_registered
-    }
+    registered
 }
 
 unsafe extern "system" fn open_path(

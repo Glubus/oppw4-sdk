@@ -7,5 +7,5 @@ entry = "skin_patcher.dll"
 modules = ["skin_patcher"]
 
 [capabilities]
-requires = ["lua.module", "files.virtualize", "rdb.patch", "std.character.extend"]
+requires = ["lua.module", "rdb.patch", "std.character.extend"]
 provides = ["std.character.extend", "rdb.skin"]

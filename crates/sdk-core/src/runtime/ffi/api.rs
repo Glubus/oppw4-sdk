@@ -12,7 +12,10 @@ use super::{
     memory::{host_module_base, host_read_memory, host_scan_memory, host_write_memory},
     mods::{host_for_each_plugin_mod, host_for_each_plugin_mod_zip},
     providers::host_register_file_provider,
-    rdb::{host_register_rdb_patch_provider, host_register_rdb_service},
+    rdb::{
+        host_register_rdb_patch_provider, host_register_rdb_service,
+        host_register_rdb_virtual_provider,
+    },
     signals::{host_emit_signal, host_subscribe_signal},
     status::{
         host_active_character, host_debug_enabled, host_game_status,
@@ -58,6 +61,7 @@ pub(crate) fn build_api(
         register_linkdata_provider: Some(host_register_linkdata_provider),
         register_rdb_service: Some(host_register_rdb_service),
         register_rdb_patch_provider: Some(host_register_rdb_patch_provider),
+        register_rdb_virtual_provider: Some(host_register_rdb_virtual_provider),
         subscribe_signal: Some(host_subscribe_signal),
         emit_signal: Some(host_emit_signal),
     }

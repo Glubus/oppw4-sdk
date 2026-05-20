@@ -91,10 +91,13 @@ pub type HostRegisterRdbPatchProviderFn = unsafe extern "system" fn(
     provider_context: *mut c_void,
     patch_read: Option<HostRdbPatchReadFn>,
 ) -> i32;
+pub type HostRegisterRdbVirtualProviderFn =
+    unsafe extern "system" fn(host_context: *mut c_void, provider: *const Oppw4FileProvider) -> i32;
 pub type HostRegisterRdbServiceFn = unsafe extern "system" fn(
     host_context: *mut c_void,
     service_context: *mut c_void,
     register_patch_provider: Option<HostRegisterRdbPatchProviderFn>,
+    register_virtual_provider: Option<HostRegisterRdbVirtualProviderFn>,
 ) -> i32;
 pub type HostSignalCallbackFn = unsafe extern "system" fn(
     subscriber_context: *mut c_void,

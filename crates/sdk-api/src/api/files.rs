@@ -80,6 +80,10 @@ impl<'a> VirtualFileProvider<'a> {
         self
     }
 
+    pub(crate) const fn plugin_id(&self) -> &'a str {
+        self.plugin_id
+    }
+
     pub const fn file_time(mut self, file_time: Oppw4ProviderFileTimeFn) -> Self {
         self.file_time = Some(file_time);
         self
@@ -95,7 +99,7 @@ impl<'a> VirtualFileProvider<'a> {
         self
     }
 
-    fn into_raw(self, plugin_id: *const std::ffi::c_char) -> Oppw4FileProvider {
+    pub(crate) fn into_raw(self, plugin_id: *const std::ffi::c_char) -> Oppw4FileProvider {
         Oppw4FileProvider {
             plugin_id,
             provider_context: self.provider_context,

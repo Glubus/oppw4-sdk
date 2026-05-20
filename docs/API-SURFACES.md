@@ -91,13 +91,13 @@ capabilities such as `linkdata.patch` are available only after the matching
 service DLL registers successfully.
 
 `sdk.rdb` is the capability owner for `rdb.read` and `rdb.patch`. Existing RDB
-patch consumers can keep using file-provider patch reads during migration, but
-new RDB-specific behavior should move behind the RDB service.
+patch consumers can keep using `host.rdb().register_patch_provider(...)` during
+migration, but new RDB-specific behavior should move behind the RDB service.
 
-RDB patch providers register through `host.rdb()`. `sdk.rdb` owns the file
-provider `patch_read` hook and dispatches RDB read patches to registered
-providers; consumers should not register RDB `patch_read` callbacks directly as
-file providers.
+RDB virtual providers register through `host.rdb()`. `sdk.rdb` owns the single
+loader file provider used for RDB replacement and dispatches open/read/seek,
+metadata, and `patch_read` calls to registered RDB providers; consumers should
+not register RDB replacements directly through `host.files()`.
 
 ## Plugin Manifest Surface
 
@@ -140,7 +140,7 @@ SDK core currently resolves plugin load order from `[dependencies].plugins` and 
 - `std.character.extend`;
 - `files.virtualize`;
 - `hooks.install`;
-- `rdb.patch` for file providers that patch existing RDB reads;
+- `rdb.patch` for RDB providers that patch existing RDB reads;
 - `linkdata.patch`;
 - `memory.read`;
 - `memory.scan`;
@@ -159,7 +159,7 @@ Registration categories:
 - Lua module registration;
 - `std.*` type extension registration;
 - file provider registration;
-- RDB patch provider registration;
+- RDB virtual/patch provider registration;
 - LinkData patch provider registration;
 - hook registration;
 - signal subscription/emission registration;
@@ -173,9 +173,9 @@ Current validation rules:
 - runtime Lua module registration must match a module name listed in `[lua].modules`;
 - duplicate Lua module names from different plugins are rejected;
 - `std.character` method extension requires `std.character.extend`;
-- file providers require `files.virtualize`;
+- generic file providers require `files.virtualize`;
 - hook installation helpers require `hooks.install`;
-- file providers with `patch_read` require `rdb.patch`;
+- RDB virtual and patch providers require `rdb.patch`;
 - LinkData entry/row patches require `linkdata.patch`;
 - memory read/scan/write callbacks require their matching memory capabilities.
 - signal subscriptions require `signals.subscribe`;

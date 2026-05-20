@@ -58,9 +58,9 @@ Use `context.host()` from `Plugin::init`:
 - `host.paths()` for game, plugin, mods, and config roots;
 - `host.log()` for plugin logs;
 - `host.lua()` to register Lua modules;
-- `host.files()` for virtual file providers;
+- `host.files()` for generic virtual file providers;
 - `host.linkdata()` for LinkData patches;
-- `host.rdb()` for RDB patch providers;
+- `host.rdb()` for RDB virtual file and patch providers;
 - `host.signals()` for named signal subscribe/emit;
 - `host.memory()` and `host.hooks()` only with explicit capabilities.
 

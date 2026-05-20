@@ -6,10 +6,10 @@ use super::ffi::{
     HostPatchLinkDataRowFn, HostReadMemoryFn, HostRegisterActiveCharacterProviderFn,
     HostRegisterFileProviderFn, HostRegisterGameStatusProviderFn, HostRegisterLinkDataProviderFn,
     HostRegisterLuaModuleFn, HostRegisterRdbPatchProviderFn, HostRegisterRdbServiceFn,
-    HostReplaceLinkDataEntryFn, HostRequireCapabilityFn, HostScanMemoryFn, HostSubscribeSignalFn,
-    HostWriteMemoryFn, Oppw4LuaRegisterFn, Oppw4ProviderCloseFn, Oppw4ProviderFileTimeFn,
-    Oppw4ProviderOpenPathFn, Oppw4ProviderPatchReadFn, Oppw4ProviderReadFn, Oppw4ProviderSeekFn,
-    Oppw4ProviderSizeFn,
+    HostRegisterRdbVirtualProviderFn, HostReplaceLinkDataEntryFn, HostRequireCapabilityFn,
+    HostScanMemoryFn, HostSubscribeSignalFn, HostWriteMemoryFn, Oppw4LuaRegisterFn,
+    Oppw4ProviderCloseFn, Oppw4ProviderFileTimeFn, Oppw4ProviderOpenPathFn,
+    Oppw4ProviderPatchReadFn, Oppw4ProviderReadFn, Oppw4ProviderSeekFn, Oppw4ProviderSizeFn,
 };
 
 #[repr(C)]
@@ -41,6 +41,7 @@ pub struct Oppw4PluginApi {
     pub register_linkdata_provider: Option<HostRegisterLinkDataProviderFn>,
     pub register_rdb_service: Option<HostRegisterRdbServiceFn>,
     pub register_rdb_patch_provider: Option<HostRegisterRdbPatchProviderFn>,
+    pub register_rdb_virtual_provider: Option<HostRegisterRdbVirtualProviderFn>,
     pub subscribe_signal: Option<HostSubscribeSignalFn>,
     pub emit_signal: Option<HostEmitSignalFn>,
 }

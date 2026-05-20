@@ -19,6 +19,7 @@ Current checkpoint:
 - [x] `sdk.linkdata` owns LinkData patch registry and file virtualization as `linkdata.dll`;
 - [x] `sdk.rdb` is scaffolded as `rdb.dll` and owns the `rdb.read` / `rdb.patch` service capabilities;
 - [x] RDB patch read providers register through `sdk.rdb` instead of direct plugin file-provider hooks;
+- [x] RDB virtual file providers register through `sdk.rdb`; only `sdk.rdb` bridges them to the loader file-provider ABI;
 - [x] SDK core seeds core capabilities before resolving optional service capabilities;
 - [x] SDK packaging script assembles `plugins/sdk/` plus official plugin folders;
 - [x] SDK repository consumes `oppw4-data` as a submodule for collaborative data work;
