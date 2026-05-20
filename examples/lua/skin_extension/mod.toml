@@ -1,0 +1,9 @@
+[mod]
+id = "skin_extension_example"
+name = "Skin Extension Example"
+
+[uses]
+plugins = ["skin_patcher"]
+
+[entry]
+lua = "mod.lua"
