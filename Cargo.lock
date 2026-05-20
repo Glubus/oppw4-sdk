@@ -276,6 +276,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "mod-manifest-tool"
+version = "0.1.0"
+dependencies = [
+ "lua-api",
+]
+
+[[package]]
 name = "moveset-tool"
 version = "0.1.0"
 dependencies = [

@@ -251,7 +251,7 @@ Status: in progress. Official plugins live in the SDK repo. `moveset_patcher` is
 
 ## Phase 7: Loader Reduction
 
-Progress: not started.
+Progress: started.
 
 Goals:
 
@@ -275,7 +275,7 @@ Goals:
 
 - [ ] Make the SDK usable by third-party modders.
 - [ ] Provide examples and templates.
-- [ ] Add validation tools.
+- [x] Add validation tools.
 
 Deliverables:
 
@@ -285,7 +285,7 @@ Deliverables:
 - [ ] LinkData patch example;
 - [ ] asset replacement example;
 - [x] `plugin.toml` validator;
-- [ ] `mod.toml` validator.
+- [x] `mod.toml` validator.
 
 Exit criteria:
 

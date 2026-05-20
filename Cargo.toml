@@ -9,6 +9,7 @@ members = [
     "crates/sdk-api",
     "crates/rdb",
     "tools/moveset-tool",
+    "tools/mod-manifest-tool",
     "tools/plugin-manifest-tool",
     "tools/rdb-tool",
     "official_plugins/skin_patcher",

@@ -57,6 +57,12 @@ Validate a plugin manifest:
 cargo run -p plugin-manifest-tool -- official_plugins/fx_director/plugin.toml
 ```
 
+Validate a Lua mod manifest:
+
+```powershell
+cargo run -p mod-manifest-tool -- path/to/mod.toml
+```
+
 ## Architecture Docs
 
 - [SDK foundation RFC](docs/RFC-0001-sdk-foundation.md)
