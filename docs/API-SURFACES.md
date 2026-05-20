@@ -90,6 +90,10 @@ and memory primitives are available before optional SDK services load. Service
 capabilities such as `linkdata.patch` are available only after the matching
 service DLL registers successfully.
 
+`sdk.rdb` is the capability owner for `rdb.read` and `rdb.patch`. Existing RDB
+patch consumers can keep using file-provider patch reads during migration, but
+new RDB-specific behavior should move behind the RDB service.
+
 ## Plugin Manifest Surface
 
 `plugin.toml` declares static intent.

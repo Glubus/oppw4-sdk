@@ -353,6 +353,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "oppw4-sdk-rdb-plugin"
+version = "0.1.0"
+dependencies = [
+ "plugin-sdk",
+]
+
+[[package]]
 name = "oppw4-sdk-runtime-plugin"
 version = "0.1.0"
 dependencies = [

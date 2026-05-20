@@ -1,0 +1,12 @@
+[package]
+name = "oppw4-sdk-rdb-plugin"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+name = "rdb"
+
+[dependencies]
+plugin-sdk.workspace = true

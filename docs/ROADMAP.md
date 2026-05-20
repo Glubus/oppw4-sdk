@@ -17,6 +17,7 @@ Current checkpoint:
 - [x] SDK core no longer publishes game status or active character callbacks directly;
 - [x] `sdk.runtime` is scaffolded as `runtime.dll` and registers game telemetry providers through the SDK ABI;
 - [x] `sdk.linkdata` owns LinkData patch registry and file virtualization as `linkdata.dll`;
+- [x] `sdk.rdb` is scaffolded as `rdb.dll` and owns the `rdb.read` / `rdb.patch` service capabilities;
 - [x] SDK core seeds core capabilities before resolving optional service capabilities;
 - [x] character bank editable sources are split per character and generated into SDK-facing views;
 - [x] Lua mods can use `require("std.character")`;
@@ -112,6 +113,7 @@ Goals:
 - [x] Add character bank resources.
 - [x] Resolve optional SDK service DLLs from `plugins/sdk/`.
 - [x] Move LinkData patching/virtualization out of SDK core into `sdk.linkdata`.
+- [x] Add `sdk.rdb` service DLL as the capability owner for RDB APIs.
 
 Target workspace:
 
