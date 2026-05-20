@@ -30,7 +30,7 @@ pub const fn null_api() -> Oppw4PluginApi {
         host_context: ptr::null_mut(),
         game_root_utf8: ptr::null(),
         plugin_root_utf8: ptr::null(),
-        plugin_mods_root_utf8: ptr::null(),
+        mods_root_utf8: ptr::null(),
         log: None,
         module_base: None,
         read_memory: None,

@@ -36,15 +36,15 @@ fn is_mod_for_plugin(mod_entry: &lua_api::LuaMod, context: &ApiContext) -> bool 
     mod_entry.uses_plugin(&context.plugin_id)
 }
 
-fn legacy_mod_paths(plugin_mods_root: &Path) -> Vec<CString> {
-    mods::list_legacy_paths(plugin_mods_root)
+fn legacy_mod_paths(mods_root: &Path) -> Vec<CString> {
+    mods::list_legacy_paths(mods_root)
         .into_iter()
         .map(|path| cstring_lossy(&path.to_string_lossy()))
         .collect()
 }
 
 fn plugin_mods_for_context(context: &ApiContext) -> Vec<PreparedPluginMod> {
-    lua_api::discover_mods(&context.plugin_mods_root)
+    lua_api::discover_mods(&context.mods_root)
         .into_iter()
         .filter(|mod_entry| is_mod_for_plugin(mod_entry, context))
         .map(|mod_entry| PreparedPluginMod {

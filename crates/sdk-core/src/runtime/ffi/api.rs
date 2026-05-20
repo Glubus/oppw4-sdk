@@ -25,7 +25,7 @@ pub(crate) fn build_api(
     game_root: &Path,
     game_root_utf8: &CString,
     plugin_root_utf8: &CString,
-    plugin_mods_root_utf8: &CString,
+    mods_root_utf8: &CString,
     context: &ApiContext,
 ) -> Oppw4PluginApi {
     let _ = game_root;
@@ -34,7 +34,7 @@ pub(crate) fn build_api(
         host_context: (context as *const ApiContext).cast_mut().cast(),
         game_root_utf8: game_root_utf8.as_ptr(),
         plugin_root_utf8: plugin_root_utf8.as_ptr(),
-        plugin_mods_root_utf8: plugin_mods_root_utf8.as_ptr(),
+        mods_root_utf8: mods_root_utf8.as_ptr(),
         log: Some(host_log),
         module_base: Some(host_module_base),
         read_memory: Some(host_read_memory),

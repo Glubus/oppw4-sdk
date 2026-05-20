@@ -13,7 +13,7 @@ pub(crate) unsafe extern "system" fn host_for_each_plugin_mod_zip(
         return super::invalid_visitor_error(host_context, visitor);
     };
 
-    for path in super::legacy_mod_paths(&context.plugin_mods_root) {
+    for path in super::legacy_mod_paths(&context.mods_root) {
         let result = visitor(user_context, path.as_ptr());
         if result != 0 {
             return result;

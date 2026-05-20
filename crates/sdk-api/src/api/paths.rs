@@ -23,6 +23,6 @@ impl<'api> PathService<'api> {
     }
 
     pub fn mods_root(self) -> Option<PathBuf> {
-        path_from_cstr(self.abi.plugin_mods_root_utf8)
+        path_from_cstr(self.abi.mods_root_utf8)
     }
 }

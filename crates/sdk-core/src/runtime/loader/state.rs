@@ -5,7 +5,7 @@ use crate::runtime::{ffi, manifest::PluginManifest};
 pub(super) struct PluginApiState {
     pub(super) game_root_utf8: CString,
     pub(super) plugin_root_utf8: CString,
-    pub(super) plugin_mods_root_utf8: CString,
+    pub(super) mods_root_utf8: CString,
     pub(super) context: ffi::ApiContext,
 }
 
@@ -16,7 +16,7 @@ impl PluginApiState {
         Self {
             game_root_utf8: ffi::cstring_lossy(&game_root.to_string_lossy()),
             plugin_root_utf8: ffi::cstring_lossy(&manifest.root.to_string_lossy()),
-            plugin_mods_root_utf8: ffi::cstring_lossy(&mods_root.to_string_lossy()),
+            mods_root_utf8: ffi::cstring_lossy(&mods_root.to_string_lossy()),
             context: ffi::ApiContext::new(
                 manifest.id.clone(),
                 mods_root.to_path_buf(),

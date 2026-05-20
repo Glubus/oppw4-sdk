@@ -92,7 +92,7 @@ unsafe fn initialize_plugin(
         game_root,
         &api_state.game_root_utf8,
         &api_state.plugin_root_utf8,
-        &api_state.plugin_mods_root_utf8,
+        &api_state.mods_root_utf8,
         &api_state.context,
     );
     let result = init(&api);

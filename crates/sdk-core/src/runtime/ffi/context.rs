@@ -13,7 +13,7 @@ pub(crate) const CAP_STD_CHARACTER_EXTEND: &str = "std.character.extend";
 
 pub(crate) struct ApiContext {
     pub(super) plugin_id: String,
-    pub(super) plugin_mods_root: PathBuf,
+    pub(super) mods_root: PathBuf,
     capabilities: HashSet<String>,
     lua_modules: HashSet<String>,
 }
@@ -21,13 +21,13 @@ pub(crate) struct ApiContext {
 impl ApiContext {
     pub(crate) fn new(
         plugin_id: String,
-        plugin_mods_root: PathBuf,
+        mods_root: PathBuf,
         capabilities: impl IntoIterator<Item = String>,
         lua_modules: impl IntoIterator<Item = String>,
     ) -> Self {
         Self {
             plugin_id,
-            plugin_mods_root,
+            mods_root,
             capabilities: capabilities
                 .into_iter()
                 .map(|capability| capability.to_ascii_lowercase())
