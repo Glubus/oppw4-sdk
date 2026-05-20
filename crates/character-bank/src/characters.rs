@@ -1,4 +1,4 @@
-use std::sync::OnceLock;
+use std::{fs, path::Path, sync::OnceLock};
 
 use serde::Deserialize;
 
@@ -22,11 +22,65 @@ pub struct Character {
     pub aliases: Vec<String>,
 }
 
+#[derive(Debug, Deserialize)]
+struct CharacterDataFile {
+    id: String,
+    display_name: String,
+    #[serde(default)]
+    aliases: Vec<String>,
+    ids: CharacterIds,
+    assets: CharacterAssets,
+}
+
+#[derive(Debug, Deserialize)]
+struct CharacterIds {
+    playable: Option<u16>,
+    runtime: Option<u16>,
+    boss_runtime: Option<u16>,
+    model: Option<u16>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CharacterAssets {
+    #[serde(default)]
+    costumes: Vec<CostumeRef>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CostumeRef {
+    #[serde(rename = "ref")]
+    reference: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct CostumeDataFile {
+    model_id: Option<u16>,
+    #[serde(default)]
+    assets: Vec<CostumeAsset>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CostumeAsset {
+    kind: String,
+    path: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MovesetsDataFile {
+    base: MovesetRef,
+}
+
+#[derive(Debug, Deserialize)]
+struct MovesetRef {
+    entry: u16,
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum CharacterDataError {
     InvalidJson(String),
     Empty,
     MissingRequiredField { index: usize, field: &'static str },
+    InvalidDirectory(String),
 }
 
 static CHARACTERS: OnceLock<Vec<Character>> = OnceLock::new();
@@ -70,6 +124,104 @@ pub fn parse_characters_json(text: &str) -> Result<Vec<Character>, CharacterData
         .map_err(|error| CharacterDataError::InvalidJson(error.to_string()))?;
     validate_characters(&characters)?;
     Ok(characters)
+}
+
+pub fn read_data_root(root: &Path) -> Result<Vec<Character>, CharacterDataError> {
+    let characters_root = root.join("characters");
+    let entries = fs::read_dir(&characters_root)
+        .map_err(|error| CharacterDataError::InvalidDirectory(error.to_string()))?;
+    let mut characters = Vec::new();
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let data_path = path.join("data.json");
+        if !data_path.is_file() {
+            continue;
+        }
+        let text = fs::read_to_string(&data_path)
+            .map_err(|error| CharacterDataError::InvalidJson(error.to_string()))?;
+        let mut character = parse_character_data_json(&path, &text)?;
+        let movesets_path = path.join("movesets.json");
+        if movesets_path.is_file() {
+            let text = fs::read_to_string(&movesets_path)
+                .map_err(|error| CharacterDataError::InvalidJson(error.to_string()))?;
+            character.moveset_linkdata_entry = parse_moveset_entry_json(&text)?;
+        }
+        characters.push(character);
+    }
+    characters.sort_by(|left, right| left.canonical.cmp(&right.canonical));
+    validate_characters(&characters)?;
+    Ok(characters)
+}
+
+fn parse_character_data_json(
+    character_dir: &Path,
+    text: &str,
+) -> Result<Character, CharacterDataError> {
+    let data: CharacterDataFile = serde_json::from_str(text)
+        .map_err(|error| CharacterDataError::InvalidJson(error.to_string()))?;
+    let primary_model = primary_model_from_costumes(character_dir, &data.assets.costumes)?;
+    let (model_id, model_stem) = primary_model
+        .map(|(id, stem)| (Some(id), stem))
+        .unwrap_or((data.ids.model, fallback_model_stem(data.ids.model)));
+
+    Ok(Character {
+        playable_id: data.ids.playable,
+        runtime_id: data.ids.runtime,
+        boss_runtime_id: data.ids.boss_runtime,
+        moveset_linkdata_entry: None,
+        model_id,
+        canonical: data.id,
+        display_name: data.display_name,
+        model_stem,
+        aliases: data.aliases,
+    })
+}
+
+fn primary_model_from_costumes(
+    character_dir: &Path,
+    costumes: &[CostumeRef],
+) -> Result<Option<(u16, String)>, CharacterDataError> {
+    for costume in costumes {
+        let costume = costume_data_file(character_dir, costume)?;
+        if let Some(model) = costume.model_id.zip(primary_model_stem(&costume.assets)) {
+            return Ok(Some(model));
+        }
+    }
+    Ok(None)
+}
+
+fn costume_data_file(
+    character_dir: &Path,
+    costume: &CostumeRef,
+) -> Result<CostumeDataFile, CharacterDataError> {
+    let path = character_dir.join(&costume.reference);
+    let text = fs::read_to_string(&path).map_err(|error| {
+        CharacterDataError::InvalidDirectory(format!("{}: {error}", path.display()))
+    })?;
+    serde_json::from_str(&text).map_err(|error| CharacterDataError::InvalidJson(error.to_string()))
+}
+
+fn parse_moveset_entry_json(text: &str) -> Result<Option<u16>, CharacterDataError> {
+    let data: MovesetsDataFile = serde_json::from_str(text)
+        .map_err(|error| CharacterDataError::InvalidJson(error.to_string()))?;
+    Ok(Some(data.base.entry))
+}
+
+fn primary_model_stem(assets: &[CostumeAsset]) -> Option<String> {
+    assets
+        .iter()
+        .find(|asset| asset.kind == "model")
+        .and_then(|asset| asset.path.as_deref())
+        .map(|path| path.trim_end_matches(".g1m").to_string())
+}
+
+fn fallback_model_stem(model_id: Option<u16>) -> String {
+    model_id
+        .map(|id| format!("MPLC{id:03}"))
+        .unwrap_or_else(|| "unknown".to_string())
 }
 
 fn validate_characters(characters: &[Character]) -> Result<(), CharacterDataError> {
@@ -286,8 +438,92 @@ mod tests {
     }
 
     #[test]
+    fn reads_split_oppw4_data_root() {
+        let root = temp_data_root("split-data");
+        let character_dir = root.join("characters").join("law");
+        fs::create_dir_all(character_dir.join("costumes")).expect("costume dir");
+        fs::write(
+            character_dir.join("data.json"),
+            r#"
+                {
+                  "id": "law",
+                  "display_name": "Law",
+                  "aliases": ["trafalgar_law"],
+                  "ids": {
+                    "playable": 22,
+                    "runtime": 26,
+                    "boss_runtime": 26,
+                    "model": 26
+                  },
+                  "assets": {
+                    "costumes": [
+                      { "id": "default", "ref": "costumes/default.json" }
+                    ]
+                  }
+                }
+            "#,
+        )
+        .expect("character data");
+        fs::write(
+            character_dir.join("costumes").join("default.json"),
+            r#"
+                {
+                  "character_id": "law",
+                  "id": "default",
+                  "label": "Default",
+                  "slot": 1,
+                  "model_id": 26,
+                  "assets": [
+                    {
+                      "kind": "model",
+                      "label": "Default character model",
+                      "path": "MPLC026_Law.g1m"
+                    }
+                  ]
+                }
+            "#,
+        )
+        .expect("costume data");
+        fs::write(
+            character_dir.join("movesets.json"),
+            r#"
+                {
+                  "character_id": "law",
+                  "base": {
+                    "linkdata_file": "LINKDATA_A",
+                    "entry": 90
+                  },
+                  "variants": []
+                }
+            "#,
+        )
+        .expect("moveset data");
+
+        let characters = read_data_root(&root).expect("oppw4-data root");
+        let law = characters
+            .iter()
+            .find(|character| character.canonical == "law")
+            .expect("law");
+
+        assert_eq!(characters.len(), 1);
+        assert_eq!(law.playable_id, Some(22));
+        assert_eq!(law.model_id, Some(26));
+        assert_eq!(law.model_stem, "MPLC026_Law");
+        assert_eq!(law.moveset_linkdata_entry, Some(90));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn rejects_unknown_names() {
         assert!(find("").is_none());
         assert!(find("not a real character").is_none());
+    }
+
+    fn temp_data_root(label: &str) -> std::path::PathBuf {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("time")
+            .as_nanos();
+        std::env::temp_dir().join(format!("oppw4-data-{label}-{nanos}"))
     }
 }
