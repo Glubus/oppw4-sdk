@@ -8,12 +8,29 @@ impl LogPolicy {
     pub const SILENT: Self = Self { host: false };
 }
 
+pub fn mirror_mod_log_to_host(level: &str) -> bool {
+    matches!(level, "warn" | "error")
+}
+
 use crate::{HostApi, OwnedHostApi, PluginResult};
 
 #[derive(Clone)]
 pub struct PluginLogger {
     plugin_id: &'static str,
     host: OwnedHostApi,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mod_log_host_mirror_keeps_warnings_and_errors_only() {
+        assert!(!mirror_mod_log_to_host("debug"));
+        assert!(!mirror_mod_log_to_host("info"));
+        assert!(mirror_mod_log_to_host("warn"));
+        assert!(mirror_mod_log_to_host("error"));
+    }
 }
 
 impl PluginLogger {

@@ -180,7 +180,7 @@ log.info("loaded")
 log.warn("fallback effect id used")
 ```
 
-The current implementation records mod-scoped entries inside the Lua runtime and returns them to `sdk_core` after each mod run. SDK core writes those entries under `mods/_oppw4/logs/mods/<mod_id>/<session>.log` and also mirrors concise lines to the host log for now. Final filtering/verbosity policy is still open.
+The current implementation records mod-scoped entries inside the Lua runtime and returns them to `sdk_core` after each mod run. SDK core writes all entries under `mods/_oppw4/logs/mods/<mod_id>/<session>.log`. To keep release host logs useful, only `warn` and `error` entries are mirrored to the host log.
 
 ### `std.mod`
 

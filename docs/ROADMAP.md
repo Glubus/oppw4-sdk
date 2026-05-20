@@ -153,9 +153,9 @@ Exit criteria:
 - [x] unsafe Lua libraries are unavailable by default;
 - [x] directory and zip/nested zip mods can load;
 - [x] directory mods can hot reload;
-- [ ] finalize log level/filter policy.
+- [x] finalize log level/filter policy.
 
-Status: in progress. `std.character`, `std.files`, `std.mod`, and a transitional `std.log` are implemented. SDK-owned mod-file reads exist in Rust and Lua. `std.log` entries now return to `sdk_core` after each mod run and are written into per-mod log folders. Lua mods run with unsafe filesystem/process/debug globals hidden, while SDK-controlled `require` remains available. Remaining log work is mostly policy/detail: levels, filtering, and release verbosity.
+Status: in progress. `std.character`, `std.files`, `std.mod`, and `std.log` are implemented. SDK-owned mod-file reads exist in Rust and Lua. `std.log` entries now return to `sdk_core` after each mod run and are written into per-mod log folders. Release host logs mirror only mod `warn` and `error` entries. Lua mods run with unsafe filesystem/process/debug globals hidden, while SDK-controlled `require` remains available.
 
 ## Phase 4: Character Bank
 
