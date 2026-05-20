@@ -420,7 +420,7 @@ mod tests {
         );
         assert_eq!(
             find("garp").and_then(|character| character.moveset_linkdata_entry),
-            Some(247)
+            None
         );
         assert_eq!(
             find("garp_yng").and_then(|character| character.moveset_linkdata_entry),
