@@ -97,7 +97,7 @@ requires = ["lua.module", "hooks.install"]
 provides = ["std.character.extend"]
 ```
 
-SDK core currently resolves plugin load order from `[dependencies].plugins` and rejects duplicate Lua module names at runtime. A plugin must declare each Lua module in `[lua].modules`; having only `lua.module` is not enough. Module and capability names are normalized to lowercase and may contain only ASCII letters, digits, `_`, `-`, and `.`. Dotted names cannot be empty, start/end with `.`, or contain `..`. Capability checks are enforced for:
+SDK core currently resolves plugin load order from `[dependencies].plugins` and rejects duplicate Lua module names at runtime. Manifest dependency, Lua module, and capability lists are de-duplicated after normalization while preserving first occurrence order. A plugin must declare each Lua module in `[lua].modules`; having only `lua.module` is not enough. Module and capability names are normalized to lowercase and may contain only ASCII letters, digits, `_`, `-`, and `.`. Dotted names cannot be empty, start/end with `.`, or contain `..`. Capability checks are enforced for:
 
 - `lua.module`;
 - `std.character.extend`;

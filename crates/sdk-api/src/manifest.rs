@@ -58,19 +58,23 @@ impl PluginDescriptor {
             .into_iter()
             .map(|dependency| sanitize_plugin_id(&dependency))
             .filter(|id| id != "unknown_plugin")
-            .collect();
+            .collect::<Vec<_>>();
+        let dependencies = unique_strings(dependencies);
         let lua_modules = string_array(&value, &["lua", "modules"])
             .into_iter()
             .map(normalize_lua_module_name)
             .collect::<Result<Vec<_>, _>>()?;
+        let lua_modules = unique_strings(lua_modules);
         let capabilities_required = string_array(&value, &["capabilities", "requires"])
             .into_iter()
             .map(normalize_capability_name)
             .collect::<Result<Vec<_>, _>>()?;
+        let capabilities_required = unique_strings(capabilities_required);
         let capabilities_provided = string_array(&value, &["capabilities", "provides"])
             .into_iter()
             .map(normalize_capability_name)
             .collect::<Result<Vec<_>, _>>()?;
+        let capabilities_provided = unique_strings(capabilities_provided);
 
         Ok(Self {
             id,
@@ -158,6 +162,19 @@ fn is_dotted_ascii_name(name: &str) -> bool {
         && name
             .chars()
             .all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '-' || ch == '.')
+}
+
+fn unique_strings(values: Vec<String>) -> Vec<String> {
+    let mut unique = Vec::with_capacity(values.len());
+    for value in values {
+        if !unique
+            .iter()
+            .any(|known: &String| known.eq_ignore_ascii_case(&value))
+        {
+            unique.push(value);
+        }
+    }
+    unique
 }
 
 pub fn plugin_toml_path(plugin_dir: &Path) -> PathBuf {
@@ -326,6 +343,37 @@ mod tests {
         assert_eq!(
             descriptor.capabilities_required,
             ["lua.module", "hooks.install"]
+        );
+        assert_eq!(descriptor.capabilities_provided, ["runtime.fx"]);
+    }
+
+    #[test]
+    fn deduplicates_normalized_manifest_lists() {
+        let descriptor = PluginDescriptor::parse_toml(
+            r#"
+                [plugin]
+                id = "fx_director"
+                version = "0.2.0"
+                entry = "fx_director.dll"
+
+                [dependencies]
+                plugins = ["Skin Patcher", "skin_patcher"]
+
+                [lua]
+                modules = ["FX_Director", "fx_director"]
+
+                [capabilities]
+                requires = [" Lua.Module ", "lua.module", "Memory.Scan"]
+                provides = [" Runtime.Fx ", "runtime.fx"]
+            "#,
+        )
+        .expect("descriptor");
+
+        assert_eq!(descriptor.dependencies, ["Skin_Patcher"]);
+        assert_eq!(descriptor.lua_modules, ["fx_director"]);
+        assert_eq!(
+            descriptor.capabilities_required,
+            ["lua.module", "memory.scan"]
         );
         assert_eq!(descriptor.capabilities_provided, ["runtime.fx"]);
     }
