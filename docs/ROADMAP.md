@@ -291,7 +291,7 @@ Exit criteria:
 
 - [x] a new developer can create a Lua mod from examples;
 - [x] a new developer can create a Rust plugin from a template;
-- [ ] SDK docs explain where each feature belongs.
+- [x] SDK docs explain where each feature belongs.
 
 ## Phase 9: Release Packaging
 
