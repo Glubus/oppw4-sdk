@@ -96,3 +96,21 @@ pub type HostRegisterRdbServiceFn = unsafe extern "system" fn(
     service_context: *mut c_void,
     register_patch_provider: Option<HostRegisterRdbPatchProviderFn>,
 ) -> i32;
+pub type HostSignalCallbackFn = unsafe extern "system" fn(
+    subscriber_context: *mut c_void,
+    signal_utf8: *const c_char,
+    payload: *const u8,
+    payload_len: usize,
+) -> i32;
+pub type HostSubscribeSignalFn = unsafe extern "system" fn(
+    host_context: *mut c_void,
+    signal_utf8: *const c_char,
+    subscriber_context: *mut c_void,
+    callback: Option<HostSignalCallbackFn>,
+) -> i32;
+pub type HostEmitSignalFn = unsafe extern "system" fn(
+    host_context: *mut c_void,
+    signal_utf8: *const c_char,
+    payload: *const u8,
+    payload_len: usize,
+) -> i32;

@@ -4,7 +4,7 @@ use plugin_abi::Oppw4PluginApi;
 
 use super::{
     CapabilityService, FileService, GameService, HookService, LinkDataService, LogService,
-    LuaService, MemoryService, ModService, PathService, RdbService,
+    LuaService, MemoryService, ModService, PathService, RdbService, SignalService,
 };
 
 #[derive(Clone, Copy)]
@@ -84,6 +84,10 @@ impl<'api> HostApi<'api> {
         RdbService::new(self.abi)
     }
 
+    pub const fn signals(self) -> SignalService<'api> {
+        SignalService::new(self.abi)
+    }
+
     pub fn owned(self) -> OwnedHostApi {
         OwnedHostApi::new(*self.abi)
     }
@@ -146,6 +150,10 @@ impl OwnedHostApi {
 
     pub fn rdb(&self) -> RdbService<'_> {
         self.as_ref().rdb()
+    }
+
+    pub fn signals(&self) -> SignalService<'_> {
+        self.as_ref().signals()
     }
 }
 

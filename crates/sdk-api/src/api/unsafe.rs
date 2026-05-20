@@ -2,13 +2,14 @@ use std::ffi::{c_char, c_void, CStr, CString};
 
 use crate::{PluginError, PluginModInfo, PluginResult};
 use plugin_abi::{
-    optional_cstr, HostActiveCharacterFn, HostDebugEnabledFn, HostForEachPluginModFn,
-    HostForEachPluginModZipFn, HostGameStatusFn, HostLogFn, HostModuleBaseFn,
-    HostPatchLinkDataRowFn, HostPluginModVisitorFn, HostPluginModZipVisitorFn, HostReadMemoryFn,
-    HostRegisterFileProviderFn, HostRegisterLuaModuleFn, HostReplaceLinkDataEntryFn,
-    HostRequireCapabilityFn, HostScanMemoryFn, HostWriteMemoryFn, Oppw4ActiveCharacter,
-    Oppw4FileProvider, Oppw4GameStatus, Oppw4LinkDataEntryPatch, Oppw4LinkDataRowPatch,
-    Oppw4LogEntry, Oppw4LuaModule, Oppw4PluginModEntry,
+    optional_cstr, HostActiveCharacterFn, HostDebugEnabledFn, HostEmitSignalFn,
+    HostForEachPluginModFn, HostForEachPluginModZipFn, HostGameStatusFn, HostLogFn,
+    HostModuleBaseFn, HostPatchLinkDataRowFn, HostPluginModVisitorFn, HostPluginModZipVisitorFn,
+    HostReadMemoryFn, HostRegisterFileProviderFn, HostRegisterLuaModuleFn,
+    HostReplaceLinkDataEntryFn, HostRequireCapabilityFn, HostScanMemoryFn, HostSignalCallbackFn,
+    HostSubscribeSignalFn, HostWriteMemoryFn, Oppw4ActiveCharacter, Oppw4FileProvider,
+    Oppw4GameStatus, Oppw4LinkDataEntryPatch, Oppw4LinkDataRowPatch, Oppw4LogEntry, Oppw4LuaModule,
+    Oppw4PluginModEntry,
 };
 
 pub(super) fn host_log(
@@ -94,6 +95,39 @@ pub(super) fn patch_linkdata_row(
     patch: &Oppw4LinkDataRowPatch,
 ) -> i32 {
     unsafe { patch_row(host_context, patch) }
+}
+
+pub(super) fn subscribe_signal(
+    host_context: *mut c_void,
+    subscribe: HostSubscribeSignalFn,
+    signal: &CStr,
+    subscriber_context: *mut c_void,
+    callback: HostSignalCallbackFn,
+) -> i32 {
+    unsafe {
+        subscribe(
+            host_context,
+            signal.as_ptr(),
+            subscriber_context,
+            Some(callback),
+        )
+    }
+}
+
+pub(super) fn emit_signal(
+    host_context: *mut c_void,
+    emit: HostEmitSignalFn,
+    signal: &CStr,
+    payload: &[u8],
+) -> i32 {
+    unsafe {
+        emit(
+            host_context,
+            signal.as_ptr(),
+            payload.as_ptr(),
+            payload.len(),
+        )
+    }
 }
 
 pub(super) fn game_status(

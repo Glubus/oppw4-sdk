@@ -10,6 +10,7 @@ mod memory;
 mod mods;
 mod paths;
 mod rdb;
+mod signals;
 mod r#unsafe;
 
 pub use capabilities::CapabilityService;
@@ -24,3 +25,4 @@ pub use memory::MemoryService;
 pub use mods::ModService;
 pub use paths::PathService;
 pub use rdb::RdbService;
+pub use signals::SignalService;

@@ -145,8 +145,10 @@ SDK core currently resolves plugin load order from `[dependencies].plugins` and 
 - `memory.read`;
 - `memory.scan`;
 - `memory.write`.
+- `signals.subscribe`;
+- `signals.emit`.
 
-Other capability declarations are parsed and available for validation, but not every runtime operation enforces them yet.
+Other capability declarations are parsed and available for validation, but not every runtime operation has a dedicated SDK API yet.
 
 ## Runtime Plugin Registration Surface
 
@@ -176,6 +178,8 @@ Current validation rules:
 - file providers with `patch_read` require `rdb.patch`;
 - LinkData entry/row patches require `linkdata.patch`;
 - memory read/scan/write callbacks require their matching memory capabilities.
+- signal subscriptions require `signals.subscribe`;
+- signal emits require `signals.emit`.
 
 ## Lua Standard Surface
 
@@ -338,7 +342,7 @@ Hooks:
 Signals:
 
 - typed event ids;
-- subscribe/unsubscribe;
+- subscribe;
 - emit where allowed;
 - host/runtime events such as active character changes;
 - plugin-defined events.

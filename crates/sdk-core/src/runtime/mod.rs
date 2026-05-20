@@ -8,6 +8,7 @@ mod lua;
 mod manifest;
 mod mods;
 mod rdb;
+mod signals;
 mod time;
 mod win;
 
