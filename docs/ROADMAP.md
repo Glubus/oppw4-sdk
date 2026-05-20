@@ -39,7 +39,7 @@ Current checkpoint:
 ## Progress Checklist
 
 - [x] Phase 0: Design Freeze
-- [ ] Phase 1: Loader And SDK Contract
+- [x] Phase 1: Loader And SDK Contract
 - [ ] Phase 2: SDK Workspace
 - [ ] Phase 3: Lua Standard Runtime
 - [ ] Phase 4: Character Bank
@@ -97,13 +97,13 @@ Deliverables:
 - [x] no loader-owned game status or active character callbacks;
 - [x] `plugins/sdk/sdk.dll` discovery rules;
 - [x] missing SDK core disables SDK features without aborting the game;
-- [ ] tests for missing SDK core and incompatible SDK core.
+- [x] tests for missing SDK core and incompatible SDK core.
 
 Exit criteria:
 
 - [x] loader can boot with SDK core;
 - [x] loader tolerates missing SDK core without aborting;
-- [ ] loader does not know official plugin names.
+- [x] loader does not know official plugin names.
 
 ## Phase 2: SDK Workspace
 
