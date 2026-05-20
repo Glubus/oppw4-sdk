@@ -1,0 +1,10 @@
+{
+  "playable_id": 29,
+  "runtime_id": 36,
+  "boss_runtime_id": 36,
+  "model_id": 36,
+  "canonical": "shanks",
+  "display_name": "Shanks",
+  "model_stem": "MPLC036_Shanks",
+  "moveset_linkdata_entry": 97
+}

@@ -1,0 +1,12 @@
+{
+  "playable_id": 189,
+  "runtime_id": null,
+  "boss_runtime_id": null,
+  "model_id": 321,
+  "canonical": "luffy_n_bny",
+  "display_name": "Monkey D. Luffy Bonney",
+  "model_stem": "MDLC082_Luffy_N_BNY",
+  "aliases": [
+    "luffy_bonney"
+  ]
+}

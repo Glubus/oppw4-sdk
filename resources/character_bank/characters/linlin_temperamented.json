@@ -1,0 +1,16 @@
+{
+  "playable_id": null,
+  "runtime_id": null,
+  "boss_runtime_id": null,
+  "moveset_linkdata_entry": 212,
+  "model_id": null,
+  "canonical": "linlin_temperamented",
+  "display_name": "Charlotte Linlin Temperamented",
+  "model_stem": "UNKNOWN_Linlin_Temperamented",
+  "aliases": [
+    "big_mom_temperamented",
+    "bigmom_temperamented",
+    "temperamented_big_mom",
+    "temperamented_bigmom"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "playable_id": 56,
+  "runtime_id": 119,
+  "boss_runtime_id": 93,
+  "model_id": 70,
+  "canonical": "mr1",
+  "display_name": "Mr. 1",
+  "model_stem": "MNPC019_Mr1",
+  "aliases": [
+    "daz_bones"
+  ]
+}

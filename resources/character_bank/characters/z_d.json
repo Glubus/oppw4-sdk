@@ -1,0 +1,13 @@
+{
+  "playable_id": 195,
+  "runtime_id": null,
+  "boss_runtime_id": null,
+  "model_id": 327,
+  "canonical": "z_d",
+  "display_name": "Z",
+  "model_stem": "MDLC088_Z_D",
+  "aliases": [
+    "z",
+    "zephyr"
+  ]
+}

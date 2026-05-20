@@ -1,0 +1,12 @@
+{
+  "playable_id": 182,
+  "runtime_id": null,
+  "boss_runtime_id": null,
+  "model_id": 311,
+  "canonical": "lucci_cp0",
+  "display_name": "Lucci CP0",
+  "model_stem": "MDLC072_Lucci_CP0",
+  "aliases": [
+    "cp0_lucci"
+  ]
+}

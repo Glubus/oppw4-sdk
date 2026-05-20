@@ -1,0 +1,13 @@
+{
+  "playable_id": 180,
+  "runtime_id": 77,
+  "boss_runtime_id": 116,
+  "moveset_linkdata_entry": 248,
+  "model_id": 305,
+  "canonical": "rayleigh_yng",
+  "display_name": "Rayleigh Young",
+  "model_stem": "MDLC066_Rayleigh_YNG",
+  "aliases": [
+    "young_rayleigh"
+  ]
+}

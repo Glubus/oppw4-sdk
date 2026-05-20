@@ -1,0 +1,9 @@
+{
+  "playable_id": 67,
+  "runtime_id": 140,
+  "boss_runtime_id": 107,
+  "model_id": 91,
+  "canonical": "jack_chg",
+  "display_name": "Jack Change",
+  "model_stem": "MNPC040_Jack_Chg"
+}

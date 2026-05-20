@@ -1,0 +1,12 @@
+{
+  "playable_id": 191,
+  "runtime_id": null,
+  "boss_runtime_id": null,
+  "model_id": 323,
+  "canonical": "eneru_a_d",
+  "display_name": "Eneru Amaru",
+  "model_stem": "MDLC084_Eneru_A_D",
+  "aliases": [
+    "enel_amaru"
+  ]
+}

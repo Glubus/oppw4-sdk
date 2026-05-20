@@ -1,0 +1,13 @@
+{
+  "playable_id": 14,
+  "runtime_id": 14,
+  "boss_runtime_id": 14,
+  "model_id": 14,
+  "canonical": "mihawk",
+  "display_name": "Mihawk",
+  "model_stem": "MPLC014_Mihawk",
+  "aliases": [
+    "dracule_mihawk"
+  ],
+  "moveset_linkdata_entry": 82
+}

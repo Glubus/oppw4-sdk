@@ -1,0 +1,9 @@
+{
+  "playable_id": 42,
+  "runtime_id": 50,
+  "boss_runtime_id": 50,
+  "model_id": 50,
+  "canonical": "hawkins",
+  "display_name": "Hawkins",
+  "model_stem": "MPLC050_Hawkins_NW"
+}

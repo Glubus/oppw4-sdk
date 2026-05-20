@@ -1,0 +1,7 @@
+[config]
+type = "fx_director"
+version = 1
+
+[debug]
+observe_effect_ids = false
+observe_character_probe = false

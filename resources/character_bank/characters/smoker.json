@@ -1,0 +1,9 @@
+{
+  "playable_id": 20,
+  "runtime_id": 23,
+  "boss_runtime_id": 23,
+  "model_id": 23,
+  "canonical": "smoker",
+  "display_name": "Smoker",
+  "model_stem": "MPLC023_Smoker"
+}

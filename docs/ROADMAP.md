@@ -1,0 +1,310 @@
+# OPPW4 SDK Roadmap
+
+## Summary
+
+This roadmap turns the current experimental modloader into a split loader + SDK architecture.
+
+Current checkpoint:
+
+- [x] physical split exists under `oppw4-sdk-split/oppw4-loader` and `oppw4-sdk-split/oppw4-sdk`;
+- [x] SDK workspace builds and tests independently;
+- [x] loader workspace builds independently while still depending on SDK crates by local path;
+- [x] character bank editable sources are split per character and generated into SDK-facing views;
+- [x] Lua mods can use `require("std.character")`;
+- [x] legacy global `character` remains only as a transition alias;
+- [x] SDK `lua-api` owns current-mod file reads for directory and zip mods;
+- [x] SDK `lua-api` reports mod-scoped `std.log` entries back to `sdk_core`;
+- [x] SDK core writes `std.log` entries into per-mod log folders under `mods/_oppw4/logs/mods/<mod_id>/`;
+- [x] Lua mods run with `os`, `io`, `debug`, and global `package` hidden by the SDK sandbox;
+- [x] plugin manifests can declare dependencies, Lua modules, and required/provided capabilities;
+- [x] SDK core resolves plugin load order from declared dependencies and rejects duplicate Lua module names;
+- [x] SDK core enforces declared capabilities for Lua module registration, `std.character` extension, file virtualization, LinkData patching, and memory read/scan/write APIs;
+- [x] Lua module registration now requires both `lua.module` and an explicit `[lua].modules` manifest entry;
+- [x] `moveset_patcher` no longer owns mod-file/zip lookup and only consumes SDK helpers for that context.
+
+## Progress Checklist
+
+- [x] Phase 0: Design Freeze
+- [ ] Phase 1: Loader And SDK Contract
+- [ ] Phase 2: SDK Workspace
+- [ ] Phase 3: Lua Standard Runtime
+- [ ] Phase 4: Character Bank
+- [ ] Phase 5: Plugin Registration And Capabilities
+- [ ] Phase 6: Official Plugin Migration
+- [ ] Phase 7: Loader Reduction
+- [ ] Phase 8: Developer Experience
+- [ ] Phase 9: Release Packaging
+
+## Phase 0: Design Freeze
+
+Progress: mostly complete.
+
+Goals:
+
+- [x] Write the SDK foundation RFC.
+- [x] Write SDK rules and API surface documents.
+- [x] Inventory current crates, plugins, runtime folders, and known reverse-engineering data.
+- [x] Mark prototype APIs that may be broken.
+
+Deliverables:
+
+- [x] `docs/RFC-0001-sdk-foundation.md`;
+- [x] `docs/ROADMAP.md`;
+- [x] `docs/RULES.md`;
+- [x] `docs/API-SURFACES.md`;
+- [ ] updated README references when the plan is accepted.
+
+Exit criteria:
+
+- [x] loader responsibilities are explicit;
+- [x] SDK responsibilities are explicit;
+- [x] Lua runtime policy is explicit;
+- [x] character bank ownership is explicit;
+- [x] official plugin ownership is explicit.
+
+Status: complete enough for implementation. The docs remain living architecture notes and must be updated when ownership changes.
+
+## Phase 1: Loader And SDK Contract
+
+Progress: partially complete.
+
+Goals:
+
+- [x] Define the minimal loader-to-SDK ABI.
+- [ ] Define final SDK core discovery.
+- [ ] Define SDK missing/incompatible behavior.
+- [ ] Remove business concepts from the loader contract.
+
+Deliverables:
+
+- [x] host ABI structs and version constants;
+- [ ] `plugins/sdk_core/plugin.toml` discovery rules;
+- [ ] boot/fatal log behavior;
+- [ ] tests for missing SDK core and incompatible SDK core.
+
+Exit criteria:
+
+- [ ] loader can boot with SDK core;
+- [ ] loader can report SDK boot failure clearly;
+- [ ] loader does not know official plugin names.
+
+## Phase 2: SDK Workspace
+
+Progress: partially complete.
+
+Goals:
+
+- [x] Create the SDK workspace as its own Git project.
+- [x] Move or recreate SDK-facing crates.
+- [x] Add `sdk_core`.
+- [x] Add character bank resources.
+
+Target workspace:
+
+```text
+oppw4-sdk/
+  crates/
+  official_plugins/
+  resources/
+  examples/
+  docs/
+```
+
+Exit criteria:
+
+- [x] SDK workspace builds independently;
+- [ ] SDK core can be packaged as a plugin;
+- [ ] loader can consume SDK via Git dependency during development.
+
+Status: partially complete. The workspace exists and tests pass. SDK core packaging as the final mandatory plugin is not complete yet.
+
+## Phase 3: Lua Standard Runtime
+
+Progress: in progress.
+
+Goals:
+
+- [x] Move Lua orchestration into SDK core.
+- [x] Implement safe Lua sandbox.
+- [x] Implement SDK-controlled `require`.
+- [x] Add initial standard modules.
+
+Standard modules:
+
+- [x] `std.character`;
+- [x] `std.log`;
+- [x] `std.mod`;
+- [x] `std.files`.
+
+Exit criteria:
+
+- [x] Lua mods can load `std.character`;
+- [x] unsafe Lua libraries are unavailable by default;
+- [x] directory and zip/nested zip mods can load;
+- [x] directory mods can hot reload;
+- [ ] finalize log level/filter policy.
+
+Status: in progress. `std.character`, `std.files`, `std.mod`, and a transitional `std.log` are implemented. SDK-owned mod-file reads exist in Rust and Lua. `std.log` entries now return to `sdk_core` after each mod run and are written into per-mod log folders. Lua mods run with unsafe filesystem/process/debug globals hidden, while SDK-controlled `require` remains available. Remaining log work is mostly policy/detail: levels, filtering, and release verbosity.
+
+## Phase 4: Character Bank
+
+Progress: in progress.
+
+Goals:
+
+- [ ] Turn character data into a complete SDK-owned bank.
+- [x] Split editable data into per-character files.
+- [ ] Add schemas.
+- [x] Generate or expose a unified Rust/Lua view.
+
+Data domains:
+
+- [x] per-character source files;
+- [x] identities;
+- [x] ids;
+- [ ] models/forms/costumes;
+- [ ] text;
+- [ ] assets;
+- [x] LinkData;
+- [ ] RDB references;
+- [ ] relationships;
+- [ ] evidence sources.
+
+Exit criteria:
+
+- [x] `std.character.find("law")` returns canonical metadata;
+- [x] each character has an editable source file under `resources/character_bank/characters/`;
+- [x] runtime/index data is generated rather than hand-edited;
+- [x] plugins can read bank data through SDK APIs;
+- [x] plugins can extend character handles without redefining character identity.
+
+Status: in progress. Per-character editable JSON, generated indexes, and Rust/Lua lookup exist. The bank is not complete yet for every asset/text/model relationship.
+
+## Phase 5: Plugin Registration And Capabilities
+
+Progress: in progress.
+
+Goals:
+
+- [x] Define manifest schema.
+- [x] Define initial runtime registration API.
+- [x] Add dependency ordering.
+- [x] Add capability declarations and partial validation.
+
+Capabilities:
+
+- [x] `memory.scan`;
+- [x] `memory.write`;
+- [ ] `hooks.install`;
+- [x] `files.virtualize`;
+- [x] `linkdata.patch`;
+- [ ] `rdb.patch`;
+- [x] `lua.module`;
+- [x] `std.character.extend`;
+- [ ] `signals.subscribe`;
+- [ ] `signals.emit`.
+
+Exit criteria:
+
+- [x] duplicate modules fail clearly;
+- [x] duplicate character methods fail clearly;
+- [ ] missing capabilities are refused for every critical API;
+- [x] plugin dependencies are resolved before Lua mods run.
+
+Status: in progress. `plugin.toml` can now declare plugin dependencies, Lua modules, and required/provided capabilities. SDK core resolves plugin load order from declared dependencies, rejects duplicate Lua module names from different plugins, and refuses Lua modules that are not declared in `[lua].modules`. Capability enforcement exists for `lua.module`, `std.character.extend`, `files.virtualize`, `linkdata.patch`, and `memory.read`/`memory.scan`/`memory.write`. Remaining enforcement work: hooks/signals, RDB-specific policies, config schema registration, and richer diagnostics.
+
+## Phase 6: Official Plugin Migration
+
+Progress: in progress.
+
+Goals:
+
+- [x] Move official plugins into the SDK repository.
+- [ ] Rebuild official plugins fully on top of SDK services.
+- [ ] Remove direct Lua global mutation.
+
+Plugins:
+
+- [x] `skin_patcher`;
+- [x] `fx_director`;
+- [x] `moveset_patcher`.
+
+Exit criteria:
+
+- [x] plugins register Lua modules through SDK;
+- [x] plugins extend `std.character` through SDK;
+- [ ] plugins use SDK LinkData/RDB/file services completely;
+- [ ] plugin logs/config are routed by SDK completely.
+
+Status: in progress. Official plugins live in the SDK repo. `moveset_patcher` is being reduced toward “register functions only”; `skin_patcher` and `fx_director` still contain more transitional runtime glue than desired.
+
+## Phase 7: Loader Reduction
+
+Progress: not started.
+
+Goals:
+
+- [ ] Remove plugin orchestration from loader.
+- [ ] Remove Lua runtime from loader.
+- [ ] Remove business services from loader.
+- [ ] Keep boot/proxy/primitives only.
+
+Exit criteria:
+
+- [ ] loader repository builds independently;
+- [ ] loader has no dependency on official plugins;
+- [ ] loader has no dependency on character bank data;
+- [ ] loader only exposes the minimal host ABI.
+
+## Phase 8: Developer Experience
+
+Progress: not started.
+
+Goals:
+
+- [ ] Make the SDK usable by third-party modders.
+- [ ] Provide examples and templates.
+- [ ] Add validation tools.
+
+Deliverables:
+
+- [ ] first Lua mod example;
+- [ ] first Rust plugin example;
+- [ ] character extension example;
+- [ ] LinkData patch example;
+- [ ] asset replacement example;
+- [ ] `plugin.toml` validator;
+- [ ] `mod.toml` validator.
+
+Exit criteria:
+
+- [ ] a new developer can create a Lua mod from examples;
+- [ ] a new developer can create a Rust plugin from a template;
+- [ ] SDK docs explain where each feature belongs.
+
+## Phase 9: Release Packaging
+
+Progress: not started.
+
+Goals:
+
+- [ ] Define final release layout.
+- [ ] Package loader and SDK together for end users.
+
+Expected package:
+
+```text
+OPPW4/
+  dinput8.dll
+  plugins/
+    sdk_core/
+    skin_patcher/
+    fx_director/
+    moveset_patcher/
+```
+
+Exit criteria:
+
+- [ ] release package can be copied into a clean game folder;
+- [ ] missing SDK/plugin errors are readable;
+- [ ] examples are documented but not accidentally enabled.

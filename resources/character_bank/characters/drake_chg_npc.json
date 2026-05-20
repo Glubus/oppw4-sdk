@@ -1,0 +1,9 @@
+{
+  "playable_id": 69,
+  "runtime_id": 142,
+  "boss_runtime_id": 109,
+  "model_id": 93,
+  "canonical": "drake_chg_npc",
+  "display_name": "Drake Change NPC",
+  "model_stem": "MNPC042_Drake_Chg"
+}

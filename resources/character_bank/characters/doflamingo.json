@@ -1,0 +1,14 @@
+{
+  "playable_id": 23,
+  "runtime_id": 27,
+  "boss_runtime_id": 27,
+  "model_id": 27,
+  "canonical": "doflamingo",
+  "display_name": "Donquixote Doflamingo",
+  "model_stem": "MPLC027_Doflamingo",
+  "aliases": [
+    "doffy",
+    "donquixote_doflamingo"
+  ],
+  "moveset_linkdata_entry": 91
+}

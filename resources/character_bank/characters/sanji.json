@@ -1,0 +1,10 @@
+{
+  "playable_id": 4,
+  "runtime_id": 4,
+  "boss_runtime_id": 4,
+  "model_id": 4,
+  "canonical": "sanji",
+  "display_name": "Sanji",
+  "model_stem": "MPLC004_Sanji",
+  "moveset_linkdata_entry": 72
+}

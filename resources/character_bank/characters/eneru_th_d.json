@@ -1,0 +1,12 @@
+{
+  "playable_id": 194,
+  "runtime_id": null,
+  "boss_runtime_id": null,
+  "model_id": 326,
+  "canonical": "eneru_th_d",
+  "display_name": "Eneru Thunder Divine",
+  "model_stem": "MDLC087_Eneru_TH_D",
+  "aliases": [
+    "enel_thunder_divine"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "playable_id": 58,
+  "runtime_id": 125,
+  "boss_runtime_id": 99,
+  "model_id": 76,
+  "canonical": "burgess",
+  "display_name": "Burgess",
+  "model_stem": "MNPC025_Burgess"
+}

@@ -1,0 +1,13 @@
+{
+  "playable_id": 9,
+  "runtime_id": 9,
+  "boss_runtime_id": 9,
+  "model_id": 9,
+  "canonical": "ace",
+  "display_name": "Ace",
+  "model_stem": "MPLC009_Ace",
+  "aliases": [
+    "portgas_d_ace"
+  ],
+  "moveset_linkdata_entry": 77
+}

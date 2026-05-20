@@ -1,0 +1,12 @@
+{
+  "playable_id": 10,
+  "runtime_id": 10,
+  "boss_runtime_id": 10,
+  "model_id": 10,
+  "canonical": "hancock",
+  "display_name": "Boa Hancock",
+  "model_stem": "MPLC010_Hancock",
+  "aliases": [
+    "boa_hancock"
+  ]
+}

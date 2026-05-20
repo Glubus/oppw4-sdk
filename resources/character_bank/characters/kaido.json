@@ -1,0 +1,10 @@
+{
+  "playable_id": 40,
+  "runtime_id": 48,
+  "boss_runtime_id": 48,
+  "moveset_linkdata_entry": 108,
+  "model_id": 48,
+  "canonical": "kaido",
+  "display_name": "Kaido",
+  "model_stem": "MPLC048_Kaido"
+}

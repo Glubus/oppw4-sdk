@@ -1,0 +1,12 @@
+{
+  "playable_id": 186,
+  "runtime_id": null,
+  "boss_runtime_id": null,
+  "model_id": 318,
+  "canonical": "bonney_frf",
+  "display_name": "Bonney Future",
+  "model_stem": "MDLC079_Bonney_FRF",
+  "aliases": [
+    "bonney_future"
+  ]
+}

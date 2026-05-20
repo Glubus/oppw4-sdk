@@ -1,0 +1,13 @@
+{
+  "playable_id": 17,
+  "runtime_id": 18,
+  "boss_runtime_id": 18,
+  "model_id": 18,
+  "canonical": "kizaru",
+  "display_name": "Kizaru",
+  "model_stem": "MPLC018_Kizaru",
+  "aliases": [
+    "borsalino"
+  ],
+  "moveset_linkdata_entry": 85
+}

@@ -1,0 +1,9 @@
+{
+  "playable_id": 60,
+  "runtime_id": null,
+  "boss_runtime_id": null,
+  "model_id": 79,
+  "canonical": "sengoku_chg",
+  "display_name": "Sengoku Change",
+  "model_stem": "MNPC028_Sengoku_Chg"
+}

@@ -1,0 +1,13 @@
+{
+  "playable_id": 187,
+  "runtime_id": null,
+  "boss_runtime_id": null,
+  "model_id": 319,
+  "canonical": "ssnake",
+  "display_name": "S-Snake",
+  "model_stem": "MDLC080_SSnake",
+  "aliases": [
+    "s_snake",
+    "s-snake"
+  ]
+}

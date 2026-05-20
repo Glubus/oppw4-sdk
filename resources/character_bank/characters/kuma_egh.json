@@ -1,0 +1,12 @@
+{
+  "playable_id": 188,
+  "runtime_id": null,
+  "boss_runtime_id": null,
+  "model_id": 320,
+  "canonical": "kuma_egh",
+  "display_name": "Kuma Egghead",
+  "model_stem": "MDLC081_Kuma_EGH",
+  "aliases": [
+    "egghead_kuma"
+  ]
+}

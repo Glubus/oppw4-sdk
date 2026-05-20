@@ -1,0 +1,13 @@
+{
+  "playable_id": 170,
+  "runtime_id": 565,
+  "boss_runtime_id": 48,
+  "moveset_linkdata_entry": 213,
+  "model_id": 306,
+  "canonical": "kaido_d2",
+  "display_name": "Kaido Dragon",
+  "model_stem": "MDLC067_Kaido_D2",
+  "aliases": [
+    "dragon_kaido"
+  ]
+}

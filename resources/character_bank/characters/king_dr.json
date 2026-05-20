@@ -1,0 +1,12 @@
+{
+  "playable_id": 198,
+  "runtime_id": null,
+  "boss_runtime_id": null,
+  "model_id": 330,
+  "canonical": "king_dr",
+  "display_name": "King Dragon",
+  "model_stem": "MDLC091_King_DR",
+  "aliases": [
+    "king_dragon"
+  ]
+}

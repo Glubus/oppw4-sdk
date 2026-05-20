@@ -1,0 +1,13 @@
+{
+  "playable_id": 18,
+  "runtime_id": 19,
+  "boss_runtime_id": 19,
+  "model_id": 19,
+  "canonical": "aokiji",
+  "display_name": "Aokiji",
+  "model_stem": "MPLC019_Aokiji",
+  "aliases": [
+    "kuzan"
+  ],
+  "moveset_linkdata_entry": 86
+}

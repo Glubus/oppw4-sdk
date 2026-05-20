@@ -1,0 +1,12 @@
+{
+  "playable_id": 37,
+  "runtime_id": 45,
+  "boss_runtime_id": 45,
+  "model_id": 45,
+  "canonical": "bege",
+  "display_name": "Bege",
+  "model_stem": "MPLC045_Bege",
+  "aliases": [
+    "capone_bege"
+  ]
+}

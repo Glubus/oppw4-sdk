@@ -1,0 +1,10 @@
+{
+  "playable_id": 21,
+  "runtime_id": 24,
+  "boss_runtime_id": 24,
+  "model_id": 24,
+  "canonical": "marco",
+  "display_name": "Marco",
+  "model_stem": "MPLC024_Marco",
+  "moveset_linkdata_entry": 89
+}

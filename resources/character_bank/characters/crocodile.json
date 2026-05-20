@@ -1,0 +1,9 @@
+{
+  "playable_id": 15,
+  "runtime_id": 15,
+  "boss_runtime_id": 15,
+  "model_id": 15,
+  "canonical": "crocodile",
+  "display_name": "Crocodile",
+  "model_stem": "MPLC015_Crocodile"
+}

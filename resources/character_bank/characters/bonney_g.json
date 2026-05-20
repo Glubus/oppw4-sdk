@@ -1,0 +1,12 @@
+{
+  "playable_id": 185,
+  "runtime_id": null,
+  "boss_runtime_id": null,
+  "model_id": 316,
+  "canonical": "bonney_g",
+  "display_name": "Bonney Gear",
+  "model_stem": "MDLC077_Bonney_G",
+  "aliases": [
+    "bonney_gear"
+  ]
+}

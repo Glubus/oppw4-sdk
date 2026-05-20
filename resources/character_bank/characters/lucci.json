@@ -1,0 +1,12 @@
+{
+  "playable_id": 27,
+  "runtime_id": 32,
+  "boss_runtime_id": 32,
+  "model_id": 32,
+  "canonical": "lucci",
+  "display_name": "Lucci",
+  "model_stem": "MPLC032_Lucci",
+  "aliases": [
+    "rob_lucci"
+  ]
+}

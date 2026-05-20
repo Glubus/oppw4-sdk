@@ -1,0 +1,9 @@
+{
+  "playable_id": 32,
+  "runtime_id": 40,
+  "boss_runtime_id": 40,
+  "model_id": 40,
+  "canonical": "carrot",
+  "display_name": "Carrot",
+  "model_stem": "MPLC040_Carrot"
+}

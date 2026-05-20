@@ -1,0 +1,12 @@
+{
+  "playable_id": 178,
+  "runtime_id": 74,
+  "boss_runtime_id": 100,
+  "model_id": 303,
+  "canonical": "coby_red",
+  "display_name": "Coby Red",
+  "model_stem": "MDLC064_Coby_RED",
+  "aliases": [
+    "koby_red"
+  ]
+}

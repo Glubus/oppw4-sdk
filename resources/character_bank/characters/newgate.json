@@ -1,0 +1,15 @@
+{
+  "playable_id": 12,
+  "runtime_id": 12,
+  "boss_runtime_id": 12,
+  "model_id": 12,
+  "canonical": "newgate",
+  "display_name": "Edward Newgate",
+  "model_stem": "MPLC012_Newgate",
+  "aliases": [
+    "whitebeard",
+    "barbe_blanche",
+    "edward_newgate"
+  ],
+  "moveset_linkdata_entry": 80
+}

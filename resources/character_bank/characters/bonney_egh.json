@@ -1,0 +1,12 @@
+{
+  "playable_id": 184,
+  "runtime_id": null,
+  "boss_runtime_id": null,
+  "model_id": 314,
+  "canonical": "bonney_egh",
+  "display_name": "Bonney",
+  "model_stem": "MDLC075_Bonney_EGH",
+  "aliases": [
+    "bonney"
+  ]
+}

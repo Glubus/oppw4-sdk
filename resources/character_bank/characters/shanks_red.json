@@ -1,0 +1,12 @@
+{
+  "playable_id": 177,
+  "runtime_id": 73,
+  "boss_runtime_id": 36,
+  "model_id": 302,
+  "canonical": "shanks_red",
+  "display_name": "Shanks (Red)",
+  "model_stem": "MDLC063_Shanks_RED",
+  "aliases": [
+    "film_red_shanks"
+  ]
+}

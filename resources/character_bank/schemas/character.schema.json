@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OPPW4 Character Bank Entry",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["canonical", "display_name", "model_stem"],
+  "properties": {
+    "canonical": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "display_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "aliases": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "playable_id": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 65535
+    },
+    "runtime_id": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 65535
+    },
+    "boss_runtime_id": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 65535
+    },
+    "model_id": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 65535
+    },
+    "moveset_linkdata_entry": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 65535
+    },
+    "model_stem": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

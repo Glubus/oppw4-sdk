@@ -1,0 +1,13 @@
+{
+  "playable_id": 19,
+  "runtime_id": 20,
+  "boss_runtime_id": 20,
+  "model_id": 20,
+  "canonical": "akainu",
+  "display_name": "Akainu",
+  "model_stem": "MPLC020_Akainu",
+  "aliases": [
+    "sakazuki"
+  ],
+  "moveset_linkdata_entry": 87
+}

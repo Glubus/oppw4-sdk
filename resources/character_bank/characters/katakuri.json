@@ -1,0 +1,13 @@
+{
+  "playable_id": 39,
+  "runtime_id": 47,
+  "boss_runtime_id": 47,
+  "model_id": 47,
+  "canonical": "katakuri",
+  "display_name": "Katakuri",
+  "model_stem": "MPLC047_Katakuri",
+  "aliases": [
+    "charlotte_katakuri"
+  ],
+  "moveset_linkdata_entry": 107
+}

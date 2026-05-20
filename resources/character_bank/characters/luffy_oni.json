@@ -1,0 +1,12 @@
+{
+  "playable_id": 166,
+  "runtime_id": 69,
+  "boss_runtime_id": 293,
+  "model_id": 293,
+  "canonical": "luffy_oni",
+  "display_name": "Monkey D. Luffy (Onigashima)",
+  "model_stem": "MDLC054_Luffy_Oni",
+  "aliases": [
+    "oni_luffy"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "playable_id": 16,
+  "runtime_id": 16,
+  "boss_runtime_id": 16,
+  "model_id": 16,
+  "canonical": "teach",
+  "display_name": "Marshall D. Teach",
+  "model_stem": "MPLC016_Teach",
+  "aliases": [
+    "blackbeard",
+    "marshall_d_teach"
+  ],
+  "moveset_linkdata_entry": 84
+}

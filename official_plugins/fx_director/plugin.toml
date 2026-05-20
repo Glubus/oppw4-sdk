@@ -1,0 +1,11 @@
+[plugin]
+id = "fx_director"
+version = "0.2.0"
+entry = "fx_director.dll"
+
+[lua]
+modules = ["fx_director"]
+
+[capabilities]
+requires = ["lua.module", "hooks.install", "memory.read", "memory.scan", "memory.write", "std.character.extend"]
+provides = ["std.character.extend", "runtime.fx"]

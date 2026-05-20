@@ -1,0 +1,10 @@
+{
+  "playable_id": 163,
+  "runtime_id": 66,
+  "boss_runtime_id": 285,
+  "moveset_linkdata_entry": 231,
+  "model_id": 287,
+  "canonical": "kiku",
+  "display_name": "Kiku",
+  "model_stem": "MDLC048_Kiku"
+}

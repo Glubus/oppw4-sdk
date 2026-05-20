@@ -1,0 +1,16 @@
+{
+  "playable_id": null,
+  "runtime_id": null,
+  "boss_runtime_id": null,
+  "model_id": null,
+  "canonical": "luffy_bounceman",
+  "display_name": "Monkey D. Luffy Bounceman",
+  "model_stem": "UNKNOWN_Luffy_Bounceman",
+  "moveset_linkdata_entry": 208,
+  "aliases": [
+    "bounceman",
+    "boundman",
+    "luffy_boundman",
+    "luffy_bounce_man"
+  ]
+}

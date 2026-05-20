@@ -1,0 +1,9 @@
+{
+  "playable_id": 63,
+  "runtime_id": 132,
+  "boss_runtime_id": 104,
+  "model_id": 86,
+  "canonical": "pica",
+  "display_name": "Pica",
+  "model_stem": "MNPC035_PicaC"
+}

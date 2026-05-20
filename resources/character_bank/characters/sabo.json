@@ -1,0 +1,10 @@
+{
+  "playable_id": 26,
+  "runtime_id": 31,
+  "boss_runtime_id": 31,
+  "model_id": 31,
+  "canonical": "sabo",
+  "display_name": "Sabo",
+  "model_stem": "MPLC031_Sabo",
+  "moveset_linkdata_entry": 94
+}

@@ -1,0 +1,9 @@
+{
+  "playable_id": 157,
+  "runtime_id": 62,
+  "boss_runtime_id": 127,
+  "model_id": 283,
+  "canonical": "judge",
+  "display_name": "Judge",
+  "model_stem": "MDLC044_Judge_PC"
+}

@@ -1,0 +1,9 @@
+{
+  "playable_id": 70,
+  "runtime_id": 114,
+  "boss_runtime_id": 88,
+  "model_id": 65,
+  "canonical": "jozu",
+  "display_name": "Jozu",
+  "model_stem": "MNPC014_Jozu"
+}

@@ -1,0 +1,12 @@
+{
+  "playable_id": 172,
+  "runtime_id": null,
+  "boss_runtime_id": 287,
+  "model_id": 298,
+  "canonical": "yamato_hb",
+  "display_name": "Yamato Hybrid",
+  "model_stem": "MDLC059_Yamato_HB",
+  "aliases": [
+    "hybrid_yamato"
+  ]
+}

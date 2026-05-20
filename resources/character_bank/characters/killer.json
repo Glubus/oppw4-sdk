@@ -1,0 +1,9 @@
+{
+  "playable_id": 160,
+  "runtime_id": 64,
+  "boss_runtime_id": 283,
+  "model_id": 285,
+  "canonical": "killer",
+  "display_name": "Killer",
+  "model_stem": "MDLC046_Killer"
+}

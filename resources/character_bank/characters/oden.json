@@ -1,0 +1,10 @@
+{
+  "playable_id": 165,
+  "runtime_id": 68,
+  "boss_runtime_id": 286,
+  "moveset_linkdata_entry": 233,
+  "model_id": 289,
+  "canonical": "oden",
+  "display_name": "Oden",
+  "model_stem": "MDLC050_Oden"
+}

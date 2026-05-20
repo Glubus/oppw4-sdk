@@ -1,0 +1,14 @@
+{
+  "playable_id": 1,
+  "runtime_id": 1,
+  "boss_runtime_id": 1,
+  "model_id": 1,
+  "canonical": "zoro",
+  "display_name": "Roronoa Zoro",
+  "model_stem": "MPLC001_Zoro",
+  "moveset_linkdata_entry": 69,
+  "aliases": [
+    "roronoa_zoro",
+    "zorro"
+  ]
+}

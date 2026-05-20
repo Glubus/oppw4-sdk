@@ -1,0 +1,10 @@
+{
+  "playable_id": 25,
+  "runtime_id": 30,
+  "boss_runtime_id": 30,
+  "model_id": 30,
+  "canonical": "fujitora",
+  "display_name": "Fujitora",
+  "model_stem": "MPLC030_Fujitora",
+  "moveset_linkdata_entry": 93
+}

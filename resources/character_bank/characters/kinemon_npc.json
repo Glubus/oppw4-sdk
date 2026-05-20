@@ -1,0 +1,9 @@
+{
+  "playable_id": 61,
+  "runtime_id": null,
+  "boss_runtime_id": null,
+  "model_id": 80,
+  "canonical": "kinemon_npc",
+  "display_name": "Kinemon NPC",
+  "model_stem": "MNPC029_Kinemon"
+}

@@ -1,0 +1,14 @@
+{
+  "playable_id": 22,
+  "runtime_id": 26,
+  "boss_runtime_id": 26,
+  "model_id": 26,
+  "canonical": "law",
+  "display_name": "Law",
+  "model_stem": "MPLC026_Law",
+  "aliases": [
+    "trafalgar_law",
+    "trafalgar_d_water_law"
+  ],
+  "moveset_linkdata_entry": 90
+}

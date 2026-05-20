@@ -1,0 +1,12 @@
+[package]
+name = "rdb-tool"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "rdb"
+path = "src/main.rs"
+
+[dependencies]
+rdb.workspace = true

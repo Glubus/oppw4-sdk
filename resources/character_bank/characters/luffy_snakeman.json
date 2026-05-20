@@ -1,0 +1,14 @@
+{
+  "playable_id": null,
+  "runtime_id": null,
+  "boss_runtime_id": null,
+  "model_id": null,
+  "canonical": "luffy_snakeman",
+  "display_name": "Monkey D. Luffy Snakeman",
+  "model_stem": "UNKNOWN_Luffy_Snakeman",
+  "moveset_linkdata_entry": 209,
+  "aliases": [
+    "snakeman",
+    "luffy_snake_man"
+  ]
+}

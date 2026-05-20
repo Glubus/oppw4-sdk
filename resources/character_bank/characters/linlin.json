@@ -1,0 +1,15 @@
+{
+  "playable_id": 38,
+  "runtime_id": 46,
+  "boss_runtime_id": 46,
+  "moveset_linkdata_entry": 106,
+  "model_id": 46,
+  "canonical": "linlin",
+  "display_name": "Charlotte Linlin",
+  "model_stem": "MPLC046_Linlin",
+  "aliases": [
+    "big_mom",
+    "bigmom",
+    "charlotte_linlin"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "playable_id": 168,
+  "runtime_id": null,
+  "boss_runtime_id": 0,
+  "model_id": 295,
+  "canonical": "luffy_n_gear5",
+  "display_name": "Monkey D. Luffy Gear 5",
+  "model_stem": "MDLC056_Luffy_N_Gear5",
+  "aliases": [
+    "gear5",
+    "gear_5"
+  ]
+}

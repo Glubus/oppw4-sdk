@@ -1,0 +1,13 @@
+{
+  "playable_id": 41,
+  "runtime_id": 49,
+  "boss_runtime_id": 49,
+  "model_id": 49,
+  "canonical": "kid",
+  "display_name": "Eustass Kid",
+  "model_stem": "MPLC049_Kid",
+  "aliases": [
+    "eustass_kid",
+    "kidd"
+  ]
+}

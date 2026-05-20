@@ -1,0 +1,11 @@
+[plugin]
+id = "moveset_patcher"
+version = "0.1.0"
+entry = "moveset_patcher.dll"
+
+[lua]
+modules = ["moveset_patcher"]
+
+[capabilities]
+requires = ["lua.module", "files.virtualize", "linkdata.patch", "std.character.extend"]
+provides = ["std.character.extend", "linkdata.moveset"]

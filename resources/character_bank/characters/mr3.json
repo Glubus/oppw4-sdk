@@ -1,0 +1,12 @@
+{
+  "playable_id": 50,
+  "runtime_id": 106,
+  "boss_runtime_id": 78,
+  "model_id": 57,
+  "canonical": "mr3",
+  "display_name": "Mr. 3",
+  "model_stem": "MNPC006_Mr3",
+  "aliases": [
+    "galdino"
+  ]
+}

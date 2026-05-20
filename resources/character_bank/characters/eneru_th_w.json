@@ -1,0 +1,12 @@
+{
+  "playable_id": 193,
+  "runtime_id": null,
+  "boss_runtime_id": null,
+  "model_id": 325,
+  "canonical": "eneru_th_w",
+  "display_name": "Eneru Thunder White",
+  "model_stem": "MDLC086_Eneru_TH_W",
+  "aliases": [
+    "enel_thunder_white"
+  ]
+}

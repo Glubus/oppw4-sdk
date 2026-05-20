@@ -1,0 +1,15 @@
+{
+  "playable_id": 0,
+  "runtime_id": 0,
+  "boss_runtime_id": 0,
+  "model_id": 0,
+  "canonical": "luffy",
+  "display_name": "Monkey D. Luffy",
+  "model_stem": "MPLC000_Luffy",
+  "aliases": [
+    "mugiwara",
+    "straw_hat",
+    "monkey_d_luffy"
+  ],
+  "moveset_linkdata_entry": 68
+}

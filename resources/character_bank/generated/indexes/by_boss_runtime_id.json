@@ -1,0 +1,109 @@
+{
+    "0":  [
+              "luffy",
+              "luffy_n_gear5"
+          ],
+    "1":  "zoro",
+    "10":  "hancock",
+    "100":  [
+                "coby",
+                "coby_red"
+            ],
+    "102":  "kinemon",
+    "104":  [
+                "pica",
+                "pica_giant"
+            ],
+    "105":  "diamante",
+    "107":  "jack_chg",
+    "108":  "perospero",
+    "109":  [
+                "drake",
+                "drake_chg_npc"
+            ],
+    "11":  "jimbei",
+    "116":  "rayleigh_yng",
+    "12":  "newgate",
+    "127":  "judge",
+    "13":  "buggy",
+    "14":  "mihawk",
+    "15":  "crocodile",
+    "16":  "teach",
+    "18":  "kizaru",
+    "19":  "aokiji",
+    "2":  "nami",
+    "20":  "akainu",
+    "23":  "smoker",
+    "24":  "marco",
+    "25":  [
+               "garp",
+               "garp_yng"
+           ],
+    "26":  "law",
+    "27":  "doflamingo",
+    "28":  "tashigi",
+    "281":  "smoothie",
+    "282":  [
+                "cracker",
+                "cracker_b"
+            ],
+    "283":  "killer",
+    "284":  [
+                "urouge",
+                "urouge_chg"
+            ],
+    "285":  "kiku",
+    "286":  "oden",
+    "287":  [
+                "yamato",
+                "yamato_hb"
+            ],
+    "288":  [
+                "uta",
+                "uta_armor"
+            ],
+    "289":  "roger",
+    "293":  "luffy_oni",
+    "294":  "kaido_hb",
+    "3":  "usopp",
+    "30":  "fujitora",
+    "31":  "sabo",
+    "32":  "lucci",
+    "35":  "ivankov",
+    "36":  [
+               "shanks",
+               "shanks_red"
+           ],
+    "37":  "bartolomeo",
+    "38":  "cavendish",
+    "4":  "sanji",
+    "40":  "carrot",
+    "41":  "reiju",
+    "42":  "ichiji",
+    "43":  "niji",
+    "44":  "yonji",
+    "45":  "bege",
+    "46":  "linlin",
+    "47":  "katakuri",
+    "48":  [
+               "kaido",
+               "kaido_d2"
+           ],
+    "49":  "kid",
+    "5":  "chopper",
+    "50":  "hawkins",
+    "6":  "robin",
+    "7":  "franky",
+    "77":  "mr2",
+    "78":  "mr3",
+    "8":  "brook",
+    "80":  "kaku",
+    "82":  "jabra",
+    "83":  "blueno",
+    "85":  "pacifista",
+    "88":  "jozu",
+    "9":  "ace",
+    "93":  "mr1",
+    "94":  "bellamy",
+    "99":  "burgess"
+}

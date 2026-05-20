@@ -1,0 +1,12 @@
+{
+  "playable_id": 169,
+  "runtime_id": 70,
+  "boss_runtime_id": 294,
+  "model_id": 296,
+  "canonical": "kaido_hb",
+  "display_name": "Kaido Hybrid",
+  "model_stem": "MDLC057_Kaido_HB",
+  "aliases": [
+    "hybrid_kaido"
+  ]
+}

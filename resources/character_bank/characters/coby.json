@@ -1,0 +1,12 @@
+{
+  "playable_id": 59,
+  "runtime_id": 126,
+  "boss_runtime_id": 100,
+  "model_id": 77,
+  "canonical": "coby",
+  "display_name": "Coby",
+  "model_stem": "MNPC026_Coby",
+  "aliases": [
+    "koby"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "playable_id": 5,
+  "runtime_id": 5,
+  "boss_runtime_id": 5,
+  "model_id": 5,
+  "canonical": "chopper",
+  "display_name": "Chopper",
+  "model_stem": "MPLC005_Chopper"
+}

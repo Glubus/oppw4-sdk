@@ -1,0 +1,9 @@
+{
+  "playable_id": 57,
+  "runtime_id": 120,
+  "boss_runtime_id": 94,
+  "model_id": 71,
+  "canonical": "bellamy",
+  "display_name": "Bellamy",
+  "model_stem": "MNPC020_Bellamy_NW"
+}

@@ -1,0 +1,13 @@
+{
+  "playable_id": 49,
+  "runtime_id": 105,
+  "boss_runtime_id": 77,
+  "model_id": 56,
+  "canonical": "mr2",
+  "display_name": "Mr. 2",
+  "model_stem": "MNPC005_Mr2",
+  "aliases": [
+    "bon_clay",
+    "bonclay"
+  ]
+}

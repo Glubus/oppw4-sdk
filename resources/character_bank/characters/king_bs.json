@@ -1,0 +1,12 @@
+{
+  "playable_id": 197,
+  "runtime_id": null,
+  "boss_runtime_id": null,
+  "model_id": 329,
+  "canonical": "king_bs",
+  "display_name": "King Beast",
+  "model_stem": "MDLC090_King_BS",
+  "aliases": [
+    "king_beast"
+  ]
+}

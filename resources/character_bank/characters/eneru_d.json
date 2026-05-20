@@ -1,0 +1,13 @@
+{
+  "playable_id": 190,
+  "runtime_id": null,
+  "boss_runtime_id": null,
+  "model_id": 322,
+  "canonical": "eneru_d",
+  "display_name": "Eneru Divine",
+  "model_stem": "MDLC083_Eneru_D",
+  "aliases": [
+    "eneru",
+    "enel"
+  ]
+}

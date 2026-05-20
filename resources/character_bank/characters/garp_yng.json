@@ -1,0 +1,13 @@
+{
+  "playable_id": 179,
+  "runtime_id": 76,
+  "boss_runtime_id": 25,
+  "moveset_linkdata_entry": 247,
+  "model_id": 304,
+  "canonical": "garp_yng",
+  "display_name": "Monkey D. Garp (Young)",
+  "model_stem": "MDLC065_Garp_YNG",
+  "aliases": [
+    "young_garp"
+  ]
+}

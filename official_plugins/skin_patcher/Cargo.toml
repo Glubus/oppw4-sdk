@@ -1,0 +1,18 @@
+[package]
+name = "oppw4-skin-patcher-plugin"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+name = "skin_patcher"
+
+[dependencies]
+mlua.workspace = true
+lua-api.workspace = true
+plugin-sdk.workspace = true
+rdb.workspace = true
+
+[dev-dependencies]
+zip.workspace = true

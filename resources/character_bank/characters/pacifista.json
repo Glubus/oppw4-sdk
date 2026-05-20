@@ -1,0 +1,9 @@
+{
+  "playable_id": 55,
+  "runtime_id": 111,
+  "boss_runtime_id": 85,
+  "model_id": 62,
+  "canonical": "pacifista",
+  "display_name": "Pacifista",
+  "model_stem": "MNPC011_Pacifista"
+}

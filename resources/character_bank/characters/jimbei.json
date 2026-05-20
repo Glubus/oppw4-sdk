@@ -1,0 +1,13 @@
+{
+  "playable_id": 11,
+  "runtime_id": 11,
+  "boss_runtime_id": 11,
+  "model_id": 11,
+  "canonical": "jimbei",
+  "display_name": "Jimbei",
+  "model_stem": "MPLC011_Jimbei",
+  "aliases": [
+    "jinbe",
+    "jinbei"
+  ]
+}
