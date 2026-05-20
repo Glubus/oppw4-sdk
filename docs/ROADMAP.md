@@ -269,6 +269,7 @@ Exit criteria:
 - [x] plugins extend `std.character` through SDK;
 - [x] plugins use SDK LinkData/RDB/file services completely;
 - [x] plugin logs/config are routed by SDK completely.
+- [x] `skin_patcher` exposes character model and texture replacement helpers through `std.character` handles.
 
 Status: complete for the current SDK split. Official plugins live in the SDK repo, register Lua modules through SDK APIs, route LinkData/RDB/file operations through SDK services, and use SDK log/config roots. Remaining plugin work is feature-level cleanup, not loader/SDK boundary migration.
 

@@ -6,6 +6,15 @@ use std::{
 
 use mlua::Lua;
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ModFileSource {
+    File(PathBuf),
+    ZipEntry {
+        zip_path: PathBuf,
+        entry_name: String,
+    },
+}
+
 pub fn read_mod_text(lua: &Lua, path: impl AsRef<Path>) -> mlua::Result<String> {
     let path = path.as_ref();
     if is_current_mod_zip(lua)? {
@@ -28,6 +37,27 @@ pub fn read_mod_text(lua: &Lua, path: impl AsRef<Path>) -> mlua::Result<String> 
 
 pub fn read_mod_bytes(lua: &Lua, path: impl AsRef<Path>) -> mlua::Result<Vec<u8>> {
     let path = path.as_ref();
+    match resolve_mod_file_source(lua, path)? {
+        ModFileSource::File(path) => fs::read(&path).map_err(|error| {
+            mlua::Error::external(format!(
+                "failed to read mod file {}: {error}",
+                path.display()
+            ))
+        }),
+        ModFileSource::ZipEntry {
+            zip_path,
+            entry_name,
+        } => read_zip_entry(&zip_path, &entry_name).map_err(|error| {
+            mlua::Error::external(format!(
+                "failed to read mod zip entry {entry_name} from {}: {error}",
+                zip_path.display()
+            ))
+        }),
+    }
+}
+
+pub fn resolve_mod_file_source(lua: &Lua, path: impl AsRef<Path>) -> mlua::Result<ModFileSource> {
+    let path = path.as_ref();
     if !is_safe_relative_file(path) {
         return Err(mlua::Error::external(format!(
             "mod file path must be relative to the current mod folder: {}",
@@ -40,21 +70,12 @@ pub fn read_mod_bytes(lua: &Lua, path: impl AsRef<Path>) -> mlua::Result<Vec<u8>
             .globals()
             .get::<Option<String>>("__oppw4_mod_zip_root")?
             .unwrap_or_default();
-        let entry = zip_entry_path(&zip_root, path);
-        return read_zip_entry(&zip_path, &entry).map_err(|error| {
-            mlua::Error::external(format!(
-                "failed to read mod zip entry {entry} from {}: {error}",
-                zip_path.display()
-            ))
+        return Ok(ModFileSource::ZipEntry {
+            zip_path,
+            entry_name: zip_entry_path(&zip_root, path),
         });
     }
-    let path = resolve_directory_mod_file(lua, path)?;
-    fs::read(&path).map_err(|error| {
-        mlua::Error::external(format!(
-            "failed to read mod file {}: {error}",
-            path.display()
-        ))
-    })
+    Ok(ModFileSource::File(resolve_directory_mod_file(lua, path)?))
 }
 
 fn resolve_directory_mod_file(lua: &Lua, path: &Path) -> mlua::Result<PathBuf> {

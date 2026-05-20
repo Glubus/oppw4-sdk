@@ -48,6 +48,33 @@ pub fn register_replacements(
     registered
 }
 
+pub fn add_runtime_replacements(
+    archive_name: &str,
+    bin_base_size: u64,
+    replacements: Vec<VirtualReplacement>,
+) -> Result<usize, String> {
+    if replacements.is_empty() {
+        return Ok(0);
+    }
+    let runtime = RUNTIME
+        .get()
+        .ok_or_else(|| "skin_patcher virtual provider is not initialized".to_string())?;
+    let mut guard = runtime
+        .lock()
+        .map_err(|_| "skin_patcher virtual provider lock failed".to_string())?;
+    let manager = guard
+        .as_mut()
+        .ok_or_else(|| "skin_patcher virtual manager is not initialized".to_string())?;
+    let base_offset = manager
+        .virtual_archive_size(archive_name)
+        .unwrap_or(bin_base_size);
+    let replacements =
+        crate::patching::assign_virtual_bin_offsets(replacements, archive_name, base_offset);
+    let count = replacements.len();
+    manager.append_replacements(replacements);
+    Ok(count)
+}
+
 unsafe extern "system" fn open_path(
     _context: *mut c_void,
     path_utf8: *const c_char,

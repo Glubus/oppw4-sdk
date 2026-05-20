@@ -20,6 +20,45 @@ pub struct Character {
     pub model_stem: String,
     #[serde(default)]
     pub aliases: Vec<String>,
+    #[serde(default)]
+    pub costumes: Vec<CharacterCostume>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct CharacterCostume {
+    pub id: String,
+    pub label: String,
+    #[serde(default)]
+    pub model_id: Option<u16>,
+    #[serde(default)]
+    pub assets: Vec<CharacterAsset>,
+    #[serde(default)]
+    pub body_parts: Vec<CharacterBodyPart>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct CharacterBodyPart {
+    pub id: String,
+    pub label: String,
+    #[serde(default)]
+    pub assets: Vec<CharacterAsset>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct CharacterAsset {
+    pub kind: String,
+    #[serde(default)]
+    pub label: String,
+    #[serde(default)]
+    pub variant: Option<String>,
+    #[serde(default)]
+    pub archive: Option<String>,
+    #[serde(default)]
+    pub path: Option<String>,
+    #[serde(default)]
+    pub hash: Option<String>,
+    #[serde(default)]
+    pub file_type: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -65,15 +104,13 @@ struct CostumeRef {
 
 #[derive(Debug, Deserialize)]
 struct CostumeDataFile {
+    id: String,
+    label: String,
     model_id: Option<u16>,
     #[serde(default)]
-    assets: Vec<CostumeAsset>,
-}
-
-#[derive(Debug, Deserialize)]
-struct CostumeAsset {
-    kind: String,
-    path: Option<String>,
+    assets: Vec<CharacterAsset>,
+    #[serde(default)]
+    body_parts: Vec<CharacterBodyPart>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -218,6 +255,7 @@ fn parse_character_data_json(
     let data: CharacterDataFile = serde_json::from_str(text)
         .map_err(|error| CharacterDataError::InvalidJson(error.to_string()))?;
     let primary_model = primary_model_from_costumes(character_dir, &data.assets.costumes)?;
+    let costumes = character_costumes(character_dir, &data.assets.costumes)?;
     let (model_id, model_stem) = primary_model
         .map(|(id, stem)| (Some(id), stem))
         .unwrap_or((data.ids.model, fallback_model_stem(data.ids.model)));
@@ -232,7 +270,27 @@ fn parse_character_data_json(
         display_name: data.display_name,
         model_stem,
         aliases: data.aliases,
+        costumes,
     })
+}
+
+fn character_costumes(
+    character_dir: &Path,
+    costumes: &[CostumeRef],
+) -> Result<Vec<CharacterCostume>, CharacterDataError> {
+    costumes
+        .iter()
+        .map(|costume| {
+            let costume = costume_data_file(character_dir, costume)?;
+            Ok(CharacterCostume {
+                id: costume.id,
+                label: costume.label,
+                model_id: costume.model_id,
+                assets: costume.assets,
+                body_parts: costume.body_parts,
+            })
+        })
+        .collect()
 }
 
 fn primary_model_from_costumes(
@@ -265,7 +323,7 @@ fn parse_moveset_entry_json(text: &str) -> Result<Option<u16>, CharacterDataErro
     Ok(Some(data.base.entry))
 }
 
-fn primary_model_stem(assets: &[CostumeAsset]) -> Option<String> {
+fn primary_model_stem(assets: &[CharacterAsset]) -> Option<String> {
     assets
         .iter()
         .find(|asset| asset.kind == "model")

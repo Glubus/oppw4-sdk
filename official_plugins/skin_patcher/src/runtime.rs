@@ -2,7 +2,7 @@ use std::{collections::HashSet, path::PathBuf};
 
 use plugin_sdk::{zip::read_zip_entry_from_reader, HostApi};
 
-use crate::{log, mods::ModRepository, patching, provider, LEGACY_NAME_HASH_CATALOG_ZIP};
+use crate::{log, mods::ModRepository, patching, provider, state, LEGACY_NAME_HASH_CATALOG_ZIP};
 
 const ARCHIVES: [&str; 8] = [
     "CharacterEditor",
@@ -32,6 +32,7 @@ pub fn initialize(host: HostApi<'_>) -> i32 {
     log_paths(&paths);
 
     let catalog = load_name_catalog(&paths);
+    state::initialize(paths.rdb_root.clone(), catalog.clone());
     let legacy_mod_paths = host
         .mods()
         .legacy_paths()

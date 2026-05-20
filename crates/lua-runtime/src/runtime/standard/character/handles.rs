@@ -1,5 +1,5 @@
 use mlua::{Lua, Table, Value};
-use struct_api::Character;
+use struct_api::{Character, CharacterAsset, CharacterBodyPart, CharacterCostume};
 
 pub(super) fn character_handle_table(lua: &Lua, character: &Character) -> mlua::Result<Table> {
     let table = lua.create_table()?;
@@ -26,6 +26,7 @@ pub(super) fn character_handle_table(lua: &Lua, character: &Character) -> mlua::
     table.set("canonical", character.canonical.as_str())?;
     table.set("display_name", character.display_name.as_str())?;
     table.set("model_stem", character.model_stem.as_str())?;
+    table.set("costumes", costumes_table(lua, &character.costumes)?)?;
 
     attach_character_metatable(lua, &table)?;
     Ok(table)
@@ -124,6 +125,64 @@ pub(super) fn custom_character_handle_table(lua: &Lua, fields: Table) -> mlua::R
 
     attach_character_metatable(lua, &table)?;
     Ok(table)
+}
+
+fn costumes_table(lua: &Lua, costumes: &[CharacterCostume]) -> mlua::Result<Table> {
+    let table = lua.create_table()?;
+    for (index, costume) in costumes.iter().enumerate() {
+        let costume_table = costume_table(lua, costume)?;
+        table.set(index + 1, costume_table.clone())?;
+        table.set(costume.id.as_str(), costume_table)?;
+    }
+    Ok(table)
+}
+
+fn costume_table(lua: &Lua, costume: &CharacterCostume) -> mlua::Result<Table> {
+    let table = lua.create_table()?;
+    table.set("id", costume.id.as_str())?;
+    table.set("label", costume.label.as_str())?;
+    if let Some(model_id) = costume.model_id {
+        table.set("model_id", model_id)?;
+    }
+    table.set("assets", assets_table(lua, &costume.assets)?)?;
+    table.set("body_parts", body_parts_table(lua, &costume.body_parts)?)?;
+    Ok(table)
+}
+
+fn body_parts_table(lua: &Lua, body_parts: &[CharacterBodyPart]) -> mlua::Result<Table> {
+    let table = lua.create_table()?;
+    for (index, part) in body_parts.iter().enumerate() {
+        let part_table = lua.create_table()?;
+        part_table.set("id", part.id.as_str())?;
+        part_table.set("label", part.label.as_str())?;
+        part_table.set("assets", assets_table(lua, &part.assets)?)?;
+        table.set(index + 1, part_table.clone())?;
+        table.set(part.id.as_str(), part_table)?;
+    }
+    Ok(table)
+}
+
+fn assets_table(lua: &Lua, assets: &[CharacterAsset]) -> mlua::Result<Table> {
+    let table = lua.create_table()?;
+    for (index, asset) in assets.iter().enumerate() {
+        let asset_table = lua.create_table()?;
+        asset_table.set("kind", asset.kind.as_str())?;
+        asset_table.set("label", asset.label.as_str())?;
+        set_optional_string(&asset_table, "variant", asset.variant.as_deref())?;
+        set_optional_string(&asset_table, "archive", asset.archive.as_deref())?;
+        set_optional_string(&asset_table, "path", asset.path.as_deref())?;
+        set_optional_string(&asset_table, "hash", asset.hash.as_deref())?;
+        set_optional_string(&asset_table, "file_type", asset.file_type.as_deref())?;
+        table.set(index + 1, asset_table)?;
+    }
+    Ok(table)
+}
+
+fn set_optional_string(table: &Table, key: &str, value: Option<&str>) -> mlua::Result<()> {
+    if let Some(value) = value {
+        table.set(key, value)?;
+    }
+    Ok(())
 }
 
 pub(super) fn local_player_handle_table(lua: &Lua) -> mlua::Result<Table> {

@@ -160,6 +160,10 @@ impl VirtualManager {
             .max()
     }
 
+    pub fn append_replacements(&mut self, replacements: Vec<VirtualReplacement>) {
+        self.replacements.extend(replacements);
+    }
+
     pub fn data_read_hits(
         &self,
         archive_name: &str,

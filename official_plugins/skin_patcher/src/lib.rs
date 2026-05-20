@@ -7,6 +7,7 @@ mod patching;
 mod provider;
 mod rdb_tracker;
 mod runtime;
+mod state;
 
 pub(crate) const LEGACY_NAME_HASH_CATALOG_ZIP: &[u8] =
     include_bytes!("../../../resources/name_hash_catalog.zip");

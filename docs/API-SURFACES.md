@@ -290,6 +290,13 @@ require("fx_director")
 local zoro = character.find("zoro")
 zoro:add_fx({ effect_id = 2830 })
 zoro:replace_costume(2, "zoro.g1m")
+zoro:replace_models("default", "my_zoro.g1m")
+zoro:replace_textures("default", "body", "my_zoro_body.g1t")
+zoro:replace_textures("default", {
+  { "body", "my_zoro_body.g1t" },
+  { "weapon_01", "my_zoro_sword_01.g1t" },
+  { "weapon_02", "my_zoro_sword_02.g1t" },
+})
 ```
 
 Extension conflicts must be rejected by SDK core.
