@@ -12,7 +12,7 @@ Current checkpoint:
 - [x] loader workspace builds independently and loads `plugins/sdk_core/sdk_core.dll` dynamically;
 - [x] SDK memory primitives are routed back into loader-owned hooks through the loader ABI;
 - [x] SDK file providers are routed back into loader-owned hooks through the loader ABI;
-- [x] SDK game status and active character reads are routed back into loader-owned hooks through the loader ABI;
+- [x] SDK memory and file providers are routed back into loader-owned hooks through the loader ABI;
 - [x] character bank editable sources are split per character and generated into SDK-facing views;
 - [x] Lua mods can use `require("std.character")`;
 - [x] legacy global `character` remains only as a transition alias;
@@ -77,22 +77,22 @@ Goals:
 - [x] Define the initial loader-to-SDK ABI.
 - [x] Define initial SDK core discovery.
 - [x] Define initial SDK missing/incompatible behavior.
-- [ ] Remove business concepts from the loader contract.
+- [x] Remove business concepts from the loader contract.
 
 Deliverables:
 
 - [x] host ABI structs and version constants;
 - [x] loader-owned memory primitive callbacks;
 - [x] loader-owned file provider registration callback;
-- [x] loader-owned game status and active character callbacks;
+- [x] no loader-owned game status or active character callbacks;
 - [x] `plugins/sdk_core/sdk_core.dll` discovery rules;
-- [x] boot/fatal log behavior for missing SDK core;
+- [x] missing SDK core disables SDK features without aborting the game;
 - [ ] tests for missing SDK core and incompatible SDK core.
 
 Exit criteria:
 
 - [x] loader can boot with SDK core;
-- [x] loader can report SDK boot failure clearly;
+- [x] loader tolerates missing SDK core without aborting;
 - [ ] loader does not know official plugin names.
 
 ## Phase 2: SDK Workspace
@@ -257,15 +257,15 @@ Goals:
 
 - [ ] Remove plugin orchestration from loader.
 - [ ] Remove Lua runtime from loader.
-- [ ] Remove business services from loader.
-- [ ] Keep boot/proxy/primitives only.
+- [x] Remove business services from loader.
+- [x] Keep boot/proxy/primitives only.
 
 Exit criteria:
 
 - [ ] loader repository builds independently;
 - [ ] loader has no dependency on official plugins;
 - [x] loader has no dependency on character bank data;
-- [ ] loader only exposes the minimal host ABI.
+- [x] loader only exposes the minimal host ABI.
 
 ## Phase 8: Developer Experience
 

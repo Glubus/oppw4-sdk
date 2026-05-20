@@ -29,5 +29,26 @@ pub struct Oppw4LoaderSdkInit {
     pub active_character: Option<HostActiveCharacterFn>,
 }
 
+impl Default for Oppw4LoaderSdkInit {
+    fn default() -> Self {
+        Self {
+            version: OPPW4_LOADER_SDK_ABI_VERSION,
+            host_context: std::ptr::null_mut(),
+            debug_enabled: 0,
+            game_root_utf8: std::ptr::null(),
+            plugin_root_utf8: std::ptr::null(),
+            session_stamp_utf8: std::ptr::null(),
+            log: None,
+            module_base: None,
+            read_memory: None,
+            write_memory: None,
+            scan_memory: None,
+            register_file_provider: None,
+            game_status: None,
+            active_character: None,
+        }
+    }
+}
+
 pub type Oppw4SdkCoreInitializeFn =
     unsafe extern "system" fn(init: *const Oppw4LoaderSdkInit) -> i32;
