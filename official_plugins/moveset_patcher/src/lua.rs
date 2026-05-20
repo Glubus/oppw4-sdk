@@ -5,10 +5,6 @@ use plugin_sdk::{HostApi, PluginError};
 
 use crate::{constants::PLUGIN_ID, log, payload, state};
 
-mod entries;
-
-use entries::{character_name, resolve_entry};
-
 pub(crate) fn register(host: HostApi<'_>) {
     let result = match host.lua().register_module_fn(
         PLUGIN_ID,
@@ -73,9 +69,6 @@ fn moveset_definition(lua: &Lua, definition: Table) -> mlua::Result<Table> {
         };
 
     let output = lua.create_table()?;
-    if let Some(entry) = definition.get::<Option<u16>>("target_entry")? {
-        output.set("target_entry", entry)?;
-    }
     if let Some(entry) = definition.get::<Option<u16>>("entry")?.or(file_entry) {
         output.set("source_entry", entry)?;
     }
@@ -115,7 +108,15 @@ fn read_payload_file(lua: &Lua, path: &Path) -> mlua::Result<(Vec<u8>, Option<u1
 }
 
 fn replace_movesets(_: &Lua, (character, moveset): (Table, Table)) -> mlua::Result<()> {
-    let entry = resolve_entry(&character, &moveset)?;
+    let entry = character.get::<Option<u16>>("moveset_linkdata_entry")?.ok_or_else(|| {
+        let name = character_name(&character)
+            .ok()
+            .flatten()
+            .unwrap_or_else(|| "unknown".to_string());
+        mlua::Error::external(format!(
+            "no SDK moveset target for character={name}; add movesets.json in oppw4-data or pass a custom SDK character handle"
+        ))
+    })?;
     let payload = moveset
         .get::<Option<mlua::String>>("payload")?
         .ok_or_else(|| mlua::Error::external("replace_movesets expects moveset.payload"))?;
@@ -128,6 +129,12 @@ fn replace_movesets(_: &Lua, (character, moveset): (Table, Table)) -> mlua::Resu
         state::edit_count()
     ));
     Ok(())
+}
+
+fn character_name(character: &Table) -> mlua::Result<Option<String>> {
+    Ok(character
+        .get::<Option<String>>("canonical")?
+        .or_else(|| character.get::<Option<String>>("name").ok().flatten()))
 }
 
 #[cfg(test)]
@@ -317,7 +324,7 @@ mod tests {
     }
 
     #[test]
-    fn replace_movesets_targets_character_entry_before_source_entry() {
+    fn replace_movesets_uses_sdk_character_target_entry() {
         crate::state::initialize(plugin_sdk::HostApi::from(&test_linkdata_api())).ok();
 
         let lua = Lua::new();
@@ -345,6 +352,32 @@ mod tests {
 
         let edits = crate::state::edit_count();
         assert!(edits >= 1);
+    }
+
+    #[test]
+    fn replace_movesets_rejects_character_without_sdk_target_entry() {
+        let lua = Lua::new();
+        let character = lua
+            .load(
+                r#"
+                return {
+                    canonical = "garp",
+                }
+                "#,
+            )
+            .eval::<Table>()
+            .expect("character");
+        let moveset = lua.create_table().expect("moveset");
+        moveset
+            .set(
+                "payload",
+                lua.create_string([1u8, 2, 3, 4]).expect("payload"),
+            )
+            .expect("payload");
+
+        let error = replace_movesets(&lua, (character, moveset)).expect_err("missing target");
+
+        assert!(error.to_string().contains("no SDK moveset target"));
     }
 
     fn test_linkdata_api() -> plugin_sdk::Oppw4PluginApi {
