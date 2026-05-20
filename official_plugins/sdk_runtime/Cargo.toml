@@ -12,3 +12,4 @@ name = "runtime"
 asm.workspace = true
 hooks.workspace = true
 plugin-sdk.workspace = true
+toml.workspace = true

@@ -1,4 +1,6 @@
 mod active_character;
+mod config;
+mod difficulty_probe;
 mod memory;
 mod status;
 
@@ -20,7 +22,9 @@ impl Plugin for SdkRuntime {
                 active_character::read_active_character,
             )?;
         }
+        let config = config::load(context.host());
         active_character::start_probe();
+        difficulty_probe::start(context.host().owned(), config.difficulty_probe);
         context.log("sdk.runtime initialized");
         Ok(())
     }

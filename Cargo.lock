@@ -366,6 +366,7 @@ dependencies = [
  "asm",
  "hooks",
  "plugin-sdk",
+ "toml",
 ]
 
 [[package]]

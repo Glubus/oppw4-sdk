@@ -16,6 +16,7 @@ Current checkpoint:
 - [x] plugins with missing service capabilities are skipped instead of crashing the SDK core;
 - [x] SDK core no longer publishes game status or active character callbacks directly;
 - [x] `sdk.runtime` is scaffolded as `runtime.dll` and registers game telemetry providers through the SDK ABI;
+- [x] `sdk.runtime` owns the first difficulty telemetry probe for mission id, selected difficulty, mode type, reward mode, and cached difficulty values;
 - [x] `sdk.linkdata` owns LinkData patch registry and file virtualization as `linkdata.dll`;
 - [x] `sdk.rdb` is scaffolded as `rdb.dll` and owns the `rdb.read` / `rdb.patch` service capabilities;
 - [x] RDB patch read providers register through `sdk.rdb` instead of direct plugin file-provider hooks;
