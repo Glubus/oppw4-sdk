@@ -30,7 +30,7 @@ pub use context::PluginContext;
 pub use entry::{plugin_abi_from_raw, PluginInitError};
 pub use error::{PluginError, PluginResult};
 pub use helpers::cstring_lossy;
-pub use log::{LogPolicy, PluginLogger};
+pub use log::{mirror_mod_log_to_host, LogPolicy, PluginLogger};
 pub use plugin::{init_plugin, Plugin};
 
 #[macro_export]

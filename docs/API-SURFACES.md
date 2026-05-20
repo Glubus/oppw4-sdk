@@ -102,6 +102,7 @@ SDK core currently resolves plugin load order from `[dependencies].plugins` and 
 - `lua.module`;
 - `std.character.extend`;
 - `files.virtualize`;
+- `rdb.patch` for file providers that patch existing RDB reads;
 - `linkdata.patch`;
 - `memory.read`;
 - `memory.scan`;
@@ -133,6 +134,7 @@ Current validation rules:
 - duplicate Lua module names from different plugins are rejected;
 - `std.character` method extension requires `std.character.extend`;
 - file providers require `files.virtualize`;
+- file providers with `patch_read` require `rdb.patch`;
 - LinkData entry/row patches require `linkdata.patch`;
 - memory read/scan/write callbacks require their matching memory capabilities.
 

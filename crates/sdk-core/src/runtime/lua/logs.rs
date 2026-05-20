@@ -5,7 +5,7 @@ pub(super) fn write_mod_entries(mod_entry: &lua_api::LuaMod, entries: &[lua_api:
     for entry in entries {
         let message = format_entry(mod_entry, entry);
         host_logs::write_mod(mod_id(mod_entry, entry), &message);
-        if plugin_sdk::log::mirror_mod_log_to_host(&entry.level) {
+        if plugin_sdk::mirror_mod_log_to_host(&entry.level) {
             log::write_line(message);
         }
     }

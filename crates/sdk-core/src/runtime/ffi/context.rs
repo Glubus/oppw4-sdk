@@ -8,6 +8,7 @@ pub(crate) const CAP_LUA_MODULE: &str = "lua.module";
 pub(crate) const CAP_MEMORY_READ: &str = "memory.read";
 pub(crate) const CAP_MEMORY_SCAN: &str = "memory.scan";
 pub(crate) const CAP_MEMORY_WRITE: &str = "memory.write";
+pub(crate) const CAP_RDB_PATCH: &str = "rdb.patch";
 pub(crate) const CAP_STD_CHARACTER_EXTEND: &str = "std.character.extend";
 
 pub(crate) struct ApiContext {

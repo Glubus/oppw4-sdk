@@ -209,7 +209,7 @@ Capabilities:
 - [ ] `hooks.install`;
 - [x] `files.virtualize`;
 - [x] `linkdata.patch`;
-- [ ] `rdb.patch`;
+- [x] `rdb.patch`;
 - [x] `lua.module`;
 - [x] `std.character.extend`;
 - [ ] `signals.subscribe`;
@@ -222,7 +222,7 @@ Exit criteria:
 - [ ] missing capabilities are refused for every critical API;
 - [x] plugin dependencies are resolved before Lua mods run.
 
-Status: in progress. `plugin.toml` can now declare plugin dependencies, Lua modules, and required/provided capabilities. SDK core resolves plugin load order from declared dependencies, rejects duplicate Lua module names from different plugins, and refuses Lua modules that are not declared in `[lua].modules`. Capability enforcement exists for `lua.module`, `std.character.extend`, `files.virtualize`, `linkdata.patch`, and `memory.read`/`memory.scan`/`memory.write`. Remaining enforcement work: hooks/signals, RDB-specific policies, config schema registration, and richer diagnostics.
+Status: in progress. `plugin.toml` can now declare plugin dependencies, Lua modules, and required/provided capabilities. SDK core resolves plugin load order from declared dependencies, rejects duplicate Lua module names from different plugins, and refuses Lua modules that are not declared in `[lua].modules`. Capability enforcement exists for `lua.module`, `std.character.extend`, `files.virtualize`, `rdb.patch`, `linkdata.patch`, and `memory.read`/`memory.scan`/`memory.write`. Remaining enforcement work: hooks/signals, config schema registration, and richer diagnostics.
 
 ## Phase 6: Official Plugin Migration
 
