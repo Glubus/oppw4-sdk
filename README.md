@@ -30,6 +30,7 @@ crates/
   asm/
   rdb/
 official_plugins/
+  sdk_core/
   skin_patcher/
   fx_director/
   moveset_patcher/

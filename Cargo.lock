@@ -324,6 +324,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "oppw4-sdk-core-plugin"
+version = "0.1.0"
+dependencies = [
+ "plugin-abi",
+ "plugin-host",
+]
+
+[[package]]
 name = "oppw4-skin-patcher-plugin"
 version = "0.1.0"
 dependencies = [

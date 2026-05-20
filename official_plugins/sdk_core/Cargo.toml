@@ -1,0 +1,13 @@
+[package]
+name = "oppw4-sdk-core-plugin"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+name = "sdk_core"
+
+[dependencies]
+plugin-abi.workspace = true
+plugin-host.workspace = true

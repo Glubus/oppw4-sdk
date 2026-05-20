@@ -19,6 +19,13 @@ Required surface:
 - file hook/provider primitive;
 - DirectInput/proxy status.
 
+Current SDK core bootstrap ABI:
+
+- `OPPW4_LOADER_SDK_ABI_VERSION`;
+- `Oppw4LoaderSdkInit`;
+- `oppw4_sdk_core_initialize`;
+- loader log callback forwarding.
+
 Not allowed in the loader ABI:
 
 - Lua modules;

@@ -1,0 +1,12 @@
+[plugin]
+id = "sdk_core"
+version = "0.1.0"
+entry = "sdk_core.dll"
+
+[capabilities]
+provides = [
+  "sdk.core",
+  "lua.runtime",
+  "plugin.host",
+  "mod.discovery",
+]

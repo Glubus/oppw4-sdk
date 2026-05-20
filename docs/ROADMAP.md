@@ -8,6 +8,7 @@ Current checkpoint:
 
 - [x] physical split exists under `oppw4-sdk-split/oppw4-loader` and `oppw4-sdk-split/oppw4-sdk`;
 - [x] SDK workspace builds and tests independently;
+- [x] SDK core can now be built as `sdk_core.dll`;
 - [x] loader workspace builds independently while still depending on SDK crates by local path;
 - [x] character bank editable sources are split per character and generated into SDK-facing views;
 - [x] Lua mods can use `require("std.character")`;
@@ -105,6 +106,10 @@ Target workspace:
 oppw4-sdk/
   crates/
   official_plugins/
+    sdk_core/
+    skin_patcher/
+    fx_director/
+    moveset_patcher/
   resources/
   examples/
   docs/
@@ -113,10 +118,10 @@ oppw4-sdk/
 Exit criteria:
 
 - [x] SDK workspace builds independently;
-- [ ] SDK core can be packaged as a plugin;
+- [x] SDK core can be packaged as a plugin;
 - [ ] loader can consume SDK via Git dependency during development.
 
-Status: partially complete. The workspace exists and tests pass. SDK core packaging as the final mandatory plugin is not complete yet.
+Status: partially complete. The workspace exists, tests pass, and `official_plugins/sdk_core` can build `sdk_core.dll`. The loader still needs to consume this SDK package dynamically instead of linking SDK core directly.
 
 ## Phase 3: Lua Standard Runtime
 
