@@ -264,7 +264,7 @@ Exit criteria:
 
 - [ ] loader repository builds independently;
 - [ ] loader has no dependency on official plugins;
-- [ ] loader has no dependency on character bank data;
+- [x] loader has no dependency on character bank data;
 - [ ] loader only exposes the minimal host ABI.
 
 ## Phase 8: Developer Experience
