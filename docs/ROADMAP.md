@@ -14,6 +14,7 @@ Current checkpoint:
 - [x] SDK file providers are routed back into loader-owned hooks through the loader ABI;
 - [x] SDK core resolves optional SDK service DLLs from `plugins/sdk/`;
 - [x] plugins with missing service capabilities are skipped instead of crashing the SDK core;
+- [x] SDK core no longer publishes game status or active character callbacks directly;
 - [x] character bank editable sources are split per character and generated into SDK-facing views;
 - [x] Lua mods can use `require("std.character")`;
 - [x] legacy global `character` remains only as a transition alias;
