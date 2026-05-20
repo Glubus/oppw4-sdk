@@ -25,6 +25,7 @@ pub enum PluginManifestError {
     MissingEntry,
     InvalidEntry(String),
     InvalidLuaModule(String),
+    InvalidCapability(String),
 }
 
 impl PluginDescriptor {
@@ -62,8 +63,14 @@ impl PluginDescriptor {
             .into_iter()
             .map(normalize_lua_module_name)
             .collect::<Result<Vec<_>, _>>()?;
-        let capabilities_required = lowercase_string_array(&value, &["capabilities", "requires"]);
-        let capabilities_provided = lowercase_string_array(&value, &["capabilities", "provides"]);
+        let capabilities_required = string_array(&value, &["capabilities", "requires"])
+            .into_iter()
+            .map(normalize_capability_name)
+            .collect::<Result<Vec<_>, _>>()?;
+        let capabilities_provided = string_array(&value, &["capabilities", "provides"])
+            .into_iter()
+            .map(normalize_capability_name)
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(Self {
             id,
@@ -124,26 +131,33 @@ fn string_array(value: &toml::Value, path: &[&str]) -> Vec<String> {
         .unwrap_or_default()
 }
 
-fn lowercase_string_array(value: &toml::Value, path: &[&str]) -> Vec<String> {
-    string_array(value, path)
-        .into_iter()
-        .map(|value| value.to_ascii_lowercase())
-        .collect()
-}
-
 fn normalize_lua_module_name(raw: String) -> Result<String, PluginManifestError> {
     let name = raw.trim().to_ascii_lowercase();
-    let valid = !name.is_empty()
-        && !name.starts_with('.')
-        && !name.ends_with('.')
-        && name
-            .chars()
-            .all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '-' || ch == '.');
+    let valid = is_dotted_ascii_name(&name);
     if valid {
         Ok(name)
     } else {
         Err(PluginManifestError::InvalidLuaModule(raw))
     }
+}
+
+fn normalize_capability_name(raw: String) -> Result<String, PluginManifestError> {
+    let name = raw.trim().to_ascii_lowercase();
+    if is_dotted_ascii_name(&name) {
+        Ok(name)
+    } else {
+        Err(PluginManifestError::InvalidCapability(raw))
+    }
+}
+
+fn is_dotted_ascii_name(name: &str) -> bool {
+    !name.is_empty()
+        && !name.starts_with('.')
+        && !name.ends_with('.')
+        && !name.contains("..")
+        && name
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '-' || ch == '.')
 }
 
 pub fn plugin_toml_path(plugin_dir: &Path) -> PathBuf {
@@ -270,6 +284,50 @@ mod tests {
             error,
             PluginManifestError::InvalidLuaModule("../bad".to_string())
         );
+    }
+
+    #[test]
+    fn rejects_invalid_capability_names() {
+        let error = PluginDescriptor::parse_toml(
+            r#"
+                [plugin]
+                id = "bad"
+                version = "0.2.0"
+                entry = "bad.dll"
+
+                [capabilities]
+                requires = ["../memory.write"]
+            "#,
+        )
+        .expect_err("bad capability");
+
+        assert_eq!(
+            error,
+            PluginManifestError::InvalidCapability("../memory.write".to_string())
+        );
+    }
+
+    #[test]
+    fn normalizes_capability_names() {
+        let descriptor = PluginDescriptor::parse_toml(
+            r#"
+                [plugin]
+                id = "fx_director"
+                version = "0.2.0"
+                entry = "fx_director.dll"
+
+                [capabilities]
+                requires = [" Lua.Module ", "HOOKS.INSTALL"]
+                provides = [" Runtime.Fx "]
+            "#,
+        )
+        .expect("descriptor");
+
+        assert_eq!(
+            descriptor.capabilities_required,
+            ["lua.module", "hooks.install"]
+        );
+        assert_eq!(descriptor.capabilities_provided, ["runtime.fx"]);
     }
 
     #[test]

@@ -73,6 +73,25 @@ fn manifest_requires_version() {
 }
 
 #[test]
+fn manifest_rejects_invalid_capability_names() {
+    let error = PluginManifest::parse(
+        Path::new(r"D:\Game\OPPW4\plugins\bad"),
+        r#"
+                [plugin]
+                id = "bad"
+                version = "0.1.0"
+                entry = "bad.dll"
+
+                [capabilities]
+                requires = ["hooks/evil"]
+            "#,
+    )
+    .expect_err("capability should be rejected");
+
+    assert!(error.contains("capability name is invalid"));
+}
+
+#[test]
 fn manifest_file_is_named_plugin_toml() {
     let root = temp_root("plugin-toml");
     fs::create_dir_all(&root).expect("temp plugin dir");

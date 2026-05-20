@@ -141,6 +141,9 @@ fn format_manifest_error(error: PluginManifestError) -> String {
         PluginManifestError::InvalidLuaModule(module) => {
             format!("lua module name is invalid: {module}")
         }
+        PluginManifestError::InvalidCapability(capability) => {
+            format!("capability name is invalid: {capability}")
+        }
     }
 }
 
