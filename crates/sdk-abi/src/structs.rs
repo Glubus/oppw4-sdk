@@ -19,6 +19,7 @@ pub struct Oppw4PluginApi {
     pub game_root_utf8: *const c_char,
     pub plugin_root_utf8: *const c_char,
     pub mods_root_utf8: *const c_char,
+    pub config_root_utf8: *const c_char,
     pub log: Option<HostLogFn>,
     pub module_base: Option<HostModuleBaseFn>,
     pub read_memory: Option<HostReadMemoryFn>,

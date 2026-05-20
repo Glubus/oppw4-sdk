@@ -24,7 +24,11 @@ pub fn initialize(host: HostApi<'_>) -> i32 {
         log::write_line("skin_patcher: missing plugin mods root");
         return -4;
     };
-    let paths = RuntimePaths::from_roots(game_root, mods_root);
+    let config_root = host
+        .paths()
+        .config_root()
+        .unwrap_or_else(|| mods_root.join("_oppw4"));
+    let paths = RuntimePaths::from_roots(game_root, mods_root, config_root);
     log_paths(&paths);
 
     let catalog = load_name_catalog(&paths);
@@ -56,9 +60,9 @@ struct RuntimePaths {
 }
 
 impl RuntimePaths {
-    fn from_roots(game_root: PathBuf, mods_root: PathBuf) -> Self {
+    fn from_roots(game_root: PathBuf, mods_root: PathBuf, config_root: PathBuf) -> Self {
         Self {
-            config_root: mods_root.join("_oppw4"),
+            config_root,
             mods_root,
             rdb_root: game_root
                 .join("File")

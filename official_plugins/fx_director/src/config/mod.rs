@@ -20,7 +20,7 @@ observe_character_probe = false
 "#;
 
 pub(crate) fn load_plugin_config(host: HostApi<'_>) -> PluginConfig {
-    let Some(root) = host.paths().plugin_root() else {
+    let Some(root) = host.paths().config_root() else {
         return PluginConfig::default();
     };
     let path = root.join("config.toml");
