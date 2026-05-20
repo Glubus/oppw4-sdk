@@ -1,6 +1,9 @@
 use std::ffi::{c_char, c_void};
 
-use super::{HostActiveCharacterFn, HostGameStatusFn, HostRegisterFileProviderFn};
+use super::{
+    HostActiveCharacterFn, HostGameStatusFn, HostModuleBaseFn, HostReadMemoryFn,
+    HostRegisterFileProviderFn, HostScanMemoryFn, HostWriteMemoryFn,
+};
 
 pub const OPPW4_LOADER_SDK_ABI_VERSION: u32 = 1;
 
@@ -17,6 +20,10 @@ pub struct Oppw4LoaderSdkInit {
     pub plugin_root_utf8: *const c_char,
     pub session_stamp_utf8: *const c_char,
     pub log: Option<Oppw4LoaderLogFn>,
+    pub module_base: Option<HostModuleBaseFn>,
+    pub read_memory: Option<HostReadMemoryFn>,
+    pub write_memory: Option<HostWriteMemoryFn>,
+    pub scan_memory: Option<HostScanMemoryFn>,
     pub register_file_provider: Option<HostRegisterFileProviderFn>,
     pub game_status: Option<HostGameStatusFn>,
     pub active_character: Option<HostActiveCharacterFn>,

@@ -31,6 +31,14 @@ pub unsafe extern "system" fn oppw4_sdk_core_initialize(init: *const Oppw4Loader
         plugin_host::set_logger(forward_log_to_loader);
     }
     plugin_host::set_debug_enabled(init.debug_enabled != 0);
+    if let (Some(module_base), Some(read), Some(write), Some(scan)) = (
+        init.module_base,
+        init.read_memory,
+        init.write_memory,
+        init.scan_memory,
+    ) {
+        plugin_host::set_memory(init.host_context, module_base, read, write, scan);
+    }
     if let Some(register_file_provider) = init.register_file_provider {
         plugin_host::set_file_provider_registrar(init.host_context, register_file_provider);
     }

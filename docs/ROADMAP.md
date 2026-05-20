@@ -10,6 +10,7 @@ Current checkpoint:
 - [x] SDK workspace builds and tests independently;
 - [x] SDK core can now be built as `sdk_core.dll`;
 - [x] loader workspace builds independently and loads `plugins/sdk_core/sdk_core.dll` dynamically;
+- [x] SDK memory primitives are routed back into loader-owned hooks through the loader ABI;
 - [x] SDK file providers are routed back into loader-owned hooks through the loader ABI;
 - [x] SDK game status and active character reads are routed back into loader-owned hooks through the loader ABI;
 - [x] character bank editable sources are split per character and generated into SDK-facing views;
@@ -81,6 +82,7 @@ Goals:
 Deliverables:
 
 - [x] host ABI structs and version constants;
+- [x] loader-owned memory primitive callbacks;
 - [x] loader-owned file provider registration callback;
 - [x] loader-owned game status and active character callbacks;
 - [x] `plugins/sdk_core/sdk_core.dll` discovery rules;

@@ -12,7 +12,7 @@ mod win;
 
 pub use loader::initialize;
 pub use loader_services::{
-    set_active_character_reader, set_file_provider_registrar, set_game_status_reader,
+    set_active_character_reader, set_file_provider_registrar, set_game_status_reader, set_memory,
 };
 
 pub fn set_debug_enabled(enabled: bool) {
