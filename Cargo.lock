@@ -318,6 +318,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "oppw4-log-example-plugin"
+version = "0.1.0"
+dependencies = [
+ "plugin-sdk",
+]
+
+[[package]]
 name = "oppw4-moveset-patcher-plugin"
 version = "0.1.0"
 dependencies = [

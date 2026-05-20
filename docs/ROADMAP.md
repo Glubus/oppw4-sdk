@@ -269,18 +269,18 @@ Exit criteria:
 
 ## Phase 8: Developer Experience
 
-Progress: not started.
+Progress: started.
 
 Goals:
 
 - [ ] Make the SDK usable by third-party modders.
-- [ ] Provide examples and templates.
+- [x] Provide examples and templates.
 - [x] Add validation tools.
 
 Deliverables:
 
 - [x] first Lua mod example;
-- [ ] first Rust plugin example;
+- [x] first Rust plugin example;
 - [ ] character extension example;
 - [ ] LinkData patch example;
 - [ ] asset replacement example;
@@ -290,7 +290,7 @@ Deliverables:
 Exit criteria:
 
 - [x] a new developer can create a Lua mod from examples;
-- [ ] a new developer can create a Rust plugin from a template;
+- [x] a new developer can create a Rust plugin from a template;
 - [ ] SDK docs explain where each feature belongs.
 
 ## Phase 9: Release Packaging

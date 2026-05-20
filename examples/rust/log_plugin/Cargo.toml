@@ -1,0 +1,12 @@
+[package]
+name = "oppw4-log-example-plugin"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+name = "log_example"
+
+[dependencies]
+plugin-sdk.workspace = true

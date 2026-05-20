@@ -63,7 +63,8 @@ Validate a Lua mod manifest:
 cargo run -p mod-manifest-tool -- path/to/mod.toml
 ```
 
-Lua examples live under `examples/lua/`.
+Lua examples live under `examples/lua/`. Rust plugin examples live under
+`examples/rust/`.
 
 ## Architecture Docs
 

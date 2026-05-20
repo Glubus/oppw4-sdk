@@ -8,6 +8,7 @@ members = [
     "crates/sdk-core",
     "crates/sdk-api",
     "crates/rdb",
+    "examples/rust/log_plugin",
     "tools/moveset-tool",
     "tools/mod-manifest-tool",
     "tools/plugin-manifest-tool",

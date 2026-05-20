@@ -1,0 +1,8 @@
+[plugin]
+id = "log_example"
+version = "0.1.0"
+entry = "log_example.dll"
+
+[capabilities]
+requires = []
+provides = []
