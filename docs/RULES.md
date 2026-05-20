@@ -22,6 +22,7 @@
 - SDK core owns Lua runtime, plugin lifecycle, dependency ordering, capabilities, logs/config routing, and service registries.
 - SDK core must be able to refuse invalid registrations with clear errors.
 - SDK core must keep APIs typed and explicit.
+- Plugin ABI structs must be append-only. Keep `version` and `struct_size` first, never reorder existing fields, and treat absent future fields as unavailable rather than guessing.
 
 ## Plugin Rules
 

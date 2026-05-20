@@ -16,6 +16,7 @@ use super::ffi::{
 #[derive(Clone, Copy)]
 pub struct Oppw4PluginApi {
     pub version: u32,
+    pub struct_size: u32,
     pub host_context: *mut c_void,
     pub game_root_utf8: *const c_char,
     pub plugin_root_utf8: *const c_char,

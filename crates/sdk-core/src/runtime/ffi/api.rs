@@ -1,6 +1,6 @@
 use std::{ffi::CString, path::Path};
 
-use plugin_abi::{Oppw4PluginApi, OPPW4_PLUGIN_API_VERSION};
+use plugin_abi::{Oppw4PluginApi, OPPW4_PLUGIN_API_STRUCT_SIZE, OPPW4_PLUGIN_API_VERSION};
 
 use super::{
     context::ApiContext,
@@ -36,6 +36,7 @@ pub(crate) fn build_api(
     let _ = game_root;
     Oppw4PluginApi {
         version: OPPW4_PLUGIN_API_VERSION,
+        struct_size: OPPW4_PLUGIN_API_STRUCT_SIZE,
         host_context: (context as *const ApiContext).cast_mut().cast(),
         game_root_utf8: game_root_utf8.as_ptr(),
         plugin_root_utf8: plugin_root_utf8.as_ptr(),

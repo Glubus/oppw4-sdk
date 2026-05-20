@@ -41,6 +41,12 @@ Not allowed in the loader ABI:
 
 SDK core consumes the loader host ABI and exposes higher-level services to plugins.
 
+Plugin ABI tables are versioned and sized. `Oppw4PluginApi` starts with
+`version` and `struct_size`; new fields must be appended to the end of the
+table. Plugin initialization rejects mismatched versions and rejects tables
+smaller than the current SDK ABI, while larger tables may be accepted so future
+hosts can append optional fields without breaking older readers.
+
 Core services:
 
 - plugin registry;

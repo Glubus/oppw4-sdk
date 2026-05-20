@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
 use crate::{
-    HostApi, LogPolicy, Oppw4ActiveCharacter, Oppw4GameStatus, Oppw4LuaRegisterFn, Oppw4PluginApi,
-    Plugin, PluginError, PluginModInfo, PluginResult, VirtualFileProvider,
-    OPPW4_PLUGIN_API_VERSION,
+    validate_plugin_api, HostApi, LogPolicy, Oppw4ActiveCharacter, Oppw4GameStatus,
+    Oppw4LuaRegisterFn, Oppw4PluginApi, Plugin, PluginError, PluginModInfo, PluginResult,
+    VirtualFileProvider,
 };
 
 #[derive(Clone, Copy)]
@@ -15,12 +15,7 @@ pub struct PluginContext<'api> {
 
 impl<'api> PluginContext<'api> {
     pub fn new<P: Plugin>(api: &'api Oppw4PluginApi) -> PluginResult<Self> {
-        if api.version != OPPW4_PLUGIN_API_VERSION {
-            return Err(PluginError::InvalidApiVersion {
-                expected: OPPW4_PLUGIN_API_VERSION,
-                actual: api.version,
-            });
-        }
+        validate_plugin_api(api).map_err(PluginError::from)?;
         Ok(Self {
             plugin_id: P::ID,
             host: HostApi::new(api),

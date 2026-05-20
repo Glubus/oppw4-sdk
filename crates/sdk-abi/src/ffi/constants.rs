@@ -1,4 +1,6 @@
-pub const OPPW4_PLUGIN_API_VERSION: u32 = 20;
+pub const OPPW4_PLUGIN_API_VERSION: u32 = 21;
+pub const OPPW4_PLUGIN_API_STRUCT_SIZE: u32 =
+    std::mem::size_of::<super::super::structs::Oppw4PluginApi>() as u32;
 pub const OPPW4_PLUGIN_INIT_SYMBOL: &[u8] = b"oppw4_plugin_init\0";
 
 pub const OPPW4_GAME_PHASE_UNKNOWN: u32 = 0;

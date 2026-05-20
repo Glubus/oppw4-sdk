@@ -35,6 +35,7 @@ Current checkpoint:
 - [x] plugin manifests can declare dependencies, Lua modules, and required/provided capabilities;
 - [x] SDK core resolves plugin load order from declared dependencies and rejects duplicate Lua module names;
 - [x] SDK core enforces declared capabilities for Lua module registration, `std.character` extension, file virtualization, LinkData patching, and memory read/scan/write APIs;
+- [x] SDK plugin ABI carries `struct_size` and reports undersized ABI tables separately from version mismatches;
 - [x] Lua module registration now requires both `lua.module` and an explicit `[lua].modules` manifest entry;
 - [x] `moveset_patcher` no longer owns mod-file/zip lookup and only consumes SDK helpers for that context.
 - [x] `moveset_patcher` no longer scans legacy `mods/LINKDATA_A` folders directly.
@@ -245,7 +246,7 @@ Exit criteria:
 - [x] missing capabilities are refused for every critical API;
 - [x] plugin dependencies are resolved before Lua mods run.
 
-Status: in progress. `plugin.toml` can now declare plugin dependencies, Lua modules, and required/provided capabilities. SDK core resolves plugin load order from declared dependencies, rejects duplicate Lua module names from different plugins, and refuses Lua modules that are not declared in `[lua].modules`. Capability enforcement exists for `lua.module`, `std.character.extend`, `files.virtualize`, `hooks.install`, `rdb.patch`, `linkdata.patch`, `memory.read`/`memory.scan`/`memory.write`, and `signals.subscribe`/`signals.emit`. Remaining enforcement work: config schema registration and richer diagnostics.
+Status: in progress. `plugin.toml` can now declare plugin dependencies, Lua modules, and required/provided capabilities. SDK core resolves plugin load order from declared dependencies, rejects duplicate Lua module names from different plugins, and refuses Lua modules that are not declared in `[lua].modules`. Capability enforcement exists for `lua.module`, `std.character.extend`, `files.virtualize`, `hooks.install`, `rdb.patch`, `linkdata.patch`, `memory.read`/`memory.scan`/`memory.write`, and `signals.subscribe`/`signals.emit`. ABI diagnostics now distinguish version mismatch from undersized API tables. Remaining enforcement work: config schema registration and richer capability diagnostics.
 
 ## Phase 6: Official Plugin Migration
 

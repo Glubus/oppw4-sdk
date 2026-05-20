@@ -16,7 +16,7 @@ pub use plugin_abi::{
     Oppw4ProviderReadFn, Oppw4ProviderSeekFn, Oppw4ProviderSizeFn, PluginModInfo,
     OPPW4_GAME_FLAG_DLC_CHARACTER_SEEN, OPPW4_GAME_FLAG_VIRTUAL_RESOURCE_SEEN,
     OPPW4_LINKDATA_ROW_OP_INSERT, OPPW4_LINKDATA_ROW_OP_REMOVE, OPPW4_LINKDATA_ROW_OP_REPLACE,
-    OPPW4_PLUGIN_API_VERSION,
+    OPPW4_PLUGIN_API_STRUCT_SIZE, OPPW4_PLUGIN_API_VERSION,
 };
 
 mod api;
@@ -34,7 +34,7 @@ pub use api::{
     VirtualFileProvider,
 };
 pub use context::PluginContext;
-pub use entry::{plugin_abi_from_raw, PluginInitError};
+pub use entry::{plugin_abi_from_raw, validate_plugin_api, PluginInitError};
 pub use error::{PluginError, PluginResult};
 pub use helpers::cstring_lossy;
 pub use log::{mirror_mod_log_to_host, LogPolicy, PluginLogger};

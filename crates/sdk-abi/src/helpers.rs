@@ -3,7 +3,10 @@ use std::{
     ptr,
 };
 
-use super::{ffi::OPPW4_PLUGIN_API_VERSION, structs::Oppw4PluginApi};
+use super::{
+    ffi::{OPPW4_PLUGIN_API_STRUCT_SIZE, OPPW4_PLUGIN_API_VERSION},
+    structs::Oppw4PluginApi,
+};
 
 pub fn cstring_lossy(value: impl AsRef<str>) -> CString {
     let bytes = value
@@ -27,6 +30,7 @@ pub unsafe fn optional_cstr<'a>(value: *const c_char) -> Option<&'a CStr> {
 pub const fn null_api() -> Oppw4PluginApi {
     Oppw4PluginApi {
         version: OPPW4_PLUGIN_API_VERSION,
+        struct_size: OPPW4_PLUGIN_API_STRUCT_SIZE,
         host_context: ptr::null_mut(),
         game_root_utf8: ptr::null(),
         plugin_root_utf8: ptr::null(),
