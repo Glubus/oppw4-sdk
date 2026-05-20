@@ -283,7 +283,7 @@ Deliverables:
 - [x] first Rust plugin example;
 - [x] character extension example;
 - [x] LinkData patch example;
-- [ ] asset replacement example;
+- [x] asset replacement example;
 - [x] `plugin.toml` validator;
 - [x] `mod.toml` validator.
 
