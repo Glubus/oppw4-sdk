@@ -279,7 +279,7 @@ Goals:
 
 Deliverables:
 
-- [ ] first Lua mod example;
+- [x] first Lua mod example;
 - [ ] first Rust plugin example;
 - [ ] character extension example;
 - [ ] LinkData patch example;
@@ -289,7 +289,7 @@ Deliverables:
 
 Exit criteria:
 
-- [ ] a new developer can create a Lua mod from examples;
+- [x] a new developer can create a Lua mod from examples;
 - [ ] a new developer can create a Rust plugin from a template;
 - [ ] SDK docs explain where each feature belongs.
 

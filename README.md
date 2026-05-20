@@ -63,6 +63,8 @@ Validate a Lua mod manifest:
 cargo run -p mod-manifest-tool -- path/to/mod.toml
 ```
 
+Lua examples live under `examples/lua/`.
+
 ## Architecture Docs
 
 - [SDK foundation RFC](docs/RFC-0001-sdk-foundation.md)
