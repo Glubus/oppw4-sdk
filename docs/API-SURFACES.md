@@ -81,6 +81,15 @@ Game telemetry providers register through the SDK ABI. `sdk.runtime` owns the
 OPPW4-specific probes and publishes `game.status` / `game.active_character` to
 the core; the core only routes those callbacks to consumers.
 
+LinkData providers follow the same rule. `sdk.linkdata` owns LinkData patch
+state and virtual file replacement; the core only enforces capabilities and
+routes patch requests to the registered service.
+
+Core capabilities such as `plugin.host`, `files.virtualize`, `lua.runtime`,
+and memory primitives are available before optional SDK services load. Service
+capabilities such as `linkdata.patch` are available only after the matching
+service DLL registers successfully.
+
 ## Plugin Manifest Surface
 
 `plugin.toml` declares static intent.

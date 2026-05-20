@@ -4,7 +4,9 @@ use plugin_abi::{Oppw4PluginApi, OPPW4_PLUGIN_API_VERSION};
 
 use super::{
     context::ApiContext,
-    linkdata::{host_patch_linkdata_row, host_replace_linkdata_entry},
+    linkdata::{
+        host_patch_linkdata_row, host_register_linkdata_provider, host_replace_linkdata_entry,
+    },
     log::host_log,
     lua::host_register_lua_module,
     memory::{host_module_base, host_read_memory, host_scan_memory, host_write_memory},
@@ -49,6 +51,7 @@ pub(crate) fn build_api(
         require_capability: Some(host_require_capability),
         register_game_status_provider: Some(host_register_game_status_provider),
         register_active_character_provider: Some(host_register_active_character_provider),
+        register_linkdata_provider: Some(host_register_linkdata_provider),
     }
 }
 

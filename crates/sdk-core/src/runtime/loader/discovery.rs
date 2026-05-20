@@ -11,23 +11,38 @@ const SDK_SERVICES_DIR: &str = "sdk";
 struct SdkService {
     id: &'static str,
     dll: &'static str,
+    requires: &'static [&'static str],
     provides: &'static [&'static str],
 }
+
+const CORE_CAPABILITIES: &[&str] = &[
+    "plugin.host",
+    "lua.runtime",
+    "mod.discovery",
+    "files.virtualize",
+    "memory.read",
+    "memory.scan",
+    "memory.write",
+    "hooks.install",
+];
 
 const SDK_SERVICES: &[SdkService] = &[
     SdkService {
         id: "sdk.runtime",
         dll: "runtime.dll",
+        requires: &["memory.read", "memory.scan", "memory.write"],
         provides: &["game.runtime", "game.active_character", "game.status"],
     },
     SdkService {
         id: "sdk.linkdata",
         dll: "linkdata.dll",
+        requires: &["files.virtualize"],
         provides: &["linkdata.read", "linkdata.patch"],
     },
     SdkService {
         id: "sdk.rdb",
         dll: "rdb.dll",
+        requires: &["files.virtualize"],
         provides: &["rdb.read", "rdb.patch"],
     },
 ];
@@ -58,7 +73,10 @@ pub(super) fn load_plugins(game_root: &Path, plugin_root: &Path) -> PluginLoadRe
     report.manifests = manifests.len();
 
     let mut loaded = HashSet::new();
-    let mut capabilities = HashSet::new();
+    let mut capabilities = CORE_CAPABILITIES
+        .iter()
+        .map(|capability| (*capability).to_string())
+        .collect::<HashSet<_>>();
     while !manifests.is_empty() {
         let before = manifests.len();
         let mut deferred = Vec::new();
@@ -189,6 +207,7 @@ fn sdk_service_manifest(sdk_root: &Path, service: SdkService) -> Option<PluginMa
         service.id,
         service.dll,
         sdk_root,
+        service.requires,
         service.provides,
     ))
 }
@@ -228,6 +247,23 @@ mod tests {
 
         assert!(capabilities_available(
             &["GAME.RUNTIME".to_string()],
+            &available
+        ));
+        assert!(!capabilities_available(
+            &["linkdata.patch".to_string()],
+            &available
+        ));
+    }
+
+    #[test]
+    fn core_capabilities_are_available_before_services() {
+        let available = CORE_CAPABILITIES
+            .iter()
+            .map(|capability| (*capability).to_string())
+            .collect::<HashSet<_>>();
+
+        assert!(capabilities_available(
+            &["FILES.VIRTUALIZE".to_string()],
             &available
         ));
         assert!(!capabilities_available(

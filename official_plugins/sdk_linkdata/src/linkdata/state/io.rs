@@ -1,7 +1,7 @@
 use super::LinkDataState;
 
 impl LinkDataState {
-    pub(in crate::runtime::linkdata) unsafe fn read(
+    pub(in crate::linkdata) unsafe fn read(
         &mut self,
         handle: u64,
         buffer: *mut u8,
@@ -23,7 +23,7 @@ impl LinkDataState {
             .unwrap_or(0)
     }
 
-    pub(in crate::runtime::linkdata) fn close(&mut self, handle: u64) -> i32 {
+    pub(in crate::linkdata) fn close(&mut self, handle: u64) -> i32 {
         self.file
             .as_mut()
             .and_then(|file| file.close(handle))
@@ -31,7 +31,7 @@ impl LinkDataState {
             .unwrap_or(0)
     }
 
-    pub(in crate::runtime::linkdata) unsafe fn size(&mut self, out_size: *mut u64) -> i32 {
+    pub(in crate::linkdata) unsafe fn size(&mut self, out_size: *mut u64) -> i32 {
         if out_size.is_null() {
             return -1;
         }
@@ -42,7 +42,7 @@ impl LinkDataState {
         1
     }
 
-    pub(in crate::runtime::linkdata) unsafe fn seek(
+    pub(in crate::linkdata) unsafe fn seek(
         &mut self,
         handle: u64,
         distance: i64,

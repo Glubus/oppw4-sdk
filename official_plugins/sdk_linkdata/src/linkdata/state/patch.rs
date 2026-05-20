@@ -1,7 +1,7 @@
 use plugin_sdk::linkdata::LinkDataEntrySections;
 
 #[derive(Clone, Debug)]
-pub(in crate::runtime::linkdata) enum RowPatch {
+pub(in crate::linkdata) enum RowPatch {
     Replace {
         section: usize,
         record_size: usize,
@@ -22,7 +22,7 @@ pub(in crate::runtime::linkdata) enum RowPatch {
 }
 
 impl RowPatch {
-    pub(in crate::runtime::linkdata) fn key(&self) -> RowPatchKey {
+    pub(in crate::linkdata) fn key(&self) -> RowPatchKey {
         let (section, record_size, row) = match self {
             Self::Replace {
                 section,
@@ -49,7 +49,7 @@ impl RowPatch {
         }
     }
 
-    pub(in crate::runtime::linkdata) fn apply(
+    pub(in crate::linkdata) fn apply(
         &self,
         sections: &mut LinkDataEntrySections,
     ) -> Result<(), String> {
@@ -79,7 +79,7 @@ impl RowPatch {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(in crate::runtime::linkdata) struct RowPatchKey {
+pub(in crate::linkdata) struct RowPatchKey {
     section: usize,
     record_size: usize,
     row: usize,

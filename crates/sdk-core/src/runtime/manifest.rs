@@ -27,6 +27,7 @@ impl PluginManifest {
         id: &str,
         entry: &str,
         sdk_root: &Path,
+        capabilities_required: &[&str],
         capabilities_provided: &[&str],
     ) -> Self {
         Self {
@@ -34,7 +35,10 @@ impl PluginManifest {
             version: "0.1.0".to_string(),
             dependencies: Vec::new(),
             lua_modules: Vec::new(),
-            capabilities_required: Vec::new(),
+            capabilities_required: capabilities_required
+                .iter()
+                .map(|capability| (*capability).to_string())
+                .collect(),
             capabilities_provided: capabilities_provided
                 .iter()
                 .map(|capability| (*capability).to_string())

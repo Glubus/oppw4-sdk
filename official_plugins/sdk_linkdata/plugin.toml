@@ -1,0 +1,14 @@
+[plugin]
+id = "sdk.linkdata"
+version = "0.1.0"
+entry = "linkdata.dll"
+
+[capabilities]
+requires = [
+  "plugin.host",
+  "files.virtualize",
+]
+provides = [
+  "linkdata.read",
+  "linkdata.patch",
+]
