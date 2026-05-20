@@ -9,6 +9,7 @@ plugin-abi.workspace = true
 plugin-sdk.workspace = true
 
 [target.'cfg(windows)'.dependencies]
+asm.workspace = true
 hooks.workspace = true
 lua-api.workspace = true
 mlua.workspace = true

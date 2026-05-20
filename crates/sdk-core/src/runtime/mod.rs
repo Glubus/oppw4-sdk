@@ -1,3 +1,4 @@
+mod active_character_service;
 mod debug;
 mod ffi;
 mod linkdata;

@@ -11,7 +11,7 @@ use std::{
 
 use crate::log;
 
-use super::{linkdata, logs, lua};
+use super::{active_character_service, linkdata, logs, lua};
 use plugin::LoadedPlugin;
 
 static LOADED: OnceLock<Mutex<Vec<LoadedPlugin>>> = OnceLock::new();
@@ -35,6 +35,7 @@ fn prepare_runtime(game_root: &Path, plugin_root: &Path, session_stamp: Option<S
             .join("mods"),
     );
     let _ = LOADED.set(Mutex::new(Vec::new()));
+    active_character_service::start();
     lua::initialize(&paths::mods_root(game_root));
     linkdata::initialize(game_root);
 }

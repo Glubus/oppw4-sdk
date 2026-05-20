@@ -3,7 +3,6 @@ use std::{collections::HashSet, ffi::CStr, path::PathBuf};
 use plugin_sdk::manifest::sanitize_plugin_id;
 
 pub(crate) const CAP_FILES_VIRTUALIZE: &str = "files.virtualize";
-pub(crate) const CAP_HOOKS_INSTALL: &str = "hooks.install";
 pub(crate) const CAP_LINKDATA_PATCH: &str = "linkdata.patch";
 pub(crate) const CAP_LUA_MODULE: &str = "lua.module";
 pub(crate) const CAP_MEMORY_READ: &str = "memory.read";
@@ -164,7 +163,7 @@ mod tests {
         );
 
         assert_eq!(
-            context.require_capability_for_plugin_id("fx_director", CAP_HOOKS_INSTALL),
+            context.require_capability_for_plugin_id("fx_director", "hooks.install"),
             Ok(())
         );
     }

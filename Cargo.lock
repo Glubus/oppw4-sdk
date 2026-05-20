@@ -399,6 +399,7 @@ version = "0.1.0"
 name = "plugin-host"
 version = "0.1.0"
 dependencies = [
+ "asm",
  "hooks",
  "lua-api",
  "mlua",

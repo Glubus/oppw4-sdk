@@ -12,7 +12,7 @@ Current checkpoint:
 - [x] loader workspace builds independently and loads `plugins/sdk_core/sdk_core.dll` dynamically;
 - [x] SDK memory primitives are routed back into loader-owned hooks through the loader ABI;
 - [x] SDK file providers are routed back into loader-owned hooks through the loader ABI;
-- [x] SDK memory and file providers are routed back into loader-owned hooks through the loader ABI;
+- [x] SDK core owns active character telemetry instead of the loader/proxy;
 - [x] character bank editable sources are split per character and generated into SDK-facing views;
 - [x] Lua mods can use `require("std.character")`;
 - [x] legacy global `character` remains only as a transition alias;

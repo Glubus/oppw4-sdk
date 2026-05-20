@@ -13,7 +13,6 @@ Required surface:
 - loader version;
 - host ABI version;
 - game root path;
-- native log callback;
 - process module base;
 - memory read/write/scan;
 - file hook/provider primitive;
@@ -24,10 +23,8 @@ Current SDK core bootstrap ABI:
 - `OPPW4_LOADER_SDK_ABI_VERSION`;
 - `Oppw4LoaderSdkInit`;
 - `oppw4_sdk_core_initialize`;
-- loader log callback forwarding.
 - loader-owned memory module base/read/write/scan callbacks.
 - loader-owned file provider registration callback.
-- loader-owned game status and active character snapshot callbacks.
 - SDK-owned plugin capability validation callback.
 
 Not allowed in the loader ABI:
@@ -37,6 +34,7 @@ Not allowed in the loader ABI:
 - RDB replacement policy;
 - LinkData moveset policy;
 - character bank APIs;
+- game status and active character services;
 - official plugin names.
 
 ## SDK Core API
