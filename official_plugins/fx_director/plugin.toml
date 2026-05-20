@@ -4,7 +4,7 @@ version = "0.2.0"
 entry = "fx_director.dll"
 
 [lua]
-modules = ["fx_director"]
+modules = ["fx_director", "fx"]
 
 [capabilities]
 requires = ["lua.module", "hooks.install", "memory.read", "memory.scan", "memory.write", "std.character.extend"]

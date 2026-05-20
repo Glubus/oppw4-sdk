@@ -1,5 +1,5 @@
 [plugin]
-id = "sdk.rdb"
+id = "sdk_rdb"
 version = "0.1.0"
 entry = "rdb.dll"
 

@@ -9,7 +9,7 @@ use plugin_sdk::{export_plugin, Plugin, PluginContext, PluginResult};
 struct SdkRuntime;
 
 impl Plugin for SdkRuntime {
-    const ID: &'static str = "sdk.runtime";
+    const ID: &'static str = "sdk_runtime";
 
     fn init(context: PluginContext<'_>) -> PluginResult<()> {
         let game = context.host().game();

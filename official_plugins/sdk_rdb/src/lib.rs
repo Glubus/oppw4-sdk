@@ -44,7 +44,7 @@ struct OpenRdbHandle {
 struct SdkRdb;
 
 impl Plugin for SdkRdb {
-    const ID: &'static str = "sdk.rdb";
+    const ID: &'static str = "sdk_rdb";
 
     fn init(context: PluginContext<'_>) -> PluginResult<()> {
         let host = context.host();
@@ -57,7 +57,7 @@ impl Plugin for SdkRdb {
         }
         host.files().register_virtual_provider(
             VirtualFileProvider::new(
-                "sdk.rdb",
+                "sdk_rdb",
                 dispatch_open,
                 dispatch_read,
                 dispatch_close,
@@ -352,6 +352,6 @@ mod tests {
 
     #[test]
     fn declares_stable_plugin_id() {
-        assert_eq!(SdkRdb::ID, "sdk.rdb");
+        assert_eq!(SdkRdb::ID, "sdk_rdb");
     }
 }

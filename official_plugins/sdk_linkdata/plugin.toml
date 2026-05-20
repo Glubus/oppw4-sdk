@@ -1,5 +1,5 @@
 [plugin]
-id = "sdk.linkdata"
+id = "sdk_linkdata"
 version = "0.1.0"
 entry = "linkdata.dll"
 

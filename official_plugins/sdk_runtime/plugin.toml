@@ -1,5 +1,5 @@
 [plugin]
-id = "sdk.runtime"
+id = "sdk_runtime"
 version = "0.1.0"
 entry = "runtime.dll"
 

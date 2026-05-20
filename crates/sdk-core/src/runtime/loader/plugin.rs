@@ -15,7 +15,7 @@ pub(super) struct LoadedPlugin {
     _id: String,
     _path: PathBuf,
     _module: usize,
-    _api_state: PluginApiState,
+    _api_state: Box<PluginApiState>,
 }
 
 pub(super) unsafe fn load_plugin(
@@ -31,7 +31,7 @@ pub(super) unsafe fn load_plugin(
     let Some(init) = find_init_symbol(module, manifest) else {
         return false;
     };
-    let api_state = PluginApiState::new(game_root, mods_root, manifest);
+    let api_state = Box::new(PluginApiState::new(game_root, mods_root, manifest));
 
     if !initialize_plugin(init, game_root, manifest, &api_state) {
         return false;

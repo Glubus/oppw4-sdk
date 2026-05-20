@@ -18,29 +18,33 @@ struct SdkService {
 const CORE_CAPABILITIES: &[&str] = &[
     "plugin.host",
     "lua.runtime",
+    "lua.module",
     "mod.discovery",
     "files.virtualize",
     "memory.read",
     "memory.scan",
     "memory.write",
     "hooks.install",
+    "std.character.extend",
+    "signals.subscribe",
+    "signals.emit",
 ];
 
 const SDK_SERVICES: &[SdkService] = &[
     SdkService {
-        id: "sdk.runtime",
+        id: "sdk_runtime",
         dll: "runtime.dll",
         requires: &["memory.read", "memory.scan", "memory.write"],
         provides: &["game.runtime", "game.active_character", "game.status"],
     },
     SdkService {
-        id: "sdk.linkdata",
+        id: "sdk_linkdata",
         dll: "linkdata.dll",
         requires: &["files.virtualize"],
         provides: &["linkdata.read", "linkdata.patch"],
     },
     SdkService {
-        id: "sdk.rdb",
+        id: "sdk_rdb",
         dll: "rdb.dll",
         requires: &["files.virtualize"],
         provides: &["rdb.read", "rdb.patch"],
@@ -266,6 +270,10 @@ mod tests {
             &["FILES.VIRTUALIZE".to_string()],
             &available
         ));
+        assert!(capabilities_available(
+            &["lua.module".to_string(), "std.character.extend".to_string()],
+            &available
+        ));
         assert!(!capabilities_available(
             &["linkdata.patch".to_string()],
             &available
@@ -287,7 +295,7 @@ mod tests {
                 .iter()
                 .map(|manifest| manifest.id.as_str())
                 .collect::<Vec<_>>(),
-            ["sdk.runtime", "sdk.linkdata"]
+            ["sdk_runtime", "sdk_linkdata"]
         );
         assert_eq!(manifests[0].entry_path, sdk_root.join("runtime.dll"));
         assert_eq!(manifests[1].entry_path, sdk_root.join("linkdata.dll"));
