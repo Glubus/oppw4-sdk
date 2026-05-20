@@ -7,16 +7,10 @@ mod r#unsafe;
 pub(crate) use r#unsafe::{host_active_character, host_debug_enabled, host_game_status};
 
 fn write_game_status(out_status: &mut Oppw4GameStatus) {
-    if crate::runtime::loader_services::read_game_status(out_status).is_some() {
-        return;
-    }
     *out_status = game_status_to_abi(hooks::game_status());
 }
 
 fn write_active_character(out: &mut Oppw4ActiveCharacter) {
-    if crate::runtime::loader_services::read_active_character(out).is_some() {
-        return;
-    }
     *out = active_character_to_abi(hooks::active_character_snapshot());
 }
 

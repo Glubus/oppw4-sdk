@@ -23,6 +23,29 @@ pub(crate) struct PluginManifest {
 }
 
 impl PluginManifest {
+    pub(crate) fn sdk_service(
+        id: &str,
+        entry: &str,
+        sdk_root: &Path,
+        capabilities_provided: &[&str],
+    ) -> Self {
+        Self {
+            id: id.to_string(),
+            version: "0.1.0".to_string(),
+            dependencies: Vec::new(),
+            lua_modules: Vec::new(),
+            capabilities_required: Vec::new(),
+            capabilities_provided: capabilities_provided
+                .iter()
+                .map(|capability| (*capability).to_string())
+                .collect(),
+            root: sdk_root.to_path_buf(),
+            mods_root: plugin_mods_root(sdk_root).join(id),
+            entry_path: sdk_root.join(entry),
+            log_root: plugin_logs_root(sdk_root).join(id),
+        }
+    }
+
     pub(crate) fn read_from_dir(plugin_dir: &Path) -> Option<Self> {
         let manifest_path = plugin_toml_path(plugin_dir);
         if !manifest_path.is_file() {

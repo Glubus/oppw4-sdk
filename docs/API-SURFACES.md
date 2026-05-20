@@ -57,9 +57,25 @@ Core services:
 - hook service;
 - signal bus;
 - memory service;
-- RDB service;
-- LinkData service;
-- character bank service.
+- service registration and capability routing.
+
+SDK core does not interpret OPPW4-specific memory or file formats directly.
+Game runtime state, LinkData, and RDB behavior should be provided by SDK service
+plugins under `plugins/sdk/`.
+
+Expected SDK service bundle:
+
+```text
+plugins/
+  sdk/
+    sdk.dll
+    runtime.dll
+    linkdata.dll
+    rdb.dll
+```
+
+`sdk.dll` starts independently. Missing service DLLs disable only the plugins
+that depend on those services.
 
 ## Plugin Manifest Surface
 

@@ -12,7 +12,8 @@ Current checkpoint:
 - [x] loader workspace builds independently and loads `plugins/sdk_core/sdk_core.dll` dynamically;
 - [x] SDK memory primitives are routed back into loader-owned hooks through the loader ABI;
 - [x] SDK file providers are routed back into loader-owned hooks through the loader ABI;
-- [x] SDK core owns active character telemetry instead of the loader/proxy;
+- [x] SDK core resolves optional SDK service DLLs from `plugins/sdk/`;
+- [x] plugins with missing service capabilities are skipped instead of crashing the SDK core;
 - [x] character bank editable sources are split per character and generated into SDK-facing views;
 - [x] Lua mods can use `require("std.character")`;
 - [x] legacy global `character` remains only as a transition alias;
@@ -105,6 +106,7 @@ Goals:
 - [x] Move or recreate SDK-facing crates.
 - [x] Add `sdk_core`.
 - [x] Add character bank resources.
+- [x] Resolve optional SDK service DLLs from `plugins/sdk/`.
 
 Target workspace:
 
