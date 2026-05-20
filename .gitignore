@@ -1,7 +1,8 @@
-/target/
 **/*.pdb
 **/*.dll
 **/*.exe
 **/*.lib
 **/*.exp
 *.log
+/target/
+/dist/

@@ -1,0 +1,82 @@
+param(
+    [string]$Target = "x86_64-pc-windows-gnu",
+    [ValidateSet("debug", "release")]
+    [string]$Profile = "release",
+    [string]$OutDir = "dist/oppw4-sdk",
+    [switch]$SkipBuild
+)
+
+$ErrorActionPreference = "Stop"
+
+$root = Resolve-Path (Join-Path $PSScriptRoot "..")
+$outRoot = Join-Path $root $OutDir
+$pluginsRoot = Join-Path $outRoot "plugins"
+$sdkRoot = Join-Path $pluginsRoot "sdk"
+$targetProfile = if ($Profile -eq "release") { "release" } else { "debug" }
+$targetDir = Join-Path $root "target/$Target/$targetProfile"
+
+$sdkPackages = @(
+    "oppw4-sdk-core-plugin",
+    "oppw4-sdk-runtime-plugin",
+    "oppw4-sdk-linkdata-plugin",
+    "oppw4-sdk-rdb-plugin"
+)
+$officialPackages = @(
+    "oppw4-skin-patcher-plugin",
+    "oppw4-fx-director-plugin",
+    "oppw4-moveset-patcher-plugin"
+)
+
+$sdkDlls = @(
+    @{ Name = "sdk"; File = "sdk.dll" },
+    @{ Name = "runtime"; File = "runtime.dll" },
+    @{ Name = "linkdata"; File = "linkdata.dll" },
+    @{ Name = "rdb"; File = "rdb.dll" }
+)
+$officialPlugins = @(
+    @{ Id = "skin_patcher"; File = "skin_patcher.dll"; Source = "official_plugins/skin_patcher" },
+    @{ Id = "fx_director"; File = "fx_director.dll"; Source = "official_plugins/fx_director" },
+    @{ Id = "moveset_patcher"; File = "moveset_patcher.dll"; Source = "official_plugins/moveset_patcher" }
+)
+
+function Copy-RequiredFile($source, $destination) {
+    if (!(Test-Path $source)) {
+        throw "missing required file: $source"
+    }
+    New-Item -ItemType Directory -Force -Path (Split-Path $destination) | Out-Null
+    Copy-Item -Force $source $destination
+}
+
+if (!$SkipBuild) {
+    $releaseFlag = if ($Profile -eq "release") { "--release" } else { "" }
+    foreach ($package in ($sdkPackages + $officialPackages)) {
+        $args = @("build", "-p", $package, "--target", $Target)
+        if ($releaseFlag) {
+            $args += $releaseFlag
+        }
+        & cargo @args
+        if ($LASTEXITCODE -ne 0) {
+            throw "cargo build failed for $package"
+        }
+    }
+}
+
+if (Test-Path $outRoot) {
+    Remove-Item -Recurse -Force $outRoot
+}
+New-Item -ItemType Directory -Force -Path $sdkRoot | Out-Null
+
+foreach ($dll in $sdkDlls) {
+    Copy-RequiredFile (Join-Path $targetDir $dll.File) (Join-Path $sdkRoot $dll.File)
+}
+
+foreach ($plugin in $officialPlugins) {
+    $pluginRoot = Join-Path $pluginsRoot $plugin.Id
+    New-Item -ItemType Directory -Force -Path $pluginRoot | Out-Null
+    Copy-RequiredFile (Join-Path $targetDir $plugin.File) (Join-Path $pluginRoot $plugin.File)
+    Copy-RequiredFile (Join-Path $root "$($plugin.Source)/plugin.toml") (Join-Path $pluginRoot "plugin.toml")
+}
+
+New-Item -ItemType Directory -Force -Path (Join-Path $outRoot "mods") | Out-Null
+
+Write-Host "SDK package written to $outRoot"

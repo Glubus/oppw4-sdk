@@ -20,6 +20,7 @@ Current checkpoint:
 - [x] `sdk.rdb` is scaffolded as `rdb.dll` and owns the `rdb.read` / `rdb.patch` service capabilities;
 - [x] RDB patch read providers register through `sdk.rdb` instead of direct plugin file-provider hooks;
 - [x] SDK core seeds core capabilities before resolving optional service capabilities;
+- [x] SDK packaging script assembles `plugins/sdk/` plus official plugin folders;
 - [x] character bank editable sources are split per character and generated into SDK-facing views;
 - [x] Lua mods can use `require("std.character")`;
 - [x] legacy global `character` remains only as a transition alias;
@@ -309,11 +310,12 @@ Exit criteria:
 
 ## Phase 9: Release Packaging
 
-Progress: not started.
+Progress: in progress.
 
 Goals:
 
-- [ ] Define final release layout.
+- [x] Define SDK release layout.
+- [x] Package SDK services and official plugins for end users.
 - [ ] Package loader and SDK together for end users.
 
 Expected package:
@@ -322,10 +324,15 @@ Expected package:
 OPPW4/
   dinput8.dll
   plugins/
-    sdk_core/
+    sdk/
+      sdk.dll
+      runtime.dll
+      linkdata.dll
+      rdb.dll
     skin_patcher/
     fx_director/
     moveset_patcher/
+  mods/
 ```
 
 Exit criteria:

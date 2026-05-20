@@ -66,6 +66,23 @@ Validate a Lua mod manifest:
 cargo run -p mod-manifest-tool -- path/to/mod.toml
 ```
 
+Build the SDK release layout:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/package-sdk.ps1
+```
+
+On Linux or WSL:
+
+```bash
+tools/package-sdk.sh
+```
+
+The package is written under `dist/oppw4-sdk/plugins/` with SDK services in
+`plugins/sdk/` and official plugins in their own plugin folders. Active mods are
+not copied into plugin folders; runtime mods belong under the game-level `mods/`
+directory.
+
 Examples are documented in [examples/README.md](examples/README.md).
 
 ## Architecture Docs
