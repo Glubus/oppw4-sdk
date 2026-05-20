@@ -34,6 +34,12 @@ pub unsafe extern "system" fn oppw4_sdk_core_initialize(init: *const Oppw4Loader
     if let Some(register_file_provider) = init.register_file_provider {
         plugin_host::set_file_provider_registrar(init.host_context, register_file_provider);
     }
+    if let Some(game_status) = init.game_status {
+        plugin_host::set_game_status_reader(init.host_context, game_status);
+    }
+    if let Some(active_character) = init.active_character {
+        plugin_host::set_active_character_reader(init.host_context, active_character);
+    }
 
     let Some(game_root) = path_from_cstr(init.game_root_utf8) else {
         return -3;

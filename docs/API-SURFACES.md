@@ -26,6 +26,7 @@ Current SDK core bootstrap ABI:
 - `oppw4_sdk_core_initialize`;
 - loader log callback forwarding.
 - loader-owned file provider registration callback.
+- loader-owned game status and active character snapshot callbacks.
 
 Not allowed in the loader ABI:
 

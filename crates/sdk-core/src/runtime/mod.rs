@@ -11,7 +11,9 @@ mod time;
 mod win;
 
 pub use loader::initialize;
-pub use loader_services::set_file_provider_registrar;
+pub use loader_services::{
+    set_active_character_reader, set_file_provider_registrar, set_game_status_reader,
+};
 
 pub fn set_debug_enabled(enabled: bool) {
     debug::set_enabled(enabled);
