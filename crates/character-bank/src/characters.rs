@@ -33,6 +33,17 @@ struct CharacterDataFile {
 }
 
 #[derive(Debug, Deserialize)]
+struct CharacterIndexFile {
+    characters: Vec<CharacterIndexEntry>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CharacterIndexEntry {
+    path: String,
+    movesets: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 struct CharacterIds {
     playable: Option<u16>,
     runtime: Option<u16>,
@@ -93,6 +104,16 @@ pub fn all() -> &'static [Character] {
         .as_slice()
 }
 
+pub fn initialize_data_root(root: &Path) -> Result<(), CharacterDataError> {
+    let characters = read_data_root(root)?;
+    let _ = CHARACTERS.set(characters);
+    Ok(())
+}
+
+pub fn mark_data_unavailable() {
+    let _ = CHARACTERS.set(Vec::new());
+}
+
 pub fn find(query: &str) -> Option<&'static Character> {
     let query = normalize(query);
     if query.is_empty() {
@@ -127,6 +148,11 @@ pub fn parse_characters_json(text: &str) -> Result<Vec<Character>, CharacterData
 }
 
 pub fn read_data_root(root: &Path) -> Result<Vec<Character>, CharacterDataError> {
+    let index_path = root.join("generated").join("index.json");
+    if index_path.is_file() {
+        return read_indexed_data_root(root, &index_path);
+    }
+
     let characters_root = root.join("characters");
     let entries = fs::read_dir(&characters_root)
         .map_err(|error| CharacterDataError::InvalidDirectory(error.to_string()))?;
@@ -146,6 +172,35 @@ pub fn read_data_root(root: &Path) -> Result<Vec<Character>, CharacterDataError>
         let movesets_path = path.join("movesets.json");
         if movesets_path.is_file() {
             let text = fs::read_to_string(&movesets_path)
+                .map_err(|error| CharacterDataError::InvalidJson(error.to_string()))?;
+            character.moveset_linkdata_entry = parse_moveset_entry_json(&text)?;
+        }
+        characters.push(character);
+    }
+    characters.sort_by(|left, right| left.canonical.cmp(&right.canonical));
+    validate_characters(&characters)?;
+    Ok(characters)
+}
+
+fn read_indexed_data_root(
+    root: &Path,
+    index_path: &Path,
+) -> Result<Vec<Character>, CharacterDataError> {
+    let text = fs::read_to_string(index_path)
+        .map_err(|error| CharacterDataError::InvalidJson(error.to_string()))?;
+    let index: CharacterIndexFile = serde_json::from_str(&text)
+        .map_err(|error| CharacterDataError::InvalidJson(error.to_string()))?;
+    let mut characters = Vec::with_capacity(index.characters.len());
+    for entry in index.characters {
+        let data_path = root.join(&entry.path);
+        let character_dir = data_path
+            .parent()
+            .ok_or_else(|| CharacterDataError::InvalidDirectory(entry.path.clone()))?;
+        let text = fs::read_to_string(&data_path)
+            .map_err(|error| CharacterDataError::InvalidJson(error.to_string()))?;
+        let mut character = parse_character_data_json(character_dir, &text)?;
+        if let Some(movesets) = entry.movesets {
+            let text = fs::read_to_string(root.join(movesets))
                 .map_err(|error| CharacterDataError::InvalidJson(error.to_string()))?;
             character.moveset_linkdata_entry = parse_moveset_entry_json(&text)?;
         }
@@ -514,6 +569,30 @@ mod tests {
     }
 
     #[test]
+    fn reads_workspace_oppw4_data_submodule() {
+        let root = workspace_data_root();
+        let characters = read_data_root(&root).expect("workspace oppw4-data root");
+        let law = characters
+            .iter()
+            .find(|character| character.canonical == "law")
+            .expect("law");
+        let garp = characters
+            .iter()
+            .find(|character| character.canonical == "garp")
+            .expect("garp");
+        let garp_yng = characters
+            .iter()
+            .find(|character| character.canonical == "garp_yng")
+            .expect("garp_yng");
+
+        assert!(characters.len() >= 100);
+        assert_eq!(law.model_stem, "MPLC026_Law");
+        assert_eq!(law.moveset_linkdata_entry, Some(90));
+        assert_eq!(garp.moveset_linkdata_entry, None);
+        assert_eq!(garp_yng.moveset_linkdata_entry, Some(247));
+    }
+
+    #[test]
     fn rejects_unknown_names() {
         assert!(find("").is_none());
         assert!(find("not a real character").is_none());
@@ -525,5 +604,12 @@ mod tests {
             .expect("time")
             .as_nanos();
         std::env::temp_dir().join(format!("oppw4-data-{label}-{nanos}"))
+    }
+
+    fn workspace_data_root() -> std::path::PathBuf {
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..")
+            .join("oppw4-data")
     }
 }

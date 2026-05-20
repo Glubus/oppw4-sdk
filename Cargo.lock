@@ -427,6 +427,7 @@ dependencies = [
  "mlua",
  "plugin-abi",
  "plugin-sdk",
+ "struct-api",
  "tracing",
 ]
 

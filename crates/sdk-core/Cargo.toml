@@ -12,4 +12,5 @@ plugin-sdk.workspace = true
 hooks.workspace = true
 lua-api.workspace = true
 mlua.workspace = true
+struct-api.workspace = true
 tracing.workspace = true
