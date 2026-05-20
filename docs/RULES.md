@@ -49,10 +49,10 @@
 
 ## Character Bank Rules
 
-- The character bank is central SDK data.
+- The character bank is mandatory SDK data, but the editable source lives in the `oppw4-data` submodule.
 - It must remain editable and reviewable.
-- Use one editable JSON source file per character under `resources/character_bank/characters/`.
-- Generated unified views and indexes belong under `resources/character_bank/generated/`.
+- Use one editable JSON source tree per character under `oppw4-data/characters/`.
+- Generated unified views and indexes belong under `oppw4-data/generated/`.
 - Do not hand-edit generated character bank files.
 - Every non-obvious id or relationship should have evidence or notes.
 - Plugins may read character bank data but must not own it.

@@ -300,14 +300,14 @@ Current transition rule:
 
 The character bank should expose a unified view built from editable source files.
 
-Editable source files are split per character:
+Editable source files are split per character in the `oppw4-data` submodule:
 
 ```text
-resources/character_bank/characters/law.json
-resources/character_bank/characters/zoro.json
+oppw4-data/characters/law/data.json
+oppw4-data/characters/zoro/data.json
 ```
 
-Generated views and indexes live under `resources/character_bank/generated/`.
+Generated views and indexes live under `oppw4-data/generated/`.
 
 Main domains:
 

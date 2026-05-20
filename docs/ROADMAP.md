@@ -21,6 +21,8 @@ Current checkpoint:
 - [x] RDB patch read providers register through `sdk.rdb` instead of direct plugin file-provider hooks;
 - [x] SDK core seeds core capabilities before resolving optional service capabilities;
 - [x] SDK packaging script assembles `plugins/sdk/` plus official plugin folders;
+- [x] SDK repository consumes `oppw4-data` as a submodule for collaborative data work;
+- [x] SDK package includes the mandatory `oppw4-data/` data tree;
 - [x] character bank editable sources are split per character and generated into SDK-facing views;
 - [x] Lua mods can use `require("std.character")`;
 - [x] legacy global `character` remains only as a transition alias;
@@ -112,7 +114,7 @@ Goals:
 - [x] Create the SDK workspace as its own Git project.
 - [x] Move or recreate SDK-facing crates.
 - [x] Add SDK core.
-- [x] Add character bank resources.
+- [x] Add `oppw4-data` as the mandatory data submodule.
 - [x] Resolve optional SDK service DLLs from `plugins/sdk/`.
 - [x] Move LinkData patching/virtualization out of SDK core into `sdk.linkdata`.
 - [x] Add `sdk.rdb` service DLL as the capability owner for RDB APIs.
@@ -131,7 +133,7 @@ oppw4-sdk/
     skin_patcher/
     fx_director/
     moveset_patcher/
-  resources/
+  oppw4-data/       # data-only submodule
   examples/
   docs/
 ```
@@ -178,9 +180,10 @@ Progress: in progress.
 
 Goals:
 
-- [ ] Turn character data into a complete SDK-owned bank.
+- [ ] Turn character data into a complete SDK-readable bank.
 - [x] Split editable data into per-character files.
-- [ ] Add schemas.
+- [x] Move editable data to the `oppw4-data` submodule.
+- [x] Add schemas.
 - [x] Generate or expose a unified Rust/Lua view.
 
 Data domains:
@@ -199,12 +202,12 @@ Data domains:
 Exit criteria:
 
 - [x] `std.character.find("law")` returns canonical metadata;
-- [x] each character has an editable source file under `resources/character_bank/characters/`;
+- [x] each character has editable source files under `oppw4-data/characters/`;
 - [x] runtime/index data is generated rather than hand-edited;
 - [x] plugins can read bank data through SDK APIs;
 - [x] plugins can extend character handles without redefining character identity.
 
-Status: in progress. Per-character editable JSON, generated indexes, and Rust/Lua lookup exist. The bank is not complete yet for every asset/text/model relationship.
+Status: in progress. Per-character editable JSON, costume files, generated indexes, schemas, and Rust/Lua lookup exist. The source data now lives in the `oppw4-data` submodule so contributors can improve it without recompiling SDK code. The bank is not complete yet for every asset/text/model relationship.
 
 ## Phase 5: Plugin Registration And Capabilities
 
@@ -323,6 +326,10 @@ Expected package:
 ```text
 OPPW4/
   dinput8.dll
+  oppw4-data/
+    characters/
+    generated/
+    schemas/
   plugins/
     sdk/
       sdk.dll
@@ -337,6 +344,7 @@ OPPW4/
 
 Exit criteria:
 
+- [x] package contains mandatory data without embedding it in plugin folders;
 - [ ] release package can be copied into a clean game folder;
 - [ ] missing SDK/plugin errors are readable;
 - [ ] examples are documented but not accidentally enabled.

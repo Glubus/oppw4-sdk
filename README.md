@@ -8,7 +8,7 @@ The SDK owns the modding platform:
 - SDK core orchestration;
 - plugin ABI/API crates;
 - Lua runtime and standard modules;
-- character bank resources;
+- character/data APIs backed by the `oppw4-data` submodule;
 - RDB and LinkData helpers;
 - official plugins;
 - examples and modder documentation.
@@ -37,12 +37,15 @@ official_plugins/
   skin_patcher/
   fx_director/
   moveset_patcher/
-resources/
-  character_bank/
-    characters/      # editable per-character source files
-    generated/       # generated unified views and indexes
-    schemas/
+oppw4-data/       # data-only submodule for community-editable character data
 docs/
+```
+
+Clone or update the data submodule before building packages or working on
+character data:
+
+```bash
+git submodule update --init --recursive
 ```
 
 ## Build
@@ -78,10 +81,10 @@ On Linux or WSL:
 tools/package-sdk.sh
 ```
 
-The package is written under `dist/oppw4-sdk/plugins/` with SDK services in
-`plugins/sdk/` and official plugins in their own plugin folders. Active mods are
-not copied into plugin folders; runtime mods belong under the game-level `mods/`
-directory.
+The package is written under `dist/oppw4-sdk/` with SDK services in
+`plugins/sdk/`, official plugins in their own plugin folders, and the mandatory
+data repository under `oppw4-data/`. Active mods are not copied into plugin
+folders; runtime mods belong under the game-level `mods/` directory.
 
 Examples are documented in [examples/README.md](examples/README.md).
 

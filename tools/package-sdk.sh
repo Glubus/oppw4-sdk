@@ -11,6 +11,7 @@ OUT_ROOT="$ROOT/$OUT_DIR"
 PLUGINS_ROOT="$OUT_ROOT/plugins"
 SDK_ROOT="$PLUGINS_ROOT/sdk"
 TARGET_DIR="$ROOT/target/$TARGET/$PROFILE"
+DATA_ROOT="$ROOT/oppw4-data"
 
 SDK_PACKAGES=(
   oppw4-sdk-core-plugin
@@ -33,6 +34,18 @@ copy_required_file() {
   fi
   mkdir -p "$(dirname "$destination")"
   cp -f "$source" "$destination"
+}
+
+copy_required_dir() {
+  local source="$1"
+  local destination="$2"
+  if [[ ! -d "$source" ]]; then
+    echo "missing required directory: $source" >&2
+    echo "run: git submodule update --init --recursive" >&2
+    exit 1
+  fi
+  mkdir -p "$(dirname "$destination")"
+  cp -R "$source" "$destination"
 }
 
 if [[ "$SKIP_BUILD" != "1" ]]; then
@@ -61,6 +74,11 @@ for plugin in skin_patcher fx_director moveset_patcher; do
   copy_required_file "$source_root/plugin.toml" "$plugin_root/plugin.toml"
 done
 
+mkdir -p "$OUT_ROOT/oppw4-data"
+copy_required_file "$DATA_ROOT/README.md" "$OUT_ROOT/oppw4-data/README.md"
+copy_required_dir "$DATA_ROOT/characters" "$OUT_ROOT/oppw4-data/characters"
+copy_required_dir "$DATA_ROOT/generated" "$OUT_ROOT/oppw4-data/generated"
+copy_required_dir "$DATA_ROOT/schemas" "$OUT_ROOT/oppw4-data/schemas"
 mkdir -p "$OUT_ROOT/mods"
 
 echo "SDK package written to $OUT_ROOT"

@@ -14,6 +14,7 @@ $pluginsRoot = Join-Path $outRoot "plugins"
 $sdkRoot = Join-Path $pluginsRoot "sdk"
 $targetProfile = if ($Profile -eq "release") { "release" } else { "debug" }
 $targetDir = Join-Path $root "target/$Target/$targetProfile"
+$dataRoot = Join-Path $root "oppw4-data"
 
 $sdkPackages = @(
     "oppw4-sdk-core-plugin",
@@ -47,6 +48,14 @@ function Copy-RequiredFile($source, $destination) {
     Copy-Item -Force $source $destination
 }
 
+function Copy-RequiredDirectory($source, $destination) {
+    if (!(Test-Path $source -PathType Container)) {
+        throw "missing required directory: $source; run: git submodule update --init --recursive"
+    }
+    New-Item -ItemType Directory -Force -Path (Split-Path $destination) | Out-Null
+    Copy-Item -Recurse -Force $source $destination
+}
+
 if (!$SkipBuild) {
     $releaseFlag = if ($Profile -eq "release") { "--release" } else { "" }
     foreach ($package in ($sdkPackages + $officialPackages)) {
@@ -77,6 +86,12 @@ foreach ($plugin in $officialPlugins) {
     Copy-RequiredFile (Join-Path $root "$($plugin.Source)/plugin.toml") (Join-Path $pluginRoot "plugin.toml")
 }
 
+$packageDataRoot = Join-Path $outRoot "oppw4-data"
+New-Item -ItemType Directory -Force -Path $packageDataRoot | Out-Null
+Copy-RequiredFile (Join-Path $dataRoot "README.md") (Join-Path $packageDataRoot "README.md")
+Copy-RequiredDirectory (Join-Path $dataRoot "characters") (Join-Path $packageDataRoot "characters")
+Copy-RequiredDirectory (Join-Path $dataRoot "generated") (Join-Path $packageDataRoot "generated")
+Copy-RequiredDirectory (Join-Path $dataRoot "schemas") (Join-Path $packageDataRoot "schemas")
 New-Item -ItemType Directory -Force -Path (Join-Path $outRoot "mods") | Out-Null
 
 Write-Host "SDK package written to $outRoot"

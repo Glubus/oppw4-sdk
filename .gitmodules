@@ -1,0 +1,3 @@
+[submodule "oppw4-data"]
+	path = oppw4-data
+	url = git@github.com:Glubus/oppw4-data.git

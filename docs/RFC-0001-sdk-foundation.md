@@ -47,7 +47,7 @@ It owns:
 - `sdk.dll`;
 - SDK ABI/API crates;
 - Lua runtime and Lua standard modules;
-- character bank resources;
+- character/data APIs backed by the `oppw4-data` submodule;
 - hook/signal abstractions;
 - LinkData/RDB helpers;
 - official plugins;
@@ -158,7 +158,8 @@ zoro:replace_costume(2, "zoro.g1m")
 
 ## Character Bank
 
-The character bank is central SDK data. It is not owned by any single plugin.
+The character bank is mandatory SDK data, but its editable source lives in the
+separate `oppw4-data` repository. It is not owned by any single plugin.
 
 It should grow into a complete OPPW4 character database:
 
@@ -173,25 +174,24 @@ It should grow into a complete OPPW4 character database:
 - relationships between base characters, forms, variants, and DLC rows;
 - evidence sources and notes.
 
-Source files should stay editable and reviewable under `resources/character_bank/`.
-The source of truth is one JSON file per character:
+Source files should stay editable and reviewable under `oppw4-data/`. The
+source of truth is one character folder per canonical id:
 
 ```text
-resources/character_bank/characters/law.json
-resources/character_bank/characters/zoro.json
+oppw4-data/characters/law/data.json
+oppw4-data/characters/zoro/data.json
 ```
 
 The SDK can generate a unified Rust/Lua view from multiple source files:
 
-- `characters/*.json`;
-- `models.json`;
-- `linkdata.json`;
-- `text.json`;
-- `assets.json`;
+- `characters/*/data.json`;
+- `characters/*/costumes/*.json`;
+- `characters/*/movesets.json`;
+- `characters/*/evidence.md`;
 - JSON schemas.
 
-Generated machine-facing files live under `resources/character_bank/generated/`
-and must not be hand-edited.
+Generated machine-facing files live under `oppw4-data/generated/` and must not
+be hand-edited.
 
 `std.character` exposes the unified view to Lua.
 
