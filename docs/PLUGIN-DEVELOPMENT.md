@@ -56,6 +56,7 @@ declared.
 Use `context.host()` from `Plugin::init`:
 
 - `host.paths()` for game, plugin, mods, and config roots;
+- `host.configs()` for config schema/default registration;
 - `host.log()` for plugin logs;
 - `host.lua()` to register Lua modules;
 - `host.files()` for generic virtual file providers;

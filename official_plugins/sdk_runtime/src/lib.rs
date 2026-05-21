@@ -14,6 +14,7 @@ impl Plugin for SdkRuntime {
     const ID: &'static str = "sdk_runtime";
 
     fn init(context: PluginContext<'_>) -> PluginResult<()> {
+        config::register_schema(context.host());
         let game = context.host().game();
         unsafe {
             game.register_status_provider(ptr::null_mut(), status::read_game_status)?;

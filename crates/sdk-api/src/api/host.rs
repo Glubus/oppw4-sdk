@@ -3,8 +3,8 @@ use std::sync::Arc;
 use plugin_abi::Oppw4PluginApi;
 
 use super::{
-    CapabilityService, FileService, GameService, HookService, LinkDataService, LogService,
-    LuaService, MemoryService, ModService, PathService, RdbService, SignalService,
+    CapabilityService, ConfigService, FileService, GameService, HookService, LinkDataService,
+    LogService, LuaService, MemoryService, ModService, PathService, RdbService, SignalService,
 };
 
 #[derive(Clone, Copy)]
@@ -54,6 +54,10 @@ impl<'api> HostApi<'api> {
 
     pub const fn capabilities(self) -> CapabilityService<'api> {
         CapabilityService::new(self.abi)
+    }
+
+    pub const fn configs(self) -> ConfigService<'api> {
+        ConfigService::new(self.abi)
     }
 
     pub const fn hooks(self) -> HookService<'api> {
@@ -122,6 +126,10 @@ impl OwnedHostApi {
 
     pub fn capabilities(&self) -> CapabilityService<'_> {
         self.as_ref().capabilities()
+    }
+
+    pub fn configs(&self) -> ConfigService<'_> {
+        self.as_ref().configs()
     }
 
     pub fn hooks(&self) -> HookService<'_> {

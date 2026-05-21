@@ -42,6 +42,10 @@ fn host_call_code_reason(code: i32) -> Option<&'static str> {
         -22 => Some("missing manifest capability"),
         -23 => Some("missing Lua module name"),
         -24 => Some("Lua module not declared in manifest"),
+        -25 => Some("missing capability name"),
+        -26 => Some("missing config schema name"),
+        -27 => Some("missing config schema body"),
+        -28 => Some("duplicate config schema"),
         _ => None,
     }
 }

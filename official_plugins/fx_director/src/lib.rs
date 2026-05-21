@@ -16,6 +16,7 @@ impl Plugin for FxDirector {
     fn init(context: PluginContext<'_>) -> PluginResult<()> {
         let host = context.host();
         log::initialize(host);
+        config::register_schema(host);
         let shared_config = mods::load_config(host);
         mods::register_lua_modules(host, shared_config.clone());
         let plugin = shared_config.lock().expect("fx state lock").plugin_config();

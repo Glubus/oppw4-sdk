@@ -17,6 +17,7 @@ struct SdkService {
 
 const CORE_CAPABILITIES: &[&str] = &[
     "plugin.host",
+    "config.schema",
     "lua.runtime",
     "lua.module",
     "mod.discovery",

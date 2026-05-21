@@ -7,5 +7,5 @@ entry = "fx_director.dll"
 modules = ["fx_director", "fx"]
 
 [capabilities]
-requires = ["lua.module", "hooks.install", "memory.read", "memory.scan", "memory.write", "std.character.extend"]
+requires = ["lua.module", "hooks.install", "memory.read", "memory.scan", "memory.write", "std.character.extend", "config.schema"]
 provides = ["std.character.extend", "runtime.fx"]

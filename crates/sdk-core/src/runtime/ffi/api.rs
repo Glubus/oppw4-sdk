@@ -25,6 +25,8 @@ use super::{
 
 use plugin_abi::optional_cstr;
 
+use crate::runtime::config::host_register_config_schema;
+
 pub(crate) fn build_api(
     game_root: &Path,
     game_root_utf8: &CString,
@@ -65,6 +67,7 @@ pub(crate) fn build_api(
         register_rdb_virtual_provider: Some(host_register_rdb_virtual_provider),
         subscribe_signal: Some(host_subscribe_signal),
         emit_signal: Some(host_emit_signal),
+        register_config_schema: Some(host_register_config_schema),
     }
 }
 

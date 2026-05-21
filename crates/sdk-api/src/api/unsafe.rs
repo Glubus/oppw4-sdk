@@ -5,11 +5,11 @@ use plugin_abi::{
     optional_cstr, HostActiveCharacterFn, HostDebugEnabledFn, HostEmitSignalFn,
     HostForEachPluginModFn, HostForEachPluginModZipFn, HostGameStatusFn, HostLogFn,
     HostModuleBaseFn, HostPatchLinkDataRowFn, HostPluginModVisitorFn, HostPluginModZipVisitorFn,
-    HostReadMemoryFn, HostRegisterFileProviderFn, HostRegisterLuaModuleFn,
-    HostReplaceLinkDataEntryFn, HostRequireCapabilityFn, HostScanMemoryFn, HostSignalCallbackFn,
-    HostSubscribeSignalFn, HostWriteMemoryFn, Oppw4ActiveCharacter, Oppw4FileProvider,
-    Oppw4GameStatus, Oppw4LinkDataEntryPatch, Oppw4LinkDataRowPatch, Oppw4LogEntry, Oppw4LuaModule,
-    Oppw4PluginModEntry,
+    HostReadMemoryFn, HostRegisterConfigSchemaFn, HostRegisterFileProviderFn,
+    HostRegisterLuaModuleFn, HostReplaceLinkDataEntryFn, HostRequireCapabilityFn, HostScanMemoryFn,
+    HostSignalCallbackFn, HostSubscribeSignalFn, HostWriteMemoryFn, Oppw4ActiveCharacter,
+    Oppw4ConfigSchema, Oppw4FileProvider, Oppw4GameStatus, Oppw4LinkDataEntryPatch,
+    Oppw4LinkDataRowPatch, Oppw4LogEntry, Oppw4LuaModule, Oppw4PluginModEntry,
 };
 
 pub(super) fn host_log(
@@ -79,6 +79,14 @@ pub(super) fn register_lua_module(
     module: &Oppw4LuaModule,
 ) -> i32 {
     unsafe { register(host_context, module) }
+}
+
+pub(super) fn register_config_schema(
+    host_context: *mut c_void,
+    register: HostRegisterConfigSchemaFn,
+    schema: &Oppw4ConfigSchema,
+) -> i32 {
+    unsafe { register(host_context, schema) }
 }
 
 pub(super) fn replace_linkdata_entry(

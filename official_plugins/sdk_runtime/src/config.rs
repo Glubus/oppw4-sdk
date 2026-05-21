@@ -11,6 +11,18 @@ enabled = true
 interval_ms = 250
 "#;
 
+pub(crate) fn register_schema(host: HostApi<'_>) {
+    if let Err(error) = host
+        .configs()
+        .register_schema("sdk_runtime", "config.toml", DEFAULT_CONFIG)
+    {
+        let _ = host.log().write(
+            "sdk_runtime",
+            format!("sdk_runtime config schema register failed: {error}"),
+        );
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct DifficultyProbeConfig {
     pub(crate) enabled: bool,

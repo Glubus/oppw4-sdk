@@ -186,6 +186,7 @@ Current validation rules:
 - memory read/scan/write callbacks require their matching memory capabilities.
 - signal subscriptions require `signals.subscribe`;
 - signal emits require `signals.emit`.
+- config schema registration requires `config.schema`.
 
 ## Lua Standard Surface
 

@@ -3,6 +3,7 @@ use std::{collections::HashSet, ffi::CStr, path::PathBuf};
 use plugin_sdk::manifest::sanitize_plugin_id;
 
 pub(crate) const CAP_FILES_VIRTUALIZE: &str = "files.virtualize";
+pub(crate) const CAP_CONFIG_SCHEMA: &str = "config.schema";
 pub(crate) const CAP_LINKDATA_PATCH: &str = "linkdata.patch";
 pub(crate) const CAP_LUA_MODULE: &str = "lua.module";
 pub(crate) const CAP_MEMORY_READ: &str = "memory.read";
@@ -72,6 +73,10 @@ impl ApiContext {
             return Err(-22);
         }
         Ok(())
+    }
+
+    pub(crate) fn plugin_id(&self) -> &str {
+        &self.plugin_id
     }
 
     pub(crate) fn require_lua_module_registration(

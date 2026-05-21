@@ -47,9 +47,9 @@ Current checkpoint:
 - [x] Phase 0: Design Freeze
 - [x] Phase 1: Loader And SDK Contract
 - [ ] Phase 2: SDK Workspace
-- [ ] Phase 3: Lua Standard Runtime
+- [x] Phase 3: Lua Standard Runtime
 - [ ] Phase 4: Character Bank
-- [ ] Phase 5: Plugin Registration And Capabilities
+- [x] Phase 5: Plugin Registration And Capabilities
 - [x] Phase 6: Official Plugin Migration
 - [x] Phase 7: Loader Reduction
 - [x] Phase 8: Developer Experience
@@ -154,7 +154,7 @@ Status: mostly complete for the split prototype. The workspace exists, tests pas
 
 ## Phase 3: Lua Standard Runtime
 
-Progress: in progress.
+Progress: complete for the current SDK std pass.
 
 Goals:
 
@@ -183,11 +183,11 @@ Exit criteria:
 - [x] directory mods can hot reload;
 - [x] finalize log level/filter policy.
 
-Status: in progress. `std.character`, `std.files`, `std.mod`, `std.math`, `std.path`, `std.time`, `std.collections`, `std.buffer`, and `std.log` are implemented. Standard modules now live under `crates/lua-runtime/src/std_plugins/`, while runtime internals keep ownership of sandboxing, `require`, mod context, and registration. SDK-owned mod-file reads exist in Rust and Lua. `std.log` entries return to SDK core after each mod run and are written into per-mod log folders. Release host logs mirror only mod `warn` and `error` entries. Lua mods run with unsafe filesystem/process/debug globals hidden, while SDK-controlled `require` remains available.
+Status: complete for the current SDK std pass. `std.character`, `std.files`, `std.mod`, `std.math`, `std.path`, `std.time`, `std.collections`, `std.buffer`, and `std.log` are implemented. Standard modules live under `crates/lua-runtime/src/std_plugins/` with one folder per module, while runtime internals keep ownership of sandboxing, `require`, mod context, and registration. SDK-owned mod-file reads exist in Rust and Lua. `std.log` entries return to SDK core after each mod run and are written into per-mod log folders. Release host logs mirror only mod `warn` and `error` entries. Lua mods run with unsafe filesystem/process/debug globals hidden, while SDK-controlled `require` remains available.
 
 ## Phase 4: Character Bank
 
-Progress: in progress.
+Progress: complete for the current SDK capability pass.
 
 Goals:
 
@@ -234,6 +234,7 @@ Goals:
 
 Capabilities:
 
+- [x] `config.schema`;
 - [x] `memory.scan`;
 - [x] `memory.write`;
 - [x] `hooks.install`;
@@ -252,7 +253,7 @@ Exit criteria:
 - [x] missing capabilities are refused for every critical API;
 - [x] plugin dependencies are resolved before Lua mods run.
 
-Status: in progress. `plugin.toml` can now declare plugin dependencies, Lua modules, and required/provided capabilities. SDK core resolves plugin load order from declared dependencies, rejects duplicate Lua module names from different plugins, and refuses Lua modules that are not declared in `[lua].modules`. Capability enforcement exists for `lua.module`, `std.character.extend`, `files.virtualize`, `hooks.install`, `rdb.patch`, `linkdata.patch`, `memory.read`/`memory.scan`/`memory.write`, and `signals.subscribe`/`signals.emit`. ABI diagnostics now distinguish version mismatch from undersized API tables, and SDK host call errors include human-readable reasons for known failure codes. Remaining enforcement work: config schema registration.
+Status: complete for the current SDK capability pass. `plugin.toml` can declare plugin dependencies, Lua modules, and required/provided capabilities. SDK core resolves plugin load order from declared dependencies, rejects duplicate Lua module names from different plugins, and refuses Lua modules that are not declared in `[lua].modules`. Capability enforcement exists for `lua.module`, `std.character.extend`, `files.virtualize`, `hooks.install`, `rdb.patch`, `linkdata.patch`, `memory.read`/`memory.scan`/`memory.write`, `signals.subscribe`/`signals.emit`, and `config.schema`. ABI diagnostics distinguish version mismatch from undersized API tables, and SDK host call errors include human-readable reasons for known failure codes. `fx_director` and `sdk_runtime` register their config defaults through the SDK config schema API.
 
 ## Phase 6: Official Plugin Migration
 

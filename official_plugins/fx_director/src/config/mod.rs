@@ -19,6 +19,17 @@ observe_effect_ids = false
 observe_character_probe = false
 "#;
 
+pub(crate) fn register_schema(host: HostApi<'_>) {
+    if let Err(error) = host
+        .configs()
+        .register_schema("fx_director", "config.toml", DEFAULT_CONFIG)
+    {
+        crate::log::write_line(format!(
+            "fx_director config schema register failed: {error}"
+        ));
+    }
+}
+
 pub(crate) fn load_plugin_config(host: HostApi<'_>) -> PluginConfig {
     let Some(root) = host.paths().config_root() else {
         return PluginConfig::default();

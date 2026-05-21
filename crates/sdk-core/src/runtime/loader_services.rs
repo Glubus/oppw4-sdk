@@ -1,7 +1,4 @@
-use std::{
-    ffi::c_void,
-    sync::OnceLock,
-};
+use std::{ffi::c_void, sync::OnceLock};
 
 use plugin_abi::{
     HostModuleBaseFn, HostReadMemoryFn, HostRegisterFileProviderFn, HostScanMemoryFn,

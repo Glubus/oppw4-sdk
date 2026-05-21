@@ -1,4 +1,5 @@
 mod capabilities;
+mod config;
 mod files;
 mod game;
 mod hooks;
@@ -14,6 +15,7 @@ mod signals;
 mod r#unsafe;
 
 pub use capabilities::CapabilityService;
+pub use config::ConfigService;
 pub use files::{FileService, VirtualFileProvider};
 pub use game::GameService;
 pub use hooks::HookService;

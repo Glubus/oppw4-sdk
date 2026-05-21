@@ -1,8 +1,9 @@
 use std::ffi::{c_char, c_void};
 
 use super::super::{
-    Oppw4ActiveCharacter, Oppw4FileProvider, Oppw4GameStatus, Oppw4LinkDataEntryPatch,
-    Oppw4LinkDataRowPatch, Oppw4LogEntry, Oppw4LuaModule, Oppw4PluginModEntry,
+    Oppw4ActiveCharacter, Oppw4ConfigSchema, Oppw4FileProvider, Oppw4GameStatus,
+    Oppw4LinkDataEntryPatch, Oppw4LinkDataRowPatch, Oppw4LogEntry, Oppw4LuaModule,
+    Oppw4PluginModEntry,
 };
 
 pub type HostLogFn =
@@ -117,3 +118,5 @@ pub type HostEmitSignalFn = unsafe extern "system" fn(
     payload: *const u8,
     payload_len: usize,
 ) -> i32;
+pub type HostRegisterConfigSchemaFn =
+    unsafe extern "system" fn(host_context: *mut c_void, schema: *const Oppw4ConfigSchema) -> i32;

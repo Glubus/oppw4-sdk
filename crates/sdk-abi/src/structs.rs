@@ -4,11 +4,11 @@ use super::ffi::{
     HostActiveCharacterFn, HostDebugEnabledFn, HostEmitSignalFn, HostForEachPluginModFn,
     HostForEachPluginModZipFn, HostGameStatusFn, HostLogFn, HostModuleBaseFn,
     HostPatchLinkDataRowFn, HostReadMemoryFn, HostRegisterActiveCharacterProviderFn,
-    HostRegisterFileProviderFn, HostRegisterGameStatusProviderFn, HostRegisterLinkDataProviderFn,
-    HostRegisterLuaModuleFn, HostRegisterRdbPatchProviderFn, HostRegisterRdbServiceFn,
-    HostRegisterRdbVirtualProviderFn, HostReplaceLinkDataEntryFn, HostRequireCapabilityFn,
-    HostScanMemoryFn, HostSubscribeSignalFn, HostWriteMemoryFn, Oppw4LuaRegisterFn,
-    Oppw4ProviderCloseFn, Oppw4ProviderFileTimeFn, Oppw4ProviderOpenPathFn,
+    HostRegisterConfigSchemaFn, HostRegisterFileProviderFn, HostRegisterGameStatusProviderFn,
+    HostRegisterLinkDataProviderFn, HostRegisterLuaModuleFn, HostRegisterRdbPatchProviderFn,
+    HostRegisterRdbServiceFn, HostRegisterRdbVirtualProviderFn, HostReplaceLinkDataEntryFn,
+    HostRequireCapabilityFn, HostScanMemoryFn, HostSubscribeSignalFn, HostWriteMemoryFn,
+    Oppw4LuaRegisterFn, Oppw4ProviderCloseFn, Oppw4ProviderFileTimeFn, Oppw4ProviderOpenPathFn,
     Oppw4ProviderPatchReadFn, Oppw4ProviderReadFn, Oppw4ProviderSeekFn, Oppw4ProviderSizeFn,
 };
 
@@ -45,6 +45,7 @@ pub struct Oppw4PluginApi {
     pub register_rdb_virtual_provider: Option<HostRegisterRdbVirtualProviderFn>,
     pub subscribe_signal: Option<HostSubscribeSignalFn>,
     pub emit_signal: Option<HostEmitSignalFn>,
+    pub register_config_schema: Option<HostRegisterConfigSchemaFn>,
 }
 
 #[repr(C)]
@@ -94,6 +95,14 @@ pub struct Oppw4LuaModule {
     pub module_name: *const c_char,
     pub module_context: *mut c_void,
     pub register: Option<Oppw4LuaRegisterFn>,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct Oppw4ConfigSchema {
+    pub plugin_id: *const c_char,
+    pub schema_name: *const c_char,
+    pub schema_utf8: *const c_char,
 }
 
 #[repr(C)]
