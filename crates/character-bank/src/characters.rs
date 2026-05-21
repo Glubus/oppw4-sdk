@@ -627,6 +627,123 @@ mod tests {
     }
 
     #[test]
+    fn indexed_data_root_preserves_costume_assets_body_parts_and_missing_movesets() {
+        let root = temp_data_root("indexed-data");
+        let character_dir = root.join("characters").join("garp");
+        fs::create_dir_all(root.join("generated")).expect("generated dir");
+        fs::create_dir_all(character_dir.join("costumes")).expect("costume dir");
+        fs::write(
+            root.join("generated").join("index.json"),
+            r#"
+                {
+                  "characters": [
+                    {
+                      "path": "characters/garp/data.json"
+                    }
+                  ]
+                }
+            "#,
+        )
+        .expect("index");
+        fs::write(
+            character_dir.join("data.json"),
+            r#"
+                {
+                  "id": "garp",
+                  "display_name": "Garp",
+                  "aliases": ["hero_of_the_marines"],
+                  "ids": {
+                    "playable": null,
+                    "runtime": 310,
+                    "boss_runtime": 311,
+                    "model": 9
+                  },
+                  "assets": {
+                    "costumes": [
+                      { "id": "young", "ref": "costumes/young.json" }
+                    ]
+                  }
+                }
+            "#,
+        )
+        .expect("character data");
+        fs::write(
+            character_dir.join("costumes").join("young.json"),
+            r#"
+                {
+                  "character_id": "garp",
+                  "id": "young",
+                  "label": "Young",
+                  "slot": 2,
+                  "model_id": 9,
+                  "assets": [
+                    {
+                      "kind": "model",
+                      "label": "Young model",
+                      "path": "MPLC009_GarpYoung.g1m"
+                    },
+                    {
+                      "kind": "portrait",
+                      "label": "Young portrait",
+                      "path": "ui/garp_young.dds"
+                    }
+                  ],
+                  "body_parts": [
+                    {
+                      "id": "body",
+                      "label": "Body",
+                      "assets": [
+                        {
+                          "kind": "texture",
+                          "path": "MPLC009_GarpYoung_Body.g1t"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "weapon_02",
+                      "label": "Second weapon",
+                      "assets": [
+                        {
+                          "kind": "texture",
+                          "path": "MPLC009_GarpYoung_Weapon02.g1t"
+                        }
+                      ]
+                    }
+                  ]
+                }
+            "#,
+        )
+        .expect("costume data");
+
+        let characters = read_data_root(&root).expect("indexed oppw4-data root");
+        let garp = characters
+            .iter()
+            .find(|character| character.canonical == "garp")
+            .expect("garp");
+
+        assert_eq!(characters.len(), 1);
+        assert_eq!(garp.moveset_linkdata_entry, None);
+        assert_eq!(garp.model_stem, "MPLC009_GarpYoung");
+        assert_eq!(garp.costumes.len(), 1);
+
+        let costume = &garp.costumes[0];
+        assert_eq!(costume.id, "young");
+        assert_eq!(costume.assets.len(), 2);
+        assert_eq!(costume.body_parts.len(), 2);
+        assert_eq!(costume.body_parts[0].id, "body");
+        assert_eq!(
+            costume.body_parts[0].assets[0].path.as_deref(),
+            Some("MPLC009_GarpYoung_Body.g1t")
+        );
+        assert_eq!(costume.body_parts[1].id, "weapon_02");
+        assert_eq!(
+            costume.body_parts[1].assets[0].path.as_deref(),
+            Some("MPLC009_GarpYoung_Weapon02.g1t")
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn reads_workspace_oppw4_data_submodule() {
         let root = workspace_data_root();
         let characters = read_data_root(&root).expect("workspace oppw4-data root");
