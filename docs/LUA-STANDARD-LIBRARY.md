@@ -156,9 +156,41 @@ history:values()
 `map` accepts only string, integer, and boolean keys. `ring_buffer` returns
 values from oldest to newest.
 
+### `std.buffer`
+
+Binary payload reader/writer helpers for scripts that need to build or inspect
+little-endian data without string byte hacks.
+
+```lua
+local buffer = require("std.buffer")
+
+local writer = buffer.writer()
+writer:u8(0x12)
+writer:u16_le(0x3456)
+writer:u32_le(0x789abcde)
+writer:i32_le(-2)
+writer:bytes({ 1, 2, 3 })
+writer:align(16, 0)
+
+local payload = writer:to_string()
+local bytes = writer:to_bytes()
+
+local reader = buffer.reader(payload)
+reader:u8()
+reader:u16_le()
+reader:u32_le()
+reader:i32_le()
+reader:bytes(4)
+reader:remaining()
+reader:position()
+reader:seek(1)
+```
+
+The reader accepts a Lua string or a byte table. Numeric writers validate the
+target range before appending data.
+
 ## Deferred Modules
 
 - `std.string`: deferred because Lua already provides `string.*`.
 - `std.primitives`: deferred until a concrete typed payload API needs it.
-- `std.buffer`: future candidate for binary payload writers/readers.
 - `std.memory`: should stay behind SDK/plugin capabilities, not general mod std.

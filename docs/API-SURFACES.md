@@ -337,6 +337,14 @@ Responsibilities:
 - strict map with predictable `len` and entry iteration;
 - ring buffer for recent samples/events.
 
+### `std.buffer`
+
+Responsibilities:
+
+- binary payload writer/reader helpers;
+- little-endian numeric helpers for `u8`, `u16`, `u32`, and `i32`;
+- byte table and Lua string conversion.
+
 ## Plugin Lua Surface
 
 Plugin modules use plugin ids.

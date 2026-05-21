@@ -1,5 +1,6 @@
 use mlua::Lua;
 
+mod buffer;
 mod character;
 mod collections;
 mod files;
@@ -15,6 +16,7 @@ pub use log::LuaLogEntry;
 
 pub(super) fn install(lua: &Lua) -> mlua::Result<()> {
     character::install(lua)?;
+    buffer::install(lua)?;
     collections::install(lua)?;
     files::install(lua)?;
     math::install(lua)?;
