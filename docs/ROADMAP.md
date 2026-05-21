@@ -41,6 +41,9 @@ Current checkpoint:
 - [x] `moveset_patcher` no longer owns mod-file/zip lookup and only consumes SDK helpers for that context.
 - [x] `moveset_patcher` no longer scans legacy `mods/LINKDATA_A` folders directly.
 - [x] SDK packaging script assembles loader `dinput8.dll`, SDK services, official plugins, data, and root `mods/`.
+- [x] Public mdBook documentation moved to the external `oppw4-docs` repository with Mermaid diagrams and CI build checks.
+- [x] Character bank tests cover indexed data roots with costumes, assets, body parts, and optional missing movesets.
+- [x] LinkData and RDB service tests cover row/entry edit conflicts, row insert/remove behavior, and RDB handle cleanup.
 
 ## Progress Checklist
 
@@ -221,6 +224,11 @@ Exit criteria:
 
 Status: in progress. Per-character editable JSON, costume files, generated indexes, schemas, and Rust/Lua lookup exist. SDK core now initializes the runtime character bank from `game_root/oppw4-data`, so packaged data can be improved without recompiling SDK code. The bank is not complete yet for every asset/text/model relationship.
 
+Recent validation added coverage for indexed data roots that preserve costume
+assets, body parts, multiple named parts/weapons, and deliberately missing
+moveset references. This protects the data shape needed by `skin_patcher` and
+future community data contributions.
+
 ## Phase 5: Plugin Registration And Capabilities
 
 Progress: in progress.
@@ -281,6 +289,11 @@ Exit criteria:
 
 Status: complete for the current SDK split. Official plugins live in the SDK repo, register Lua modules through SDK APIs, route LinkData/RDB/file operations through SDK services, and use SDK log/config roots. Remaining plugin work is feature-level cleanup, not loader/SDK boundary migration.
 
+Recent service coverage added LinkData tests for row/entry ownership conflicts,
+row edits applied from archive payloads, and row insert/remove behavior. RDB
+tests now cover handle cleanup, and `sdk_rdb` tests live in a dedicated
+`tests.rs` module instead of growing `lib.rs`.
+
 ## Phase 7: Loader Reduction
 
 Progress: started.
@@ -326,8 +339,11 @@ Exit criteria:
 - [x] SDK docs explain where each feature belongs.
 
 Status: complete for the current split. Examples, manifest validators, and
-plugin development notes exist. Future public docs can expand API examples, but
-the repository now has enough structure for third-party plugin/mod work.
+plugin development notes exist. Public modder/developer documentation now lives
+in the external `oppw4-docs` repository as an mdBook with Mermaid support,
+workflow pages, contributor checklists, performance watchpoints, and a GitHub
+Actions build check. Future public docs can expand API examples, but the
+repository now has enough structure for third-party plugin/mod work.
 
 ## Phase 9: Release Packaging
 
