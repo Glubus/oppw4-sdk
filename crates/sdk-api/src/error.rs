@@ -13,9 +13,10 @@ impl std::fmt::Display for PluginError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::MissingHostFunction(name) => write!(formatter, "missing host function {name}"),
-            Self::HostCallFailed { operation, code } => {
-                write!(formatter, "{operation} failed with code {code}")
-            }
+            Self::HostCallFailed { operation, code } => match host_call_code_reason(*code) {
+                Some(reason) => write!(formatter, "{operation} failed with code {code} ({reason})"),
+                None => write!(formatter, "{operation} failed with code {code}"),
+            },
             Self::InvalidApiVersion { expected, actual } => {
                 write!(
                     formatter,
@@ -30,6 +31,18 @@ impl std::fmt::Display for PluginError {
             }
             Self::InitFailed(message) => write!(formatter, "plugin init failed: {message}"),
         }
+    }
+}
+
+fn host_call_code_reason(code: i32) -> Option<&'static str> {
+    match code {
+        -19 => Some("null SDK host context"),
+        -20 => Some("missing plugin id"),
+        -21 => Some("plugin id mismatch"),
+        -22 => Some("missing manifest capability"),
+        -23 => Some("missing Lua module name"),
+        -24 => Some("Lua module not declared in manifest"),
+        _ => None,
     }
 }
 
@@ -52,5 +65,33 @@ impl From<crate::PluginInitError> for PluginError {
                 Self::ApiStructTooSmall { expected, actual }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn host_call_display_includes_known_code_reason() {
+        let error = PluginError::HostCallFailed {
+            operation: "register_lua_module",
+            code: -24,
+        };
+
+        assert_eq!(
+            error.to_string(),
+            "register_lua_module failed with code -24 (Lua module not declared in manifest)"
+        );
+    }
+
+    #[test]
+    fn host_call_display_keeps_unknown_code_plain() {
+        let error = PluginError::HostCallFailed {
+            operation: "custom_operation",
+            code: -999,
+        };
+
+        assert_eq!(error.to_string(), "custom_operation failed with code -999");
     }
 }
