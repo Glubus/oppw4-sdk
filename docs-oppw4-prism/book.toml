@@ -1,0 +1,18 @@
+[book]
+title = "OPPW4 Prism Modding SDK"
+authors = ["OPPW4 Prism contributors"]
+description = "Developer and modder documentation for the OPPW4 Prism SDK, Lua modding APIs, data bank, official plugins, and architecture."
+language = "en"
+src = "src"
+
+[build]
+build-dir = "book"
+create-missing = false
+
+[output.html]
+git-repository-url = "https://github.com/Glubus/oppw4-sdk"
+edit-url-template = "https://github.com/Glubus/oppw4-sdk/edit/main/docs-oppw4-prism/{path}"
+additional-css = ["theme/prism.css"]
+
+[output.html.search]
+enable = true
