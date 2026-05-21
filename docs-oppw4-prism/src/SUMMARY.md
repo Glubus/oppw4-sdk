@@ -4,6 +4,13 @@
 [Project Layout](project-layout.md)
 [Current State](current-state.md)
 
+# Getting Started
+
+- [Setup](getting-started/setup.md)
+- [Build And Test](getting-started/build-and-test.md)
+- [Package Layout](getting-started/package-layout.md)
+- [Where To Put A Feature](getting-started/where-to-put-a-feature.md)
+
 # Data Bank
 
 - [Overview](data/index.md)
@@ -53,9 +60,13 @@
 - [SDK Services](architecture/sdk-services.md)
 - [Plugin ABI](architecture/plugin-abi.md)
 - [Packaging](architecture/packaging.md)
+- [Rules](architecture/rules.md)
+- [Architecture Decisions](architecture/decisions.md)
 
 # Reference
 
 - [Glossary](reference/glossary.md)
 - [Known Error Codes](reference/error-codes.md)
 - [Roadmap](reference/roadmap.md)
+- [Troubleshooting](reference/troubleshooting.md)
+- [Maintaining This Book](reference/maintaining-this-book.md)
