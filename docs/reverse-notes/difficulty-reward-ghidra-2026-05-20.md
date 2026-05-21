@@ -342,6 +342,39 @@ Important correction from tester: the recent missions did not reward souls. Lack
 
 Status: still missing. Needs either a Ghidra pass around soul reward UI/commit functions or a targeted runtime run with known soul values.
 
+Observed soul-reward run - 2026-05-21:
+
+```text
+log: plugins/sdk/logs/sdk_runtime/2026-05-21-221212.log
+mission_id=77
+difficulty=1(normal)
+mode_type=2(treasure_log)
+visible result:
+  kills = 1110
+  rank = A
+  time = 7:44.46
+  souls = 2 small attack souls, 1 small defense soul
+
+rank_fields=[27,1110,1139292992,3,5]
+1139292992 as f32 = 464.462890625 seconds = 7:44.46
+```
+
+This confirms `result_state_probe.rank_fields` carries at least:
+
+```text
+rank_fields[0] = rank/condition row id
+rank_fields[1] = kill count
+rank_fields[2] = clear time as f32 bits
+```
+
+Soul reward remains unresolved in this run. `value_probe.values` did not include `1` or `2`, so it could not directly search for the visible soul counts. `item_reward_probe` did log one suspicious entry:
+
+```text
+#19 amount=1 item=238 new=0
+```
+
+This may be the `1` small defense soul, but it does not explain the `2` small attack souls. Next runtime probe should explicitly include `1` and `2` in `value_probe.values`, or better, add a soul-specific item/material watch once the item ids are identified.
+
 Known UI/data clues:
 
 ```text
