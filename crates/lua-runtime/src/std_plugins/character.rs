@@ -1,6 +1,6 @@
 use mlua::{Lua, Table, Value};
 
-use crate::runtime::require::{register_module, register_std_module};
+use crate::runtime::{register_module, register_std_module};
 
 mod extensions;
 mod handles;

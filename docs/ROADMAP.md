@@ -168,7 +168,11 @@ Standard modules:
 - [x] `std.character`;
 - [x] `std.log`;
 - [x] `std.mod`;
-- [x] `std.files`.
+- [x] `std.files`;
+- [x] `std.math`;
+- [x] `std.path`;
+- [x] `std.time`;
+- [x] `std.collections`.
 
 Exit criteria:
 
@@ -178,7 +182,7 @@ Exit criteria:
 - [x] directory mods can hot reload;
 - [x] finalize log level/filter policy.
 
-Status: in progress. `std.character`, `std.files`, `std.mod`, and `std.log` are implemented. SDK-owned mod-file reads exist in Rust and Lua. `std.log` entries now return to SDK core after each mod run and are written into per-mod log folders. Release host logs mirror only mod `warn` and `error` entries. Lua mods run with unsafe filesystem/process/debug globals hidden, while SDK-controlled `require` remains available.
+Status: in progress. `std.character`, `std.files`, `std.mod`, `std.math`, `std.path`, `std.time`, `std.collections`, and `std.log` are implemented. Standard modules now live under `crates/lua-runtime/src/std_plugins/`, while runtime internals keep ownership of sandboxing, `require`, mod context, and registration. SDK-owned mod-file reads exist in Rust and Lua. `std.log` entries return to SDK core after each mod run and are written into per-mod log folders. Release host logs mirror only mod `warn` and `error` entries. Lua mods run with unsafe filesystem/process/debug globals hidden, while SDK-controlled `require` remains available.
 
 ## Phase 4: Character Bank
 

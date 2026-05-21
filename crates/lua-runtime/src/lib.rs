@@ -1,6 +1,7 @@
 mod manifest;
 mod mod_files;
 mod runtime;
+mod std_plugins;
 
 pub use manifest::{
     discover_mods, parse_mod_manifest, LuaMod, LuaModManifest, ModManifestError, ModSource,

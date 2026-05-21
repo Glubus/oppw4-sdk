@@ -2,7 +2,7 @@ use mlua::Lua;
 
 use crate::{LuaMod, ModSource};
 
-pub use super::standard::LuaLogEntry;
+pub use crate::std_plugins::LuaLogEntry;
 
 #[derive(Debug)]
 pub enum LuaRunError {
@@ -34,7 +34,7 @@ where
             mod_entry.manifest.id, mod_entry.manifest.entry_lua
         ))
         .exec();
-    let logs = super::standard::collect_log_entries(&lua).map_err(LuaRunError::Lua)?;
+    let logs = crate::std_plugins::collect_log_entries(&lua).map_err(LuaRunError::Lua)?;
     exec_result
         .map(|()| LuaRunReport { logs })
         .map_err(LuaRunError::Lua)

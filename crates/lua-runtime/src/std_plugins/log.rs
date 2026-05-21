@@ -1,6 +1,6 @@
 use mlua::{Lua, Table};
 
-use crate::runtime::require::register_std_module;
+use crate::runtime::register_std_module;
 
 const LOG_BUFFER_GLOBAL: &str = "__oppw4_mod_log_buffer";
 

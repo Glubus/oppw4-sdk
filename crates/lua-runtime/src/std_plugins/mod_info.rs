@@ -1,6 +1,6 @@
 use mlua::{Lua, Table};
 
-use crate::runtime::require::register_std_module;
+use crate::runtime::register_std_module;
 
 pub(super) fn install(lua: &Lua) -> mlua::Result<()> {
     let module = lua.create_table()?;

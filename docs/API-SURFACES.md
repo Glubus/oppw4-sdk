@@ -193,6 +193,11 @@ Standard modules use the `std.*` namespace.
 
 Lua mods run in the SDK sandbox. Safe standard libraries such as `math`, `string`, `table`, and `utf8` remain available. Filesystem/process/debug surfaces are hidden from mod scripts: `os`, `io`, `debug`, and global `package` are `nil` during mod execution. `require(...)` stays SDK-controlled and can only resolve registered SDK/plugin modules.
 
+The SDK standard library lives under `crates/lua-runtime/src/std_plugins/`.
+`lua-runtime` owns sandboxing, `require`, and module registration; std module
+implementations are kept outside runtime internals. See
+`docs/LUA-STANDARD-LIBRARY.md` for the full std surface.
+
 ### `std.character`
 
 Responsibilities:
@@ -252,6 +257,35 @@ print(current.id)
 print(current.is_zip)
 ```
 
+### `std.math`
+
+Responsibilities:
+
+- common numeric helpers for mod scripts;
+- deterministic interpolation/range mapping helpers;
+- integer alignment helpers for offsets and addresses.
+
+Current Lua surface:
+
+```lua
+local mathx = require("std.math")
+
+local scale = mathx.clamp(value, 0, 1)
+local damage = mathx.remap(0, 100, 1.0, 2.0, score)
+local hook = mathx.align_up(address, 16)
+```
+
+Functions:
+
+- `clamp(value, min, max)`;
+- `saturate(value)`;
+- `lerp(start, end, t)`;
+- `inverse_lerp(start, end, value)`;
+- `remap(in_min, in_max, out_min, out_max, value)`;
+- `round_to(value, step)`;
+- `align_down(value, alignment)`;
+- `align_up(value, alignment)`.
+
 ### `std.files`
 
 Responsibilities:
@@ -275,6 +309,33 @@ local bytes = files.read_bytes("payload.bin")
 ```
 
 These helpers are SDK-owned even before the Lua-facing `std.files` module is finished. Feature plugins should consume these helpers instead of reading `__oppw4_mod_root` or zip archives directly.
+
+### `std.path`
+
+Responsibilities:
+
+- path string helpers for mod and asset paths;
+- slash normalization;
+- safe relative path validation.
+
+This module does not read files.
+
+### `std.time`
+
+Responsibilities:
+
+- monotonic runtime time helpers;
+- duration conversion helpers;
+- simple script-local cooldowns.
+
+This module does not expose Lua `os`.
+
+### `std.collections`
+
+Responsibilities:
+
+- strict map with predictable `len` and entry iteration;
+- ring buffer for recent samples/events.
 
 ## Plugin Lua Surface
 

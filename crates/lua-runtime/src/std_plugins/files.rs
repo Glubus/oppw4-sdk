@@ -2,7 +2,7 @@ use std::path::Path;
 
 use mlua::{Lua, Table};
 
-use crate::{mod_files, runtime::require::register_std_module};
+use crate::{mod_files, runtime::register_std_module};
 
 pub(super) fn install(lua: &Lua) -> mlua::Result<()> {
     let files = lua.create_table()?;
