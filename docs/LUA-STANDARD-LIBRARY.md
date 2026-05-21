@@ -10,7 +10,9 @@ Implementation layout:
 crates/lua-runtime/src/runtime.rs        # sandbox/require/runner orchestration
 crates/lua-runtime/src/runtime/          # Lua runtime internals
 crates/lua-runtime/src/std_plugins.rs    # installs SDK std modules
-crates/lua-runtime/src/std_plugins/      # std module implementations
+crates/lua-runtime/src/std_plugins/      # one folder per std module
+crates/lua-runtime/src/std_plugins/math/mod.rs
+crates/lua-runtime/src/std_plugins/buffer/{mod,writer,reader,bytes,tests}.rs
 ```
 
 Standard modules are exposed through both `require("std.<name>")` and
@@ -32,6 +34,10 @@ Standard modules are exposed through both `require("std.<name>")` and
 - SDK standard modules;
 - module-specific tests;
 - standard handle extension registries such as `std.character`.
+
+Each `std.*` module must live in its own folder, even when the first
+implementation is small. Larger modules should split behavior into focused
+files early instead of growing a monolithic `mod.rs`.
 
 Std modules must not expose arbitrary filesystem, process, debug, or package
 access. `os`, `io`, `debug`, and global `package` remain hidden from mod
