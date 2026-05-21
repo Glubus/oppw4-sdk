@@ -96,7 +96,9 @@ Examples are documented in [examples/README.md](examples/README.md).
 
 ## Architecture Docs
 
-- [OPPW4 Prism mdBook](docs-oppw4-prism/src/SUMMARY.md)
+The public mdBook documentation now lives in the sibling `docs-oppw4-prism`
+repository.
+
 - [SDK foundation RFC](docs/RFC-0001-sdk-foundation.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Architecture rules](docs/RULES.md)
