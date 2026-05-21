@@ -6,6 +6,7 @@ use std::{
 use plugin_sdk::OwnedHostApi;
 
 use crate::config::DifficultyProbeConfig;
+use crate::difficulty_reward_row::{read_reward_row_dump, RewardRowDump};
 
 const PLUGIN_ID: &str = "sdk_runtime";
 
@@ -24,6 +25,7 @@ const SPECIAL_FLAG_OFFSET: usize = 0x1d762;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct DifficultySnapshot {
+    module_base: usize,
     global: usize,
     mission_id: u16,
     mode_type: u8,
@@ -45,19 +47,26 @@ pub(crate) fn start(host: OwnedHostApi, config: DifficultyProbeConfig) {
     let interval = Duration::from_millis(config.interval_ms.max(50));
     let _ = thread::Builder::new()
         .name("oppw4_difficulty_probe".to_string())
-        .spawn(move || run(host, interval));
+        .spawn(move || run(host, config, interval));
 }
 
-fn run(host: OwnedHostApi, interval: Duration) {
+fn run(host: OwnedHostApi, config: DifficultyProbeConfig, interval: Duration) {
     let _ = host.log().write(
         PLUGIN_ID,
         format!(
-            "difficulty_probe started interval_ms={}",
-            interval.as_millis()
+            "difficulty_probe started interval_ms={} dump_reward_row={} snapshot_interval_ms={}",
+            interval.as_millis(),
+            config.dump_reward_row,
+            config.snapshot_interval_ms,
         ),
     );
 
+    let snapshot_interval = snapshot_interval(config.snapshot_interval_ms);
+    let mut last_snapshot_at = Instant::now()
+        .checked_sub(snapshot_interval.unwrap_or(Duration::ZERO))
+        .unwrap_or_else(Instant::now);
     let mut last_snapshot = None;
+    let mut last_reward_row = None;
     let mut last_error = String::new();
     let mut last_error_at = Instant::now() - Duration::from_secs(60);
     loop {
@@ -65,11 +74,18 @@ fn run(host: OwnedHostApi, interval: Duration) {
         match read_snapshot(&host) {
             Ok(snapshot) => {
                 last_error.clear();
-                if last_snapshot == Some(snapshot) {
+                let changed = last_snapshot != Some(snapshot);
+                let periodic = snapshot_interval
+                    .is_some_and(|interval| last_snapshot_at.elapsed() >= interval);
+                if !changed && !periodic {
                     continue;
                 }
                 last_snapshot = Some(snapshot);
+                last_snapshot_at = Instant::now();
                 log_snapshot(&host, snapshot);
+                if config.dump_reward_row {
+                    log_reward_row(&host, snapshot, &mut last_reward_row, periodic);
+                }
             }
             Err(error) => {
                 if error != last_error || last_error_at.elapsed() >= Duration::from_secs(10) {
@@ -81,6 +97,14 @@ fn run(host: OwnedHostApi, interval: Duration) {
                 }
             }
         }
+    }
+}
+
+fn snapshot_interval(interval_ms: u64) -> Option<Duration> {
+    if interval_ms == 0 {
+        None
+    } else {
+        Some(Duration::from_millis(interval_ms.max(250)))
     }
 }
 
@@ -101,6 +125,7 @@ fn read_snapshot(host: &OwnedHostApi) -> Result<DifficultySnapshot, String> {
     }
 
     Ok(DifficultySnapshot {
+        module_base: base,
         global,
         mission_id: read_u16(host, global + MISSION_ID_OFFSET, "mission_id")?,
         mode_type: read_u8(host, global + RESULT_MODE_OFFSET, "mode_type")?,
@@ -129,6 +154,45 @@ fn log_snapshot(host: &OwnedHostApi, snapshot: DifficultySnapshot) {
             snapshot.global,
         ),
     );
+}
+
+fn log_reward_row(
+    host: &OwnedHostApi,
+    snapshot: DifficultySnapshot,
+    last_reward_row: &mut Option<RewardRowDump>,
+    force: bool,
+) {
+    match read_reward_row_dump(
+        host,
+        snapshot.module_base,
+        snapshot.mission_id,
+        snapshot.difficulty,
+    ) {
+        Ok(Some(row)) => {
+            if !force && last_reward_row.as_ref() == Some(&row) {
+                return;
+            }
+            let log = row.format_log();
+            *last_reward_row = Some(row);
+            let _ = host.log().write(PLUGIN_ID, log);
+        }
+        Ok(None) => {
+            *last_reward_row = None;
+            let _ = host.log().write(
+                PLUGIN_ID,
+                format!(
+                    "reward_row unavailable mission_id={} difficulty={} reason=outside_base_reward_index",
+                    snapshot.mission_id, snapshot.difficulty
+                ),
+            );
+        }
+        Err(error) => {
+            *last_reward_row = None;
+            let _ = host
+                .log()
+                .write(PLUGIN_ID, format!("reward_row pending: {error}"));
+        }
+    }
 }
 
 fn read_u8(host: &OwnedHostApi, address: usize, label: &str) -> Result<u8, String> {
@@ -209,5 +273,16 @@ mod tests {
         assert_eq!(mode_type_label(2), "treasure_log");
         assert_eq!(mode_type_label(6), "inactive_or_transition");
         assert_eq!(mode_type_label(9), "unknown");
+    }
+
+    #[test]
+    fn snapshot_interval_zero_disables_periodic_logging() {
+        assert_eq!(snapshot_interval(0), None);
+    }
+
+    #[test]
+    fn snapshot_interval_has_minimum_for_log_safety() {
+        assert_eq!(snapshot_interval(1), Some(Duration::from_millis(250)));
+        assert_eq!(snapshot_interval(1000), Some(Duration::from_millis(1000)));
     }
 }

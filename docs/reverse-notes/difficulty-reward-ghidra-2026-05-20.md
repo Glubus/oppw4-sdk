@@ -16,6 +16,7 @@ Generated exports:
 - `oppw4-ghidra/game_difficulty_rtti.txt`
 - `oppw4-ghidra/game_difficulty_vtables.txt`
 - `oppw4-ghidra/game_difficulty_readers.txt`
+- `oppw4-ghidra/game_difficulty_impact_targets.txt`
 
 ## High Confidence Findings
 
@@ -221,6 +222,271 @@ It calls:
 
 This should be treated as the central result/reward screen pipeline.
 
+## Reward Fields Confirmed Runtime - 2026-05-21
+
+These notes are from `sdk_runtime` probes and should be treated as the current source of truth for end-of-mission reward work.
+
+### Berry / Beli reward
+
+`reward_probe` hooks `FUN_14132a670 @ 0x14132a670`.
+
+Confirmed output shape from mission `35`, normal/free log:
+
+```text
+slots=[487000, 16500, 487000, 0, 0, 10750, 1001250, 1351350]
+```
+
+Observed mapping:
+
+```text
+slot 0 : victory/base berry bonus
+slot 1 : combat-obtained or intermediate berry component, still needs more runs
+slot 2 : grade S/S+ berry bonus
+slot 3 : secondary mission berry bonus
+slot 4 : ally/other berry bonus
+slot 5 : soul-piece sale bonus or item-sale-derived bonus
+slot 6 : visible berry subtotal/total candidate
+slot 7 : post-commit/grand total candidate, still needs more runs
+```
+
+Previous user-reported run:
+
+```text
+victory bonus = 487000
+combat obtained = 0
+grade S/S+ bonus = 487000
+secondary mission bonus = 0
+ally bonus = 0
+soul-piece sale bonus = 18250
+total = 992250
+```
+
+So the berry hook is confirmed useful, but slot labels still need a few comparison runs because slot `1`, `5`, `6`, and `7` vary by item sale / display timing.
+
+### Medals / item rewards
+
+`item_reward_probe` hooks `FUN_14132d280 @ 0x14132d280`.
+
+Confirmed capture from mission `35`, normal/free log:
+
+```text
+item_reward_probe result=10750
+entries=
+#0 amount=73 item=0   new=0
+#1 amount=64 item=1   new=0
+#2 amount=64 item=2   new=1
+#3 amount=26 item=3   new=0
+#4 amount=26 item=72  new=0
+#5 amount=5  item=169 new=0
+#6 amount=5  item=181 new=0
+#7 amount=31 item=186 new=0
+```
+
+This means medal/item reward capture is already working. What remains is naming the item ids against the visible medal names/icons. The hook gives amount, item id, and whether the entry is new.
+
+Do not list medals as missing anymore; list them as captured but not fully labelled.
+
+### Crew points
+
+Crew reward in UI equals crew points. Do not track a separate "crew reward" category unless a later test proves a distinct field.
+
+`result_state_probe` hooks `FUN_14132b570 @ 0x14132b570` and dumps the result object block written by `FUN_14132a0b0 @ 0x14132a0b0`.
+
+Ghidra writes in `FUN_14132a0b0`:
+
+```text
+result_state + 0x498 : component 1
+result_state + 0x4a0 : component 2
+result_state + 0x4a8 : component 3
+result_state + 0x4b0 : component 4
+result_state + 0x4b8 : bonus delta
+result_state + 0x4c0 : total after multiplier
+result_state + 0x4c8 : final/display total
+```
+
+Confirmed run where user remembered "180-ish":
+
+```text
+crew_points_named=
++0x498:109
++0x4a0:0
++0x4a8:0
++0x4b0:30
++0x4b8:41
++0x4c0:180
++0x4c8:180
+```
+
+So:
+
+```text
+109 + 30 + 41 = 180
+```
+
+Previous run:
+
+```text
+raw player stat deltas = 27 + 12 + 51 + 10 + 35 + 7 = 142
+visible crew points reported by user = 148
+```
+
+This implies raw active/save stat deltas are not the authoritative display total. The authoritative crew point total is `result_state + 0x4c0/+0x4c8`.
+
+### Souls
+
+Souls are not confirmed yet.
+
+Current probes log a `soul_state` area near save offsets `+0xfe6c..+0xfe8c`, but it did not move in the tested result flows and is not yet tied to end-screen soul rewards.
+
+Important correction from tester: the recent missions did not reward souls. Lack of movement in `soul_state` is therefore not negative evidence yet; it only means the tested runs were not valid soul-reward probes.
+
+Status: still missing. Needs either a Ghidra pass around soul reward UI/commit functions or a targeted runtime run with known soul values.
+
+Known UI/data clues:
+
+```text
+FUN_1413d6f50 row 0x70 references:
+  text/key: in_soul
+  icon: cmn_icon_soul_all
+  category-ish value: 0x19
+```
+
+This proves souls have a distinct result/reward UI entry. It does not yet identify the commit function or the source value.
+
+Next runtime target:
+
+```text
+Run with a visible soul reward value on the result screen and add that exact value to `value_probe.values`.
+Then compare:
+  - `value_probe` hits;
+  - `result_state_probe source_rewards/result_copy/soul_counter`;
+  - `player_result_probe soul_state`.
+```
+
+If the exact visible value never appears in these dumps, the soul reward is probably assembled through a material/item category path rather than a single result-state integer.
+
+### Character XP
+
+OPPW4 does not appear to have a character XP reward category in the end-of-mission result flow. Characters are upgraded through external progression/resources rather than XP gained directly from missions.
+
+Do not track "character XP" as a reward category unless later evidence proves a hidden separate field. For the current reward director model, remove it from scope.
+
+### Rank conditions
+
+Rank conditions are not reward values. They are the thresholds for grade/rank display, for example kill count and clear time conditions.
+
+These likely live in LinkData/fixed mission tables rather than the runtime reward commit block. Future work should identify and dump them from LinkData so a difficulty/rank director can edit:
+
+```text
+rank thresholds: kills, time, possibly mode-specific S/S+/future ranks
+```
+
+This is needed before adding custom ranks like `SS`, `SSS`, or `X`.
+
+Known Ghidra clues:
+
+```text
+global_state + 0x1d9b0 : result/rank table area
+global_state + 0x31    : active player/result slot index
+result/rank stride     : 0x50 bytes per player/result slot
+```
+
+One reader does:
+
+```c
+rank_id = *(u16 *)(global + 0x1d9b0 + *(u8 *)(global + 0x31) * 0x50);
+fixed_base = *(DAT_141eba738 + 0x18)->0x8;
+field_14 = *(u16 *)(fixed_base + rank_id * 0x44 + 0x14);
+field_16 = *(u16 *)(fixed_base + rank_id * 0x44 + 0x16);
+```
+
+This strongly suggests the visible rank/result conditions are data-backed:
+
+```text
+rank/result row id -> fixed table record stride 0x44
+```
+
+But the exact field labels are still unknown. The next useful probe/dumper should dump `global + 0x1d9b0` and the linked fixed rows during a result screen, then compare against visible rank conditions such as kills and mission time.
+
+Implemented next probe:
+
+```text
+rank_threshold_probe
+  dumps global + 0x1d9b0, 4 slots, 0x50 bytes each as u16 words
+  reads fixed row: *(DAT_141eba738 + 0x18)->0x8 + rank_row_id * 0x44
+  reads candidate condition row: fixed_base + 0xc43c + field_16 * 0x34 when field_16 < 0x68
+```
+
+Next runtime comparison needs visible end-screen thresholds, for example:
+
+```text
+mission id / mode / difficulty
+visible rank
+kill condition threshold
+clear-time condition threshold
+any other visible S/S+ condition
+```
+
+Then match those values against `rank_threshold_probe ... fixed=[...] condition=[...]`.
+
+Observed runtime comparison - 2026-05-21:
+
+```text
+log: plugins/sdk/logs/sdk_runtime/2026-05-21-215933.log
+mission_id=35
+difficulty=1(normal)
+mode_type=1(free_log)
+active_player=0
+
+active result slot:
+  rank_row=12
+
+fixed rank row 12:
+  +0x04=2
+  +0x06=17
+  +0x0a=771
+  +0x0c=3
+  +0x10=50000
+  +0x14..+0x22 all point to condition row 12
+  +0x24=111
+  +0x28=36
+
+condition row 12:
+  +0x00=1
+  +0x04=2000
+  +0x08=5000
+  +0x0c=70
+  +0x10=70
+  +0x14=1
+  +0x18=7000
+  +0x1c=9000
+  +0x20=630
+  +0x24=630
+  +0x28=6
+  +0x2c=65535
+  +0x2e=13
+  +0x30=2
+  +0x32=216
+```
+
+This confirms the probe is following a live rank row into a condition row. Field labels are still unknown, but the shape looks like paired threshold groups. The values `70/70` and `630/630` are especially likely to be visible condition thresholds or converted thresholds, while `2000/5000/7000/9000` may be score/time/point gates or internal scaled values. A screenshot or manual copy of the result-condition UI for mission 35 normal/free is now enough to start naming fields.
+
+During transition after the mission the active slot moved to `rank_row=51` / `condition_row=51`; treat that as transition/result-context data until correlated with a visible screen.
+
+Current remaining reward/rank unknowns:
+
+```text
+missing:
+  - souls source/commit value
+  - rank threshold field labels
+
+not missing anymore:
+  - Berry/Beli
+  - medals/items
+  - crew points / recompense d'equipage
+  - rank row -> condition row linkage
+```
+
 ## Working Model
 
 Current likely structure:
@@ -270,6 +536,7 @@ Runtime implementation:
 [difficulty_probe]
 enabled = true
 interval_ms = 250
+dump_reward_row = true
 ```
 
 Expected log shape:
@@ -277,6 +544,14 @@ Expected log shape:
 ```text
 difficulty_probe mission_id=<u16> difficulty=<0..3>(<label>) mode_type=<u8>(<label>) reward_mode=<u8> special_flag=<u8> cached_mission=<u32> cached_difficulty=<u32> global=0x...
 ```
+
+When `dump_reward_row = true`, the probe also logs a fixed reward row candidate for vanilla mission/difficulty ids:
+
+```text
+reward_row index=<u16> fixed20=0x... fixed28=0x... u32=0x334:<v>,0x33c:<v>,0x340:<v>,0x348:<v> u16x4=0x34c:[...],... bytes_39c=[...]
+```
+
+This intentionally reads table data only. It does not call game functions from the probe thread and does not patch gameplay.
 
 Tester observations:
 
@@ -401,7 +676,7 @@ For a first plugin prototype:
 
 We know where the active difficulty byte lives, but not every system it controls. The next reverse pass should classify every reader of `global + 0x1d756` by subsystem:
 
-- rewards: Berry, character XP, coins/medals, souls, materials;
+- rewards: Berry, coins/medals, souls, materials;
 - enemy scaling: HP, attack, defense, stagger, AI/aggression, spawn rules;
 - mission conditions: difficulty-gated events and completion checks;
 - UI/menu: available choices, labels, lock/unlock rules;
@@ -415,21 +690,153 @@ Plugin design implication:
 - `reward_director` should own reward multipliers or reward row patches.
 - LinkData/RDB patches should be preferred where the game is data-driven; exe hooks should be reserved for hardcoded range checks like `difficulty > 3`.
 
+## Impact Export - 2026-05-21
+
+Focused export:
+
+- script: `oppw4-ghidra/ExportDifficultyImpactTargets.java`
+- output: `oppw4-ghidra/game_difficulty_impact_targets.txt`
+
+### Confirmed reward row helpers
+
+`FUN_1412f9be0(mission_id, difficulty)` remains the central row index helper. Multiple wrappers read the active difficulty and then index fixed reward/gameplay rows with stride `0x6c`.
+
+Confirmed row pointer:
+
+```c
+FUN_1412fa1b0() {
+  global = *(DAT_141eba750 + 0x18)->0x28;
+  row = FUN_1412f9be0(global->mission_id, global->difficulty);
+  return fixed_data_20 + 0x334 + row * 0x6c;
+}
+```
+
+Confirmed direct reward-ish fields:
+
+```text
+row + 0x334 : used by FUN_1412308e0 and multi-reader FUN_141230b20
+row + 0x33c : used by FUN_141230830, FUN_141231100, FUN_1413fab30
+row + 0x340 : used by FUN_141230780 and multi-reader FUN_141230b20/FUN_141231100
+row + 0x348 : used by FUN_1415d8780
+```
+
+The simple helpers multiply those fields by percentages from another struct:
+
+```text
+FUN_1412308e0 -> row+0x334 * *(u16 *)(param_2 + 6)  / 100
+FUN_141230830 -> row+0x33c * *(u16 *)(param_2 + 8)  / 100
+FUN_141230780 -> row+0x340 * *(u16 *)(param_2 + 10) / 100
+```
+
+### Multi-field reward/gameplay arrays
+
+`FUN_1412fa200` and `FUN_1412fa360` read 16-bit arrays inside the same row. They pick different base offsets depending on parameters that look like player/form/slot category selectors.
+
+`FUN_1412fa200` bases:
+
+```text
+row + 0x374
+row + 0x37c
+row + 0x384
+row + 0x38c
+row + 0x394
+```
+
+`FUN_1412fa360` bases:
+
+```text
+row + 0x34c
+row + 0x354
+row + 0x35c
+row + 0x364
+row + 0x36c
+```
+
+These are probably not all final rewards. They may include battle values, drop tables, or per-player reward categories. They should be treated as fixed-row data until runtime tests map each field.
+
+### Result/reward commit path
+
+`FUN_14132a670` remains the best first hook candidate for a simple reward scaler:
+
+- calls `FUN_1412dcc70(active_difficulty, param_3, multiplier)`;
+- computes several reward components into `param_1[0..7]`;
+- commits totals into global save/result storage;
+- caps one value at `999999999`;
+- caps another at `4000000000`.
+
+This path is useful for a conservative `reward_director` prototype because it can multiply final values without pretending a fifth difficulty exists yet.
+
+### Mission condition path
+
+`FUN_1413a2330` is confirmed as the `CScCondGameDifficulty` condition:
+
+```c
+if (active_difficulty == expected_difficulty) {
+  pass = mode == 1;
+} else {
+  pass = mode == 0;
+}
+```
+
+This means new/virtual difficulties must account for script conditions. If we ever expose difficulty id `4`, mission conditions expecting `0..3` may fail unless `difficulty_director` maps virtual difficulty back to a vanilla condition id or patches condition checks.
+
+### Candidate gameplay/UI paths
+
+These functions still need labels, but the export shows they all reach difficulty-indexed data:
+
+```text
+FUN_1411be490 : calls row lookup and `FUN_1412fa200/360`; likely in-battle reward/drop/effect setup.
+FUN_14122fba0 : large setup function, writes values around object offsets 0x1d4/0x1da from row+0x39c style data.
+FUN_1413fab30 : uses row+0x33c as a scaled argument to object/effect placement.
+FUN_14140a5f0 : calls row lookup and several battle/UI helpers; likely a larger gameplay/reward display bridge.
+FUN_1415d2970 : reads reward mode and difficulty, likely late UI/result setup.
+FUN_1415d8780 : reads row+0x348 and uses many percent-style table values; likely result UI/reward presentation.
+```
+
+The key observation is that difficulty impacts more than the final end-screen money total. A real `difficulty_director` probably needs two layers:
+
+1. a virtual difficulty/effective difficulty layer;
+2. a reward/data row layer that can clone or scale fixed rows.
+
+### Practical plugin split
+
+Recommended split after this export:
+
+- `difficulty_director`
+  - owns selected/effective difficulty logic;
+  - owns virtual difficulty ids and vanilla fallback mapping;
+  - patches hard range checks like `difficulty > 3`;
+  - eventually owns menu/unlock integration.
+
+- `reward_director`
+  - owns final reward scaling;
+  - can start by hooking/patching `FUN_14132a670`;
+  - later can patch fixed reward rows or clone row data for virtual difficulties.
+
+- `sdk_runtime`
+  - remains telemetry only.
+  - should not own difficulty gameplay changes.
+
 ## Open Questions
 
 - What exact table does `FUN_1412f9be0` search/index?
 - Is `tb_level_of_difficulty` an executable UI table, RDB asset, or LinkData string key?
 - Are vanilla difficulty ids `0..N` directly stored at `global + 0x1d756`?
 - Does `global + 0x244` mean mode/context, and which value means normal battle result commit?
-- Which reward fields map to Berry, character XP, coins/medals, souls?
+- Which berry `reward_probe` slots are final display fields vs intermediate commit fields?
+- Which item ids from `item_reward_probe` map to visible medal names/icons?
+- Where are soul rewards computed and committed?
+- Which LinkData/fixed mission table stores rank thresholds such as kill count and clear time?
 
 ## Next Reverse Steps
 
-1. Decompile/export `FUN_1412f9be0`.
-2. Decompile/export `CDataFixedReward` parser `FUN_1412e03a0`.
-3. Find all writes to `global + 0x1d756`.
-4. Find data/source references for `tb_level_of_difficulty`.
-5. Compare LinkData rows around the fixed reward table if we can identify the table block.
+1. Map row fields `0x334..0x39c` by runtime/probe or LinkData diff.
+2. Decompile/export callers of `FUN_141230780`, `FUN_141230830`, `FUN_1412308e0`, `FUN_1412fa200`, and `FUN_1412fa360`.
+3. Find data/source references for `tb_level_of_difficulty`.
+4. Identify selected difficulty UI/menu storage before mission start.
+5. Find all writes or struct copies that populate `global + 0x1d756`.
+6. Compare LinkData rows around the fixed reward table if we can identify the table block.
+7. Dump LinkData/fixed mission rank thresholds and map them to visible rank conditions.
 
 Updated next steps:
 

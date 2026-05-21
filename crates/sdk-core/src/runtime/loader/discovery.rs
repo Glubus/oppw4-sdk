@@ -35,7 +35,12 @@ const SDK_SERVICES: &[SdkService] = &[
     SdkService {
         id: "sdk_runtime",
         dll: "runtime.dll",
-        requires: &["memory.read", "memory.scan", "memory.write"],
+        requires: &[
+            "config.schema",
+            "memory.read",
+            "memory.scan",
+            "memory.write",
+        ],
         provides: &["game.runtime", "game.active_character", "game.status"],
     },
     SdkService {
@@ -299,6 +304,10 @@ mod tests {
             ["sdk_runtime", "sdk_linkdata"]
         );
         assert_eq!(manifests[0].entry_path, sdk_root.join("runtime.dll"));
+        assert!(manifests[0]
+            .capabilities_required
+            .iter()
+            .any(|capability| capability == "config.schema"));
         assert_eq!(manifests[1].entry_path, sdk_root.join("linkdata.dll"));
         let _ = fs::remove_dir_all(root);
     }

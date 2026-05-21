@@ -1,8 +1,16 @@
 mod active_character;
 mod config;
 mod difficulty_probe;
+mod difficulty_reward_row;
+mod item_reward_probe;
 mod memory;
+mod player_result_probe;
+mod rank_threshold_probe;
+mod result_probe;
+mod result_state_probe;
+mod reward_probe;
 mod status;
+mod value_probe;
 
 use std::ptr;
 
@@ -25,7 +33,14 @@ impl Plugin for SdkRuntime {
         }
         let config = config::load(context.host());
         active_character::start_probe();
+        reward_probe::install(context.host().owned(), config.reward_probe);
+        item_reward_probe::install(context.host().owned(), config.item_reward_probe);
+        result_state_probe::install(context.host().owned(), config.result_state_probe);
         difficulty_probe::start(context.host().owned(), config.difficulty_probe);
+        rank_threshold_probe::start(context.host().owned(), config.rank_threshold_probe);
+        player_result_probe::start(context.host().owned(), config.player_result_probe);
+        result_probe::start(context.host().owned(), config.result_probe);
+        value_probe::start(context.host().owned(), config.value_probe);
         context.log("sdk.runtime initialized");
         Ok(())
     }
