@@ -50,9 +50,12 @@ Current checkpoint:
 - [x] `rank_threshold_probe` dumps result/rank slots and linked fixed-table rows for threshold comparison.
 - [x] Runtime log `2026-05-21-215933` confirms rank row `12` links to condition row `12` for mission `35` normal/free mode.
 - [x] Runtime log `2026-05-21-221212` confirms result rank fields include kill count and clear time as f32 bits.
+- [x] `data_dumper` concept documented as the bridge from runtime probes to editable `oppw4-data` source folders.
 - [ ] Difficulty row fields `0x334..0x39c` still need runtime labels before a public `difficulty_director` API.
 - [ ] Soul reward commit fields still need confirmed runtime labels.
 - [ ] LinkData/fixed mission rank threshold fields still need labels from runtime comparison.
+- [ ] Mission data domain still needs `oppw4-data/missions/<mission_id>/` source folders, schemas, and generated indexes.
+- [ ] `data_dumper` still needs implementation after mission schemas and standard reward/difficulty/rank services are shaped.
 
 ## Progress Checklist
 
