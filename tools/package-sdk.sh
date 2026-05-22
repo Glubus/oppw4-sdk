@@ -82,6 +82,7 @@ copy_required_file "$TARGET_DIR/debug.dll" "$SDK_ROOT/debug.dll"
 copy_required_file "$TARGET_DIR/overlay.dll" "$SDK_ROOT/overlay.dll"
 copy_required_file "$TARGET_DIR/linkdata.dll" "$SDK_ROOT/linkdata.dll"
 copy_required_file "$TARGET_DIR/rdb.dll" "$SDK_ROOT/rdb.dll"
+copy_required_file "$ROOT/official_plugins/sdk/core/plugin.toml" "$SDK_ROOT/plugin.toml"
 
 for plugin in skin_patcher fx_director moveset_patcher; do
   plugin_root="$PLUGINS_ROOT/$plugin"

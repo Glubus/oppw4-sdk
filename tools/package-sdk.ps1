@@ -106,6 +106,7 @@ if (!$NoLoader) {
 foreach ($dll in $sdkDlls) {
     Copy-RequiredFile (Join-Path $targetDir $dll.File) (Join-Path $sdkRoot $dll.File)
 }
+Copy-RequiredFile (Join-Path $root "official_plugins/sdk/core/plugin.toml") (Join-Path $sdkRoot "plugin.toml")
 
 foreach ($plugin in $officialPlugins) {
     $pluginRoot = Join-Path $pluginsRoot $plugin.Id
