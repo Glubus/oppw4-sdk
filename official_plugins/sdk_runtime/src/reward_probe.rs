@@ -59,7 +59,7 @@ pub(crate) fn install(host: OwnedHostApi, config: RewardProbeConfig) {
             .scan()
             .and_then(|builder| {
                 let site = builder.site();
-                let hook = builder.install_abs_jump(reward_commit_detour as usize)?;
+                let hook = builder.install_abs_jump(reward_commit_detour as *const () as usize)?;
                 Ok((site, hook))
             })
     };

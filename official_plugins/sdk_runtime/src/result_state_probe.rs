@@ -69,7 +69,7 @@ pub(crate) fn install(host: OwnedHostApi, config: ResultStateProbeConfig) {
             .scan()
             .and_then(|builder| {
                 let site = builder.site();
-                let hook = builder.install_abs_jump(result_state_detour as usize)?;
+                let hook = builder.install_abs_jump(result_state_detour as *const () as usize)?;
                 Ok((site, hook))
             })
     };
