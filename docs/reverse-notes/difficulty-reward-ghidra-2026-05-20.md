@@ -375,6 +375,53 @@ Soul reward remains unresolved in this run. `value_probe.values` did not include
 
 This may be the `1` small defense soul, but it does not explain the `2` small attack souls. Next runtime probe should explicitly include `1` and `2` in `value_probe.values`, or better, add a soul-specific item/material watch once the item ids are identified.
 
+Observed soul-reward run - 2026-05-22:
+
+```text
+log: plugins/sdk/logs/sdk_runtime/2026-05-22-184942.log
+mission_id=69
+difficulty=1(normal)
+mode_type=2(treasure_log)
+visible result reported by tester:
+  souls = 1 small defense soul, 1 medium defense soul
+
+final active_stats:
+  +0x8fc:0
+  +0x900:0
+  +0x904:29
+  +0x908:0
+  +0x90c:551
+  +0x910:2
+  +0x914:120
+  +0x918:1113710727
+  +0x91c:1085591814
+  +0x920:1
+  +0x924:0
+  +0x928:14
+
+final soul_state:
+  +0xfe6c:40
+  +0xfe70:29873
+  +0xfe74:37
+  +0xfe78:1170598752
+  +0xfe7c:73
+  +0xfe80:7149
+  +0xfe84:4294967295
+  +0xfe88:4294967295
+  +0xfe8c:65535
+```
+
+`player_result_probe.soul_state` still does not move in a useful way, so that area is probably not the result reward source.
+
+The best new lead is `player_result_probe.active_stats`: offsets `+0x910` and `+0x920` contain `2` and `1` on a run with two visible soul rewards. This may be a compact bucket/count summary rather than final item ids. It needs one or two controlled runs with different soul mixes to map:
+
+```text
++0x910 maybe total soul entries/count for one soul group
++0x920 maybe another soul group/count flag
+```
+
+Do not expose soul scaling yet. The next probe should log active stat deltas with labels and add a soul-focused item/material hook, because the visible result distinguishes size and type while the current stats only expose small integers.
+
 Known UI/data clues:
 
 ```text
