@@ -95,6 +95,7 @@ mkdir -p "$OUT_ROOT/oppw4-data"
 copy_required_file "$DATA_ROOT/README.md" "$OUT_ROOT/oppw4-data/README.md"
 copy_required_dir "$DATA_ROOT/characters" "$OUT_ROOT/oppw4-data/characters"
 copy_required_dir "$DATA_ROOT/generated" "$OUT_ROOT/oppw4-data/generated"
+copy_required_dir "$DATA_ROOT/missions" "$OUT_ROOT/oppw4-data/missions"
 copy_required_dir "$DATA_ROOT/schemas" "$OUT_ROOT/oppw4-data/schemas"
 mkdir -p "$OUT_ROOT/mods"
 

@@ -118,6 +118,7 @@ $packageDataRoot = Join-Path $outRoot "oppw4-data"
 New-Item -ItemType Directory -Force -Path $packageDataRoot | Out-Null
 Copy-RequiredFile (Join-Path $dataRoot "README.md") (Join-Path $packageDataRoot "README.md")
 Copy-RequiredDirectory (Join-Path $dataRoot "characters") (Join-Path $packageDataRoot "characters")
+Copy-RequiredDirectory (Join-Path $dataRoot "missions") (Join-Path $packageDataRoot "missions")
 Copy-RequiredDirectory (Join-Path $dataRoot "generated") (Join-Path $packageDataRoot "generated")
 Copy-RequiredDirectory (Join-Path $dataRoot "schemas") (Join-Path $packageDataRoot "schemas")
 New-Item -ItemType Directory -Force -Path (Join-Path $outRoot "mods") | Out-Null
