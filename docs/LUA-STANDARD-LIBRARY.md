@@ -13,6 +13,7 @@ crates/lua-runtime/src/std_plugins.rs    # installs SDK std modules
 crates/lua-runtime/src/std_plugins/      # one folder per std module
 crates/lua-runtime/src/std_plugins/math/mod.rs
 crates/lua-runtime/src/std_plugins/buffer/{mod,writer,reader,bytes,tests}.rs
+crates/lua-runtime/src/std_plugins/{difficulty,ranks,rewards}/mod.rs
 ```
 
 Standard modules are exposed through both `require("std.<name>")` and
@@ -63,6 +64,58 @@ local files = require("std.files")
 local text = files.read_text("config.lua")
 local bytes = files.read_bytes("payload.bin")
 ```
+
+### `std.difficulty`
+
+Mission difficulty observations exposed from `oppw4-data/missions`. This module
+exposes what is currently known about vanilla/effective difficulty state. Custom
+gameplay concepts such as Nightmare should be implemented by gameplay mods on
+top of this surface, not inside the std module.
+
+```lua
+local difficulty = require("std.difficulty")
+
+local mission = difficulty.for_mission(77)
+for _, observation in ipairs(mission.observations) do
+  print(observation.difficulty, observation.difficulty_id)
+end
+
+local missions = difficulty.missions()
+```
+
+Unknown reverse-engineered fields are intentionally exposed as raw values until
+they are labelled.
+
+### `std.ranks`
+
+Mission rank rows, condition rows, and observed result fields exposed from
+`oppw4-data/missions`.
+
+```lua
+local ranks = require("std.ranks")
+
+local mission = ranks.for_mission("mission_0077")
+for _, observation in ipairs(mission.observations) do
+  print(observation.rank_row, observation.condition_row)
+end
+```
+
+### `std.rewards`
+
+Mission reward observations exposed from `oppw4-data/missions`, including Berry,
+item/medal, crew point, and soul evidence when known.
+
+```lua
+local rewards = require("std.rewards")
+
+local mission = rewards.for_mission(77)
+for _, observation in ipairs(mission.observations) do
+  print(observation.difficulty, observation.souls.status)
+end
+```
+
+Soul fields remain partially unknown and should stay evidence-driven until item
+ids and commit fields are confirmed.
 
 ### `std.log`
 

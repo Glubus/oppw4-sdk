@@ -250,6 +250,54 @@ log.warn("fallback effect id used")
 
 The current implementation records mod-scoped entries inside the Lua runtime and returns them to SDK core after each mod run. SDK core writes all entries under `mods/_oppw4/logs/mods/<mod_id>/<session>.log`. To keep release host logs useful, only `warn` and `error` entries are mirrored to the host log.
 
+### `std.difficulty`
+
+Responsibilities:
+
+- expose mission difficulty observations from the mission bank;
+- expose raw difficulty rows while labels are still unknown;
+- avoid owning custom gameplay concepts such as Nightmare difficulty.
+
+Initial surface:
+
+```lua
+local difficulty = require("std.difficulty")
+difficulty.for_mission(77)
+difficulty.missions()
+```
+
+### `std.ranks`
+
+Responsibilities:
+
+- expose fixed rank rows and condition row observations from the mission bank;
+- expose known result fields such as kill count and clear time when confirmed;
+- remain data/evidence oriented until custom rank directors are built on top.
+
+Initial surface:
+
+```lua
+local ranks = require("std.ranks")
+ranks.for_mission("mission_0077")
+ranks.missions()
+```
+
+### `std.rewards`
+
+Responsibilities:
+
+- expose Berry, item/medal, crew point, and soul reward observations;
+- keep unknown soul commit fields as evidence rather than invented labels;
+- provide a future base for reward scaling mods.
+
+Initial surface:
+
+```lua
+local rewards = require("std.rewards")
+rewards.for_mission(77)
+rewards.missions()
+```
+
 ### `std.mod`
 
 Responsibilities:

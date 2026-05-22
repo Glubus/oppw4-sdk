@@ -207,6 +207,7 @@ name = "lua-api"
 version = "0.1.0"
 dependencies = [
  "mlua",
+ "serde_json",
  "struct-api",
  "toml",
  "zip",
