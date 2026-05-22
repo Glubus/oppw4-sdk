@@ -609,7 +609,7 @@ These look like cached mission/difficulty values updated after menu/result state
 Runtime implementation:
 
 - plugin: `sdk_runtime`
-- config: `plugins/configs/sdk_runtime/config.toml` in the current SDK service layout
+- config: `plugins/sdk/config.toml` in the current SDK service layout
 - section:
 
 ```toml
