@@ -743,6 +743,78 @@ If this table is LinkData-backed, adding a real new difficulty likely means:
 3. teach lookup/indexing to accept the new difficulty id;
 4. patch text/UI assets for labels.
 
+### LinkData table locations confirmed - 2026-05-22
+
+Binary scans against `D:\SteamLibrary\steamapps\common\OPPW4\LINKDATA` confirm that the fixed rank/condition and difficulty reward data are LinkData-backed.
+
+Confirmed files/entries:
+
+```text
+CMN/LINKDATA_A.BIN entry 1    : fixed reward rows / difficulty-scaled reward row data
+CMN/LINKDATA_A.BIN entry 3    : fixed rank rows and rank condition rows
+CMN/LINKDATA_A.BIN entry 2558 : base mission difficulty index table
+LANG/FRA/LINKDATA_LANG_FRA.BIN entry 0 : visible difficulty labels
+LANG/ENG/LINKDATA_LANG_ENG.BIN entry 1 : difficulty/help text, including Treasure Log fixed-difficulty text
+```
+
+Rank/condition proof:
+
+```text
+runtime fixed rank row 12 matched LINKDATA_A entry 3 at 0x320
+runtime condition row 12 matched LINKDATA_A entry 3 at 0xc8f4
+condition-threshold subsequence also appears around 0xc6bc
+```
+
+Reward/difficulty proof from runtime log `2026-05-22-184942.log`:
+
+```text
+mission_id=69
+difficulty=1(normal)
+reward_row index=8
+runtime row fields:
+  0x334=270
+  0x33c=550
+  0x340=550
+  0x348=2500
+  0x34c=[18,12,8,8]
+  0x354=[24,16,11,11]
+  0x35c=[14,9,6,6]
+  0x364=[54,36,25,16]
+  0x36c=[54,36,25,16]
+  0x374=[2,9,18,18]
+  0x37c=[2,9,18,18]
+  0x384=[3,13,26,30]
+  0x38c=[5,23,46,63]
+  0x394=[5,23,46,63]
+  0x39c bytes=[0,3,5,6]
+```
+
+Those exact runtime fields match `LINKDATA_A.BIN` entry `1` at offset `0x684` for the row-field block. This corresponds to the row data used by `FUN_1412f9be0` callers.
+
+The row index lookup for mission `69`, difficulty `1` also matches `LINKDATA_A.BIN` entry `2558`:
+
+```text
+index_offset = 0xa8 + (mission_id * 0x6e + difficulty) * 2
+             = 0x3bf6
+entry 2558 base adjustment observed = +0x10
+entry 2558[0x3c06] = 8
+```
+
+Current interpretation:
+
+- `entry 2558` maps `(base mission id, vanilla difficulty id)` to a reward row index.
+- `entry 1` stores the reward/gameplay rows with stride `0x6c`.
+- `entry 3` stores rank rows with stride `0x44` and condition rows with stride `0x34`.
+- visible difficulty names/help text are in language LinkData, while gameplay difficulty behavior is in CMN numeric tables plus executable range checks.
+
+This makes a fifth difficulty a mixed data+code patch:
+
+1. extend or virtualize the index table currently addressed as `mission * 0x6e + difficulty`;
+2. add/clone reward rows in entry `1`;
+3. patch/wrap `FUN_1412f9be0` because it returns `0` when `difficulty > 3`;
+4. update menu/label text in LANG LinkData or via UI hooks;
+5. map script conditions (`CScCondGameDifficulty`) so vanilla scripts expecting `0..3` still behave.
+
 ### Runtime path
 
 For a first plugin prototype:
