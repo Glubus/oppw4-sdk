@@ -6,7 +6,9 @@ const FIXED_ROOT_RVA: usize = 0x1eba738;
 const FIXED_ID_TABLE_RVA: usize = 0x1e24ee0;
 const FIXED_OWNER_OFFSET: usize = 0x18;
 const FIXED_ID_COUNT: usize = 32;
-const FIXED_POINTER_OFFSETS: [usize; 10] = [0x0, 0x8, 0x10, 0x18, 0x20, 0x28, 0x58, 0x60, 0xa0, 0xd8];
+const FIXED_POINTER_OFFSETS: [usize; 10] =
+    [0x0, 0x8, 0x10, 0x18, 0x20, 0x28, 0x58, 0x60, 0xa0, 0xd8];
+const FIXED_POINTER_HEAD_WORDS: usize = 8;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct FixedDataSnapshot {
@@ -21,16 +23,18 @@ pub(super) struct FixedDataSnapshot {
 struct FixedPointer {
     offset: usize,
     value: usize,
+    head: Vec<u32>,
 }
 
 impl FixedDataSnapshot {
     pub(super) fn format_log(&self) -> String {
         format!(
-            "fixed_data_probe root=0x{:x} owner=0x{:x} logical_ids=[{}] pointers=[{}]",
+            "fixed_data_probe root=0x{:x} owner=0x{:x} logical_ids=[{}] pointers=[{}] heads=[{}]",
             self.root,
             self.owner,
             format_logical_ids(&self.logical_ids),
             format_pointers(&self.pointers),
+            format_pointer_heads(&self.pointers),
         )
     }
 }
@@ -86,8 +90,19 @@ fn read_fixed_pointers(host: &OwnedHostApi, owner: usize) -> Vec<FixedPointer> {
             Some(FixedPointer {
                 offset: *offset,
                 value,
+                head: read_pointer_head(host, value),
             })
         })
+        .collect()
+}
+
+fn read_pointer_head(host: &OwnedHostApi, address: usize) -> Vec<u32> {
+    if address == 0 {
+        return Vec::new();
+    }
+
+    (0..FIXED_POINTER_HEAD_WORDS)
+        .filter_map(|index| read_u32(host, address + index * size_of::<u32>(), "fixed_head").ok())
         .collect()
 }
 
@@ -109,6 +124,23 @@ fn format_pointers(pointers: &[FixedPointer]) -> String {
         .join(",")
 }
 
+fn format_pointer_heads(pointers: &[FixedPointer]) -> String {
+    pointers
+        .iter()
+        .filter(|pointer| !pointer.head.is_empty())
+        .map(|pointer| {
+            let head = pointer
+                .head
+                .iter()
+                .map(|value| format!("0x{value:08x}"))
+                .collect::<Vec<_>>()
+                .join(",");
+            format!("+0x{:x}:[{}]", pointer.offset, head)
+        })
+        .collect::<Vec<_>>()
+        .join(";")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -128,13 +160,33 @@ mod tests {
             FixedPointer {
                 offset: 0x8,
                 value: 0x1000,
+                head: Vec::new(),
             },
             FixedPointer {
                 offset: 0x20,
                 value: 0x2000,
+                head: Vec::new(),
             },
         ];
 
         assert_eq!(format_pointers(&pointers), "+0x8=0x1000,+0x20=0x2000");
+    }
+
+    #[test]
+    fn formats_fixed_pointer_heads() {
+        let pointers = [
+            FixedPointer {
+                offset: 0x8,
+                value: 0x1000,
+                head: vec![1, 2],
+            },
+            FixedPointer {
+                offset: 0x20,
+                value: 0x2000,
+                head: Vec::new(),
+            },
+        ];
+
+        assert_eq!(format_pointer_heads(&pointers), "+0x8:[0x00000001,0x00000002]");
     }
 }
