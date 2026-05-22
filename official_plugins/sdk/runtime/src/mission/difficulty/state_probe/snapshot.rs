@@ -1,4 +1,5 @@
 use plugin_sdk::OwnedHostApi;
+use serde::Serialize;
 
 use crate::runtime::reader::{read_u16, read_u32, read_u8, read_usize};
 
@@ -17,7 +18,7 @@ const REWARD_MODE_OFFSET: usize = 0x1d754;
 const DIFFICULTY_OFFSET: usize = 0x1d756;
 const SPECIAL_FLAG_OFFSET: usize = 0x1d762;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub(super) struct DifficultySnapshot {
     pub(super) module_base: usize,
     pub(super) global: usize,

@@ -14,7 +14,10 @@ use std::{
 use hooks::{HookBuilder, InlineHook, Signature};
 use plugin_sdk::OwnedHostApi;
 
-use crate::{config::ResultStateProbeConfig, runtime::probe::PLUGIN_ID};
+use crate::{
+    config::ResultStateProbeConfig,
+    runtime::{probe::PLUGIN_ID, signals},
+};
 
 const RESULT_STATE_SIGNATURE: Signature = Signature::new(
     "result_state_14132b570",
@@ -132,6 +135,7 @@ fn log_result_state(result_state: *mut u8) {
     }
 
     let _ = host.log().write(PLUGIN_ID, snapshot.format(index + 1));
+    signals::emit_json(host, signals::RESULT_STATE_SNAPSHOT, &snapshot);
 }
 
 fn should_log(hash: u64) -> bool {

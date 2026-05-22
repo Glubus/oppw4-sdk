@@ -10,8 +10,9 @@ use std::{
 
 use hooks::{HookBuilder, InlineHook, Signature};
 use plugin_sdk::OwnedHostApi;
+use serde::Serialize;
 
-use crate::config::RewardProbeConfig;
+use crate::{config::RewardProbeConfig, runtime::signals};
 
 const PLUGIN_ID: &str = "sdk_runtime";
 
@@ -36,6 +37,18 @@ static HOOK: OnceLock<InlineHook> = OnceLock::new();
 static TRAMPOLINE: AtomicUsize = AtomicUsize::new(0);
 static LOG_COUNT: AtomicUsize = AtomicUsize::new(0);
 static MAX_LOGS: AtomicUsize = AtomicUsize::new(0);
+
+#[derive(Debug, Serialize)]
+struct RewardCommitSnapshot {
+    call: usize,
+    reward_out: usize,
+    reward_param: u32,
+    mission_or_reward: u32,
+    rank_or_mode: i32,
+    bonus_a: i32,
+    bonus_b: i32,
+    slots: [u64; REWARD_SLOT_COUNT],
+}
 
 pub(crate) fn install(host: OwnedHostApi, config: RewardProbeConfig) {
     if !config.enabled {
@@ -155,16 +168,15 @@ fn log_reward(
         return;
     }
 
-    let _ = host.log().write(
-        PLUGIN_ID,
-        format::reward_log(
-            index + 1,
-            reward_out,
-            reward_param,
-            mission_or_reward,
-            rank_or_mode,
-            bonus_a,
-            bonus_b,
-        ),
+    let snapshot = format::snapshot(
+        index + 1,
+        reward_out,
+        reward_param,
+        mission_or_reward,
+        rank_or_mode,
+        bonus_a,
+        bonus_b,
     );
+    let _ = host.log().write(PLUGIN_ID, format::reward_log(&snapshot));
+    signals::emit_json(host, signals::REWARD_COMMIT, &snapshot);
 }

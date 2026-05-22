@@ -11,7 +11,10 @@ use plugin_sdk::OwnedHostApi;
 use crate::{
     config::DifficultyProbeConfig,
     mission::difficulty::reward_row::{read_reward_row_dump, RewardRowDump},
-    runtime::probe::{snapshot_interval, PLUGIN_ID},
+    runtime::{
+        probe::{snapshot_interval, PLUGIN_ID},
+        signals,
+    },
 };
 
 pub(crate) fn start(host: OwnedHostApi, config: DifficultyProbeConfig) {
@@ -103,6 +106,7 @@ fn log_pending_error(
 
 fn log_snapshot(host: &OwnedHostApi, snapshot: snapshot::DifficultySnapshot) {
     let _ = host.log().write(PLUGIN_ID, snapshot.format_log());
+    signals::emit_json(host, signals::DIFFICULTY_SNAPSHOT, &snapshot);
 }
 
 fn log_reward_row(

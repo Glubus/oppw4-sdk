@@ -1,4 +1,5 @@
 use plugin_sdk::OwnedHostApi;
+use serde::Serialize;
 
 use crate::runtime::reader::{read_u16_block, read_u8, read_usize};
 
@@ -23,6 +24,54 @@ pub(super) struct RankSlot {
     pub(super) fixed_row_words: Option<[u16; FIXED_RANK_ROW_WORDS]>,
     pub(super) condition_row_id: Option<u16>,
     pub(super) condition_row_words: Option<[u16; FIXED_CONDITION_ROW_WORDS]>,
+}
+
+#[derive(Debug, Serialize)]
+pub(super) struct RankThresholdSignal {
+    pub(super) global: usize,
+    pub(super) fixed_rank_table: usize,
+    pub(super) active_player: u8,
+    pub(super) mission_id: u16,
+    pub(super) mode_type: u8,
+    pub(super) difficulty: u8,
+    pub(super) slots: Vec<RankSlotSignal>,
+}
+
+#[derive(Debug, Serialize)]
+pub(super) struct RankSlotSignal {
+    pub(super) slot_index: usize,
+    pub(super) rank_row_id: u16,
+    pub(super) raw_words: Vec<u16>,
+    pub(super) fixed_row_words: Option<Vec<u16>>,
+    pub(super) condition_row_id: Option<u16>,
+    pub(super) condition_row_words: Option<Vec<u16>>,
+}
+
+impl RankThresholdSnapshot {
+    pub(super) fn signal_payload(&self) -> RankThresholdSignal {
+        RankThresholdSignal {
+            global: self.global,
+            fixed_rank_table: self.fixed_rank_table,
+            active_player: self.active_player,
+            mission_id: self.mission_id,
+            mode_type: self.mode_type,
+            difficulty: self.difficulty,
+            slots: self.slots.iter().map(RankSlot::signal_payload).collect(),
+        }
+    }
+}
+
+impl RankSlot {
+    fn signal_payload(&self) -> RankSlotSignal {
+        RankSlotSignal {
+            slot_index: self.slot_index,
+            rank_row_id: self.rank_row_id,
+            raw_words: self.raw_words.to_vec(),
+            fixed_row_words: self.fixed_row_words.map(|words| words.to_vec()),
+            condition_row_id: self.condition_row_id,
+            condition_row_words: self.condition_row_words.map(|words| words.to_vec()),
+        }
+    }
 }
 
 pub(super) fn read(host: &OwnedHostApi) -> Result<RankThresholdSnapshot, String> {

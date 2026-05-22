@@ -56,6 +56,7 @@ Current checkpoint:
 - [x] `sdk.overlay` exists as `overlay.dll` with config, packaging, and renderer module probing for the future in-game UI layer.
 - [x] `sdk.debug` publishes changed watch/scan snapshots through `sdk.debug.snapshot`; `sdk.overlay` subscribes and caches those snapshots for future panels.
 - [x] `sdk.overlay` parses debug snapshots into structured panel data instead of storing raw JSON strings.
+- [x] `sdk.runtime` emits structured JSON signals for difficulty, rank, result state, Berry commit rewards, and item/medal reward snapshots.
 - [ ] Difficulty row fields `0x334..0x39c` still need runtime labels before a public `difficulty_director` API.
 - [ ] Soul reward commit fields still need confirmed runtime labels.
 - [ ] LinkData/fixed mission rank threshold fields still need labels from runtime comparison.

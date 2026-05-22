@@ -2,6 +2,7 @@ use super::{
     hash::calculate_hash,
     reader::{read_crew_unlocks, read_events, read_u32, read_u32_block},
 };
+use serde::Serialize;
 
 pub(super) const U32_BLOCK_WORDS: usize = 14;
 pub(super) const CREW_POINT_BLOCK_OFFSET: usize = 0x498;
@@ -11,7 +12,7 @@ pub(super) const EVENT_WORDS: usize = 5;
 
 const MAX_CREW_UNLOCKS: usize = 32;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(super) struct ResultStateSnapshot {
     pub(super) address: usize,
     pub(super) state: u32,

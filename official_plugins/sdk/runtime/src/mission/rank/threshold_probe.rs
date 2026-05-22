@@ -11,7 +11,10 @@ use plugin_sdk::OwnedHostApi;
 
 use crate::{
     config::RankThresholdProbeConfig,
-    runtime::probe::{snapshot_interval, PLUGIN_ID},
+    runtime::{
+        probe::{snapshot_interval, PLUGIN_ID},
+        signals,
+    },
 };
 
 pub(crate) fn start(host: OwnedHostApi, config: RankThresholdProbeConfig) {
@@ -61,6 +64,7 @@ fn run(host: OwnedHostApi, config: RankThresholdProbeConfig, interval: Duration)
                 last_snapshot = Some(snapshot.clone());
                 last_snapshot_at = Instant::now();
                 let _ = host.log().write(PLUGIN_ID, snapshot.format_log());
+                signals::emit_json(&host, signals::RANK_SNAPSHOT, &snapshot.signal_payload());
             }
             Err(error) => {
                 if error != last_error || last_error_at.elapsed() >= Duration::from_secs(10) {

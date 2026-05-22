@@ -7,9 +7,13 @@ entry = "runtime.dll"
 requires = [
   "plugin.host",
   "config.schema",
+  "signals.emit",
 ]
 provides = [
   "game.runtime",
   "game.active_character",
   "game.status",
+  "game.mission.difficulty",
+  "game.mission.ranks",
+  "game.mission.rewards",
 ]

@@ -386,6 +386,8 @@ dependencies = [
  "asm",
  "hooks",
  "plugin-sdk",
+ "serde",
+ "serde_json",
  "toml",
 ]
 

@@ -89,6 +89,19 @@ Game telemetry providers register through the SDK ABI. `sdk.runtime` owns the
 OPPW4-specific probes and publishes `game.status` / `game.active_character` to
 the core; the core only routes those callbacks to consumers.
 
+`sdk.runtime` also emits structured JSON snapshots through the SDK signal bus so
+developer tools, overlays, and future dumpers do not have to parse log text.
+Current signals:
+
+- `sdk.runtime.difficulty.snapshot`;
+- `sdk.runtime.rank.snapshot`;
+- `sdk.runtime.result_state.snapshot`;
+- `sdk.runtime.rewards.commit`;
+- `sdk.runtime.rewards.items`.
+
+The signal payloads are evidence-oriented. Unknown fields stay raw until the
+reverse notes and runtime validation give them stable labels.
+
 Generic reverse/debug tooling is separate from `sdk.runtime`. `sdk.debug` owns
 hot-reloaded developer memory watches and bounded value scans from
 `plugins/configs/sdk_debug/debug.lua`; fixed game-domain probes should remain in

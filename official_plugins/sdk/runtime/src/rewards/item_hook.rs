@@ -10,8 +10,9 @@ use std::{
 
 use hooks::{HookBuilder, InlineHook, Signature};
 use plugin_sdk::OwnedHostApi;
+use serde::Serialize;
 
-use crate::config::ItemRewardProbeConfig;
+use crate::{config::ItemRewardProbeConfig, runtime::signals};
 
 const PLUGIN_ID: &str = "sdk_runtime";
 
@@ -38,6 +39,24 @@ static TRAMPOLINE: AtomicUsize = AtomicUsize::new(0);
 static LOG_COUNT: AtomicUsize = AtomicUsize::new(0);
 static MAX_LOGS: AtomicUsize = AtomicUsize::new(0);
 static MAX_ENTRIES: AtomicUsize = AtomicUsize::new(0);
+
+#[derive(Debug, Serialize)]
+struct ItemRewardSnapshot {
+    call: usize,
+    out: usize,
+    reward_context: u64,
+    previous: usize,
+    result: u32,
+    entries: Vec<ItemRewardEntry>,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+struct ItemRewardEntry {
+    index: usize,
+    amount: i32,
+    item_id: i32,
+    is_new: i32,
+}
 
 pub(crate) fn install(host: OwnedHostApi, config: ItemRewardProbeConfig) {
     if !config.enabled {
@@ -140,7 +159,16 @@ fn log_items(out: *mut i32, reward_context: u64, previous: *const i32, result: u
         .clamp(1, MAX_GAME_ENTRIES);
     let words =
         unsafe { slice::from_raw_parts(out.cast_const(), MAX_GAME_ENTRIES * TRIPLET_WORDS) };
-    let entries = format::entries(words, max_entries);
+    let snapshot = format::snapshot(
+        index + 1,
+        out as usize,
+        reward_context,
+        previous as usize,
+        result,
+        words,
+        max_entries,
+    );
+    let entries = format::entries_log(&snapshot.entries);
     let _ = host.log().write(
         PLUGIN_ID,
         format!(
@@ -152,4 +180,5 @@ fn log_items(out: *mut i32, reward_context: u64, previous: *const i32, result: u
             result,
         ),
     );
+    signals::emit_json(host, signals::REWARD_ITEMS, &snapshot);
 }

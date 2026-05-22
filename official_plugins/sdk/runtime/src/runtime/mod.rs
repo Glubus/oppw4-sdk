@@ -2,6 +2,7 @@ pub(crate) mod exposure;
 pub(crate) mod memory;
 pub(crate) mod probe;
 pub(crate) mod reader;
+pub(crate) mod signals;
 
 use plugin_sdk::{HostApi, OwnedHostApi, PluginResult};
 
