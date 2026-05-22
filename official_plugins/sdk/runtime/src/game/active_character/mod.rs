@@ -10,7 +10,7 @@ use std::{
 
 use plugin_sdk::Oppw4ActiveCharacter;
 
-use crate::memory::CaveArena;
+use crate::runtime::memory::CaveArena;
 
 const CAVE_ARENA_SIZE: usize = 0x400;
 const LOCAL_PLAYER_PATTERN: &[u8] = &[0x48, 0x8b, 0x80, 0xd0, 0x02, 0x00, 0x00, 0xf3];

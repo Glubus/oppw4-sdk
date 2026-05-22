@@ -7,7 +7,7 @@ use plugin_sdk::OwnedHostApi;
 
 use crate::{
     config::DifficultyProbeConfig,
-    difficulty::reward_row::{read_reward_row_dump, RewardRowDump},
+    mission::difficulty::reward_row::{read_reward_row_dump, RewardRowDump},
 };
 
 const PLUGIN_ID: &str = "sdk_runtime";

@@ -147,10 +147,11 @@ Target workspace:
 oppw4-sdk/
   crates/
   official_plugins/
-    sdk_core/       # builds sdk.dll
-    sdk_runtime/    # builds runtime.dll
-    sdk_linkdata/   # builds linkdata.dll
-    sdk_rdb/        # builds rdb.dll
+    sdk/
+      core/         # builds sdk.dll
+      runtime/      # builds runtime.dll
+      linkdata/     # builds linkdata.dll
+      rdb/          # builds rdb.dll
     skin_patcher/
     fx_director/
     moveset_patcher/
@@ -165,7 +166,7 @@ Exit criteria:
 - [x] SDK core can be packaged as a plugin;
 - [x] loader can consume SDK via the shared ABI during development.
 
-Status: mostly complete for the split prototype. The workspace exists, tests pass, `official_plugins/sdk_core` can build `sdk.dll`, and the loader consumes it dynamically through `Oppw4LoaderSdkInit`.
+Status: mostly complete for the split prototype. The workspace exists, tests pass, `official_plugins/sdk/core` can build `sdk.dll`, and the loader consumes it dynamically through `Oppw4LoaderSdkInit`.
 
 ## Phase 3: Lua Standard Runtime
 

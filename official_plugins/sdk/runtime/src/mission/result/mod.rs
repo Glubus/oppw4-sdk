@@ -1,32 +1,31 @@
-mod player;
-pub(crate) mod rank;
-mod result;
-mod result_state;
+mod memory_probe;
+mod player_probe;
+mod state_hook;
 
 use plugin_sdk::OwnedHostApi;
 
 use crate::{
     config::{PlayerResultProbeConfig, ResultProbeConfig, ResultStateProbeConfig},
-    exposure::RuntimeExposure,
+    runtime::exposure::RuntimeExposure,
 };
 
 pub(crate) struct PlayerResultExposure;
-pub(crate) struct ResultProbeExposure;
+pub(crate) struct ResultMemoryExposure;
 pub(crate) struct ResultStateExposure;
 
 impl RuntimeExposure for PlayerResultExposure {
     type Config = PlayerResultProbeConfig;
 
     fn install(host: OwnedHostApi, config: Self::Config) {
-        player::start(host, config);
+        player_probe::start(host, config);
     }
 }
 
-impl RuntimeExposure for ResultProbeExposure {
+impl RuntimeExposure for ResultMemoryExposure {
     type Config = ResultProbeConfig;
 
     fn install(host: OwnedHostApi, config: Self::Config) {
-        result::start(host, config);
+        memory_probe::start(host, config);
     }
 }
 
@@ -34,6 +33,6 @@ impl RuntimeExposure for ResultStateExposure {
     type Config = ResultStateProbeConfig;
 
     fn install(host: OwnedHostApi, config: Self::Config) {
-        result_state::install(host, config);
+        state_hook::install(host, config);
     }
 }

@@ -1,11 +1,11 @@
-mod commit;
-mod item;
+mod commit_hook;
+mod item_hook;
 
 use plugin_sdk::OwnedHostApi;
 
 use crate::{
     config::{ItemRewardProbeConfig, RewardProbeConfig},
-    exposure::RuntimeExposure,
+    runtime::exposure::RuntimeExposure,
 };
 
 pub(crate) struct RewardCommitExposure;
@@ -15,7 +15,7 @@ impl RuntimeExposure for RewardCommitExposure {
     type Config = RewardProbeConfig;
 
     fn install(host: OwnedHostApi, config: Self::Config) {
-        commit::install(host, config);
+        commit_hook::install(host, config);
     }
 }
 
@@ -23,6 +23,6 @@ impl RuntimeExposure for ItemRewardExposure {
     type Config = ItemRewardProbeConfig;
 
     fn install(host: OwnedHostApi, config: Self::Config) {
-        item::install(host, config);
+        item_hook::install(host, config);
     }
 }

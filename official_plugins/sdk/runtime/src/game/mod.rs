@@ -5,9 +5,9 @@ use std::ptr;
 
 use plugin_sdk::{HostApi, PluginResult};
 
-pub(crate) struct CharacterRuntime;
+pub(crate) struct GameRuntime;
 
-impl CharacterRuntime {
+impl GameRuntime {
     pub(crate) fn register(host: HostApi<'_>) -> PluginResult<()> {
         let game = host.game();
         unsafe {

@@ -30,10 +30,11 @@ crates/
   asm/
   rdb/
 official_plugins/
-  sdk_core/       # builds sdk.dll
-  sdk_runtime/    # builds runtime.dll
-  sdk_linkdata/   # builds linkdata.dll
-  sdk_rdb/        # builds rdb.dll
+  sdk/
+    core/         # builds sdk.dll
+    runtime/      # builds runtime.dll
+    linkdata/     # builds linkdata.dll
+    rdb/          # builds rdb.dll
   skin_patcher/
   fx_director/
   moveset_patcher/
