@@ -33,6 +33,7 @@ official_plugins/
   sdk/
     core/         # builds sdk.dll
     runtime/      # builds runtime.dll
+    debug/        # builds debug.dll
     linkdata/     # builds linkdata.dll
     rdb/          # builds rdb.dll
   skin_patcher/

@@ -52,11 +52,13 @@ Current checkpoint:
 - [x] Runtime log `2026-05-21-221212` confirms result rank fields include kill count and clear time as f32 bits.
 - [x] `data_dumper` concept documented as the bridge from runtime probes to editable `oppw4-data` source folders.
 - [x] `sdk.runtime` probe code is split by responsibility: ABI adapters, hook trampolines, memory readers, snapshots, scanners, formatters, hashes, and config parsing are no longer kept as probe monoliths.
+- [x] `sdk.debug` exists as `debug.dll` with a hot-reloaded `debug.lua` developer script for memory watches and bounded value scans.
 - [ ] Difficulty row fields `0x334..0x39c` still need runtime labels before a public `difficulty_director` API.
 - [ ] Soul reward commit fields still need confirmed runtime labels.
 - [ ] LinkData/fixed mission rank threshold fields still need labels from runtime comparison.
 - [ ] Mission data domain still needs `oppw4-data/missions/<mission_id>/` source folders, schemas, and generated indexes.
 - [ ] `data_dumper` still needs implementation after mission schemas and standard reward/difficulty/rank services are shaped.
+- [ ] In-game debug UI/overlay remains future work: `sdk.debug` is currently log-driven; an `egui`-style UI needs a separate renderer/swapchain hook surface before it can draw in game.
 - [ ] Remaining SDK runtime cleanup: keep shrinking the few files still above roughly 150 lines only when the split exposes a real reusable concept, not as cosmetic churn.
 
 ## Progress Checklist
@@ -152,6 +154,7 @@ oppw4-sdk/
     sdk/
       core/         # builds sdk.dll
       runtime/      # builds runtime.dll
+      debug/        # builds debug.dll
       linkdata/     # builds linkdata.dll
       rdb/          # builds rdb.dll
     skin_patcher/
@@ -169,7 +172,7 @@ Exit criteria:
 - [x] loader can consume SDK via the shared ABI during development.
 
 Status: mostly complete for the split prototype. The workspace exists, tests pass, `official_plugins/sdk/core` can build `sdk.dll`, and the loader consumes it dynamically through `Oppw4LoaderSdkInit`.
-The SDK service plugins are grouped under `official_plugins/sdk/{core,runtime,linkdata,rdb}`. `sdk.runtime` now has domain folders for game telemetry, mission probes, rewards, reverse probes, shared memory readers, and runtime exposure orchestration.
+The SDK service plugins are grouped under `official_plugins/sdk/{core,runtime,debug,linkdata,rdb}`. `sdk.runtime` now has domain folders for game telemetry, mission probes, rewards, reverse probes, shared memory readers, and runtime exposure orchestration. `sdk.debug` is the generic reverse/debug tool layer and should stay separate from fixed OPPW4 runtime probes.
 
 ## Phase 3: Lua Standard Runtime
 
@@ -384,6 +387,7 @@ OPPW4/
     sdk/
       sdk.dll
       runtime.dll
+      debug.dll
       linkdata.dll
       rdb.dll
     skin_patcher/

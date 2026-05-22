@@ -1,0 +1,13 @@
+[package]
+name = "oppw4-sdk-debug-plugin"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+name = "debug"
+
+[dependencies]
+mlua.workspace = true
+plugin-sdk.workspace = true

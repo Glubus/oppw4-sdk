@@ -1,0 +1,14 @@
+[plugin]
+id = "sdk_debug"
+version = "0.1.0"
+entry = "debug.dll"
+
+[capabilities]
+requires = [
+  "plugin.host",
+  "config.schema",
+  "memory.read",
+]
+provides = [
+  "debug.memory",
+]

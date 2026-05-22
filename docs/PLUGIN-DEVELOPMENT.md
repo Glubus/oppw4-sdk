@@ -16,6 +16,7 @@ OPPW4/
     sdk/
       sdk.dll
       runtime.dll
+      debug.dll
       linkdata.dll
       rdb.dll
     my_plugin/

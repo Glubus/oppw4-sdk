@@ -346,6 +346,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "oppw4-sdk-debug-plugin"
+version = "0.1.0"
+dependencies = [
+ "mlua",
+ "plugin-sdk",
+]
+
+[[package]]
 name = "oppw4-sdk-linkdata-plugin"
 version = "0.1.0"
 dependencies = [
