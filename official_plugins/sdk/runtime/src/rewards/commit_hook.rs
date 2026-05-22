@@ -1,5 +1,7 @@
+mod format;
+
 use std::{
-    mem, panic, slice,
+    mem, panic,
     sync::{
         atomic::{AtomicUsize, Ordering},
         OnceLock,
@@ -25,7 +27,7 @@ const REWARD_COMMIT_SIGNATURE: Signature = Signature::new(
 );
 
 const OVERWRITE_LEN: usize = 15;
-const REWARD_SLOT_COUNT: usize = 8;
+pub(super) const REWARD_SLOT_COUNT: usize = 8;
 
 type RewardCommitFn = extern "system" fn(*mut u64, u32, u32, i32, i32, i32) -> *mut u64;
 
@@ -153,26 +155,16 @@ fn log_reward(
         return;
     }
 
-    let slots = unsafe { slice::from_raw_parts(reward_out.cast_const(), REWARD_SLOT_COUNT) };
     let _ = host.log().write(
         PLUGIN_ID,
-        format!(
-            "reward_probe call={} out=0x{:x} param2={} param3={} param4={} param5={} param6={} slots=[{}, {}, {}, {}, {}, {}, {}, {}]",
+        format::reward_log(
             index + 1,
-            reward_out as usize,
+            reward_out,
             reward_param,
             mission_or_reward,
             rank_or_mode,
             bonus_a,
             bonus_b,
-            slots[0],
-            slots[1],
-            slots[2],
-            slots[3],
-            slots[4],
-            slots[5],
-            slots[6],
-            slots[7],
         ),
     );
 }

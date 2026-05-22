@@ -1,5 +1,6 @@
+mod format;
+
 use std::{
-    fmt::Write,
     mem, panic, slice,
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -26,7 +27,7 @@ const ITEM_REWARD_SIGNATURE: Signature = Signature::new(
 );
 
 const OVERWRITE_LEN: usize = 18;
-const TRIPLET_WORDS: usize = 3;
+pub(super) const TRIPLET_WORDS: usize = 3;
 const MAX_GAME_ENTRIES: usize = 40;
 
 type ItemRewardFn = extern "system" fn(*mut i32, u64, *const i32) -> u32;
@@ -139,7 +140,7 @@ fn log_items(out: *mut i32, reward_context: u64, previous: *const i32, result: u
         .clamp(1, MAX_GAME_ENTRIES);
     let words =
         unsafe { slice::from_raw_parts(out.cast_const(), MAX_GAME_ENTRIES * TRIPLET_WORDS) };
-    let entries = format_entries(words, max_entries);
+    let entries = format::entries(words, max_entries);
     let _ = host.log().write(
         PLUGIN_ID,
         format!(
@@ -151,45 +152,4 @@ fn log_items(out: *mut i32, reward_context: u64, previous: *const i32, result: u
             result,
         ),
     );
-}
-
-fn format_entries(words: &[i32], max_entries: usize) -> String {
-    let mut text = String::new();
-    let mut written = 0usize;
-    for (index, entry) in words.chunks_exact(TRIPLET_WORDS).enumerate() {
-        let amount = entry[0];
-        if amount == 0 {
-            continue;
-        }
-        if written > 0 {
-            text.push(',');
-        }
-        let item_id = entry[1];
-        let is_new = entry[2];
-        let _ = write!(text, "#{index}:amount={amount}:item={item_id}:new={is_new}");
-        written += 1;
-        if written >= max_entries {
-            break;
-        }
-    }
-    if text.is_empty() {
-        "none".to_string()
-    } else {
-        text
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn formats_non_zero_triplets() {
-        let words = [0, 0, 0, 5, 73, 1, 7, 31, 0];
-
-        assert_eq!(
-            format_entries(&words, 40),
-            "#1:amount=5:item=73:new=1,#2:amount=7:item=31:new=0"
-        );
-    }
 }
