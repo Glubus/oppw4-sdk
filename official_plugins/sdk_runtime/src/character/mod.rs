@@ -1,0 +1,26 @@
+pub(crate) mod active_character;
+mod status;
+
+use std::ptr;
+
+use plugin_sdk::{HostApi, PluginResult};
+
+pub(crate) struct CharacterRuntime;
+
+impl CharacterRuntime {
+    pub(crate) fn register(host: HostApi<'_>) -> PluginResult<()> {
+        let game = host.game();
+        unsafe {
+            game.register_status_provider(ptr::null_mut(), status::read_game_status)?;
+            game.register_active_character_provider(
+                ptr::null_mut(),
+                active_character::read_active_character,
+            )?;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn start() {
+        active_character::start_probe();
+    }
+}

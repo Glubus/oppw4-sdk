@@ -1,20 +1,15 @@
-mod active_character;
+mod character;
 mod config;
-mod difficulty_probe;
-mod difficulty_reward_row;
-mod item_reward_probe;
+mod difficulty;
+mod exposure;
 mod memory;
-mod player_result_probe;
-mod rank_threshold_probe;
-mod result_probe;
-mod result_state_probe;
-mod reward_probe;
-mod status;
-mod value_probe;
-
-use std::ptr;
+mod player_results;
+mod reverse;
+mod rewards;
 
 use plugin_sdk::{export_plugin, Plugin, PluginContext, PluginResult};
+
+use exposure::RuntimeExposure;
 
 struct SdkRuntime;
 
@@ -22,25 +17,27 @@ impl Plugin for SdkRuntime {
     const ID: &'static str = "sdk_runtime";
 
     fn init(context: PluginContext<'_>) -> PluginResult<()> {
-        config::register_schema(context.host());
-        let game = context.host().game();
-        unsafe {
-            game.register_status_provider(ptr::null_mut(), status::read_game_status)?;
-            game.register_active_character_provider(
-                ptr::null_mut(),
-                active_character::read_active_character,
-            )?;
-        }
-        let config = config::load(context.host());
-        active_character::start_probe();
-        reward_probe::install(context.host().owned(), config.reward_probe);
-        item_reward_probe::install(context.host().owned(), config.item_reward_probe);
-        result_state_probe::install(context.host().owned(), config.result_state_probe);
-        difficulty_probe::start(context.host().owned(), config.difficulty_probe);
-        rank_threshold_probe::start(context.host().owned(), config.rank_threshold_probe);
-        player_result_probe::start(context.host().owned(), config.player_result_probe);
-        result_probe::start(context.host().owned(), config.result_probe);
-        value_probe::start(context.host().owned(), config.value_probe);
+        let host = context.host();
+        config::register_schema(host);
+        character::CharacterRuntime::register(host)?;
+        let config = config::load(host);
+        let owned_host = host.owned();
+
+        character::CharacterRuntime::start();
+        difficulty::DifficultyExposure::install(owned_host.clone(), config.difficulty_probe);
+        rewards::RewardCommitExposure::install(owned_host.clone(), config.reward_probe);
+        rewards::ItemRewardExposure::install(owned_host.clone(), config.item_reward_probe);
+        player_results::ResultStateExposure::install(owned_host.clone(), config.result_state_probe);
+        player_results::rank::RankThresholdExposure::install(
+            owned_host.clone(),
+            config.rank_threshold_probe,
+        );
+        player_results::PlayerResultExposure::install(
+            owned_host.clone(),
+            config.player_result_probe,
+        );
+        player_results::ResultProbeExposure::install(owned_host.clone(), config.result_probe);
+        reverse::ValueProbeExposure::install(owned_host, config.value_probe);
         context.log("sdk.runtime initialized");
         Ok(())
     }
