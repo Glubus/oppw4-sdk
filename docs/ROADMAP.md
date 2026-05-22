@@ -57,6 +57,8 @@ Current checkpoint:
 - [x] `sdk.debug` publishes changed watch/scan snapshots through `sdk.debug.snapshot`; `sdk.overlay` subscribes and caches those snapshots for future panels.
 - [x] `sdk.overlay` parses debug snapshots into structured panel data instead of storing raw JSON strings.
 - [x] `sdk.runtime` emits structured JSON signals for difficulty, rank, result state, Berry commit rewards, and item/medal reward snapshots.
+- [x] Ghidra fixed-data loader export identifies the missing LinkData depack layer: logical fixed-data ids are fetched through `FUN_1415ce9d0`, then parser functions rebuild normalized runtime tables.
+- [ ] Fixed-data logical ids still need runtime mapping to raw LinkData archive entries before patching rank/reward tables by source entry.
 - [ ] Difficulty row fields `0x334..0x39c` still need runtime labels before a public `difficulty_director` API.
 - [ ] Soul reward commit fields still need confirmed runtime labels.
 - [ ] LinkData/fixed mission rank threshold fields still need labels from runtime comparison.

@@ -749,6 +749,53 @@ Binary scans against `D:\SteamLibrary\steamapps\common\OPPW4\LINKDATA` confirm t
 
 Important correction: this is not a full LinkData fixed-data depack yet. The current scanner only extracts/inflates an archive entry payload. The runtime fixed-data pointers use an additional internal depacked layout, so raw payload offsets do not always equal runtime table offsets.
 
+Follow-up Ghidra export:
+
+```text
+oppw4-ghidra/game_fixed_data_loaders.txt
+oppw4-ghidra/game_fixed_data_id_table.txt
+```
+
+The fixed-data loader path is now clearer:
+
+```text
+FUN_1415ce9d0(fixed_object, logical_id, ...)
+  local_40 = DAT_141e24ee0[logical_id]
+  asks the game file system/resource manager for that fixed-data stream
+
+CDataFixedReward vtable group:
+  FUN_1412e0300 -> FUN_1415ce9d0(..., 0x14, ...) -> FUN_1412dfa20 parser
+  FUN_1412e15f0 -> FUN_1415ce9d0(..., 8,    ...) -> FUN_1412e0e70 parser
+  FUN_1412e1af0 -> FUN_1415ce9d0(..., 9,    ...) -> FUN_1412e17a0 parser
+```
+
+`DAT_141e24ee0` is zero in the static Ghidra image and appears to be populated at runtime, so `8`, `9`, and `0x14` are logical fixed-data ids, not guaranteed raw archive entry ids. The important part is the parser: it consumes a compact stream with alignment and writes normalized runtime structs at fixed offsets.
+
+Known parser output shapes:
+
+```text
+FUN_1412dfa20:
+  0xfa records at output +0x10   stride 0x30
+  10 records at output +0x2ef0  stride 0xce
+  10 records at output +0x36fc  stride 0x30
+  3 records at output +0x38dc   stride 0x10
+
+FUN_1412e0e70:
+  0xfa records at output +0x10     stride about 0x3e
+  0x119 records at output +0x3c9c  stride 0x42
+  0xcf records at output +0x8510   stride 0x1c
+  1000 records at output +0x9bb4   large text/mission-style block
+  0x32 records at output +0x3c834  stride 0x44-ish
+  99 records at output +0x3d57c    stride 0x40
+  100 shorts at output +0x3ee3c
+  10 records at output +0x3ef04
+
+FUN_1412e17a0:
+  200 records at output +0x10      stride 0x26
+```
+
+This is the depack layer we were missing. Raw payload scans are useful for source candidates, but patching should target the logical fixed-data stream or the normalized runtime layout, not a guessed raw offset.
+
 Confirmed files/entries:
 
 ```text
@@ -816,7 +863,7 @@ Current interpretation:
 
 - `entry 2558` maps `(base mission id, vanilla difficulty id)` to a reward row index.
 - `entry 1` likely sources reward/gameplay rows with runtime stride `0x6c`.
-- `entry 3` contains the matched rank rows and condition rows, but raw inflated offsets do not align perfectly with runtime offsets until the fixed-data depack/base adjustment is understood. The full entry is broader fixed mission/result data and should not be treated as a rank-only table.
+- `entry 3` contains matched rank/condition-like bytes, but this is now likely a source-candidate or false-friend payload, not the direct runtime table. The runtime table is built by fixed-data parser functions such as `FUN_1412e0e70`, and the logical fixed-data id must be resolved before treating an archive entry as authoritative.
 - visible difficulty names/help text are in language LinkData, while gameplay difficulty behavior is in CMN numeric tables plus executable range checks.
 
 This makes a fifth difficulty a mixed data+code patch:
