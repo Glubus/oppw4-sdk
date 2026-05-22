@@ -1050,6 +1050,48 @@ Recommended split after this export:
   - remains telemetry only.
   - should not own difficulty gameplay changes.
 
+## Fixed Data Runtime Pointers - 2026-05-22
+
+`fixed_data_probe` now confirms that the logical id table is not the raw `LINKDATA_A`
+entry id table. Runtime logical ids are currently identity-like (`1 -> 1`, `20 -> 20`,
+`31 -> 31`, etc.), while the real depacked table pointers live under:
+
+```text
+fixed_root = *(OPPW4.exe + 0x1eba738)
+fixed_owner = *(fixed_root + 0x18)
+```
+
+Confirmed useful owner pointers:
+
+```text
+fixed_owner + 0x08 : rank_table
+fixed_owner + 0x20 : reward_rows
+fixed_owner + 0x28 : reward_index
+```
+
+The first words of each pointed table look like object/vtable metadata, not raw row
+data:
+
+```text
+head[0..1] : vtable pointer split as u32 low/high
+head[2..3] : usually zero
+head[4..]  : first visible table values
+```
+
+Runtime proof from `2026-05-22-223808.log`:
+
+```text
+mission_id=82 difficulty=1 mode_type=2(treasure_log)
+rank_table  = 0x21dfaf7cfc0
+reward_rows = 0x21dfafa1fc0
+reward_index= 0x21dfafae760
+reward_row index=8
+```
+
+Important implication: future LinkData extraction must depack/resolve the fixed-data
+runtime table, then account for the object/table header before comparing row payloads.
+Do not equate logical fixed id `0x14` with an archive entry id directly.
+
 ## Open Questions
 
 - What exact table does `FUN_1412f9be0` search/index?

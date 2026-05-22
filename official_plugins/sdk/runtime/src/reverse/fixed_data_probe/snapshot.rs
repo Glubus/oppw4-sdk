@@ -119,7 +119,14 @@ fn format_logical_ids(values: &[u32; FIXED_ID_COUNT]) -> String {
 fn format_pointers(pointers: &[FixedPointer]) -> String {
     pointers
         .iter()
-        .map(|pointer| format!("+0x{:x}=0x{:x}", pointer.offset, pointer.value))
+        .map(|pointer| {
+            format!(
+                "{}(+0x{:x})=0x{:x}",
+                fixed_pointer_label(pointer.offset),
+                pointer.offset,
+                pointer.value
+            )
+        })
         .collect::<Vec<_>>()
         .join(",")
 }
@@ -135,10 +142,24 @@ fn format_pointer_heads(pointers: &[FixedPointer]) -> String {
                 .map(|value| format!("0x{value:08x}"))
                 .collect::<Vec<_>>()
                 .join(",");
-            format!("+0x{:x}:[{}]", pointer.offset, head)
+            format!(
+                "{}(+0x{:x}):[{}]",
+                fixed_pointer_label(pointer.offset),
+                pointer.offset,
+                head
+            )
         })
         .collect::<Vec<_>>()
         .join(";")
+}
+
+fn fixed_pointer_label(offset: usize) -> &'static str {
+    match offset {
+        0x8 => "rank_table",
+        0x20 => "reward_rows",
+        0x28 => "reward_index",
+        _ => "unknown",
+    }
 }
 
 #[cfg(test)]
@@ -169,7 +190,10 @@ mod tests {
             },
         ];
 
-        assert_eq!(format_pointers(&pointers), "+0x8=0x1000,+0x20=0x2000");
+        assert_eq!(
+            format_pointers(&pointers),
+            "rank_table(+0x8)=0x1000,reward_rows(+0x20)=0x2000"
+        );
     }
 
     #[test]
@@ -187,6 +211,17 @@ mod tests {
             },
         ];
 
-        assert_eq!(format_pointer_heads(&pointers), "+0x8:[0x00000001,0x00000002]");
+        assert_eq!(
+            format_pointer_heads(&pointers),
+            "rank_table(+0x8):[0x00000001,0x00000002]"
+        );
+    }
+
+    #[test]
+    fn labels_known_fixed_pointers() {
+        assert_eq!(fixed_pointer_label(0x8), "rank_table");
+        assert_eq!(fixed_pointer_label(0x20), "reward_rows");
+        assert_eq!(fixed_pointer_label(0x28), "reward_index");
+        assert_eq!(fixed_pointer_label(0xd8), "unknown");
     }
 }
