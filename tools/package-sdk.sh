@@ -20,6 +20,7 @@ SDK_PACKAGES=(
   oppw4-sdk-core-plugin
   oppw4-sdk-runtime-plugin
   oppw4-sdk-debug-plugin
+  oppw4-sdk-overlay-plugin
   oppw4-sdk-linkdata-plugin
   oppw4-sdk-rdb-plugin
 )
@@ -78,6 +79,7 @@ fi
 copy_required_file "$TARGET_DIR/sdk.dll" "$SDK_ROOT/sdk.dll"
 copy_required_file "$TARGET_DIR/runtime.dll" "$SDK_ROOT/runtime.dll"
 copy_required_file "$TARGET_DIR/debug.dll" "$SDK_ROOT/debug.dll"
+copy_required_file "$TARGET_DIR/overlay.dll" "$SDK_ROOT/overlay.dll"
 copy_required_file "$TARGET_DIR/linkdata.dll" "$SDK_ROOT/linkdata.dll"
 copy_required_file "$TARGET_DIR/rdb.dll" "$SDK_ROOT/rdb.dll"
 

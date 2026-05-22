@@ -77,6 +77,7 @@ plugins/
     sdk.dll
     runtime.dll
     debug.dll
+    overlay.dll
     linkdata.dll
     rdb.dll
 ```
@@ -92,6 +93,10 @@ Generic reverse/debug tooling is separate from `sdk.runtime`. `sdk.debug` owns
 hot-reloaded developer memory watches and bounded value scans from
 `plugins/configs/sdk_debug/debug.lua`; fixed game-domain probes should remain in
 `sdk.runtime` once the offsets and labels are understood.
+
+In-game UI is a separate service. `sdk.overlay` owns overlay configuration and
+renderer probing, but actual egui-style drawing requires a future DXGI
+Present/ResizeBuffers backend before any plugin can submit visible widgets.
 
 LinkData providers follow the same rule. `sdk.linkdata` owns LinkData patch
 state and virtual file replacement; the core only enforces capabilities and

@@ -17,6 +17,7 @@ members = [
     "official_plugins/sdk/core",
     "official_plugins/sdk/runtime",
     "official_plugins/sdk/debug",
+    "official_plugins/sdk/overlay",
     "official_plugins/sdk/linkdata",
     "official_plugins/sdk/rdb",
     "official_plugins/fx_director",

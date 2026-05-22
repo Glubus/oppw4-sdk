@@ -34,6 +34,7 @@ official_plugins/
     core/         # builds sdk.dll
     runtime/      # builds runtime.dll
     debug/        # builds debug.dll
+    overlay/      # builds overlay.dll
     linkdata/     # builds linkdata.dll
     rdb/          # builds rdb.dll
   skin_patcher/

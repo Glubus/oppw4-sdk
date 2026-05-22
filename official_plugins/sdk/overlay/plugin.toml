@@ -1,0 +1,13 @@
+[plugin]
+id = "sdk_overlay"
+version = "0.1.0"
+entry = "overlay.dll"
+
+[capabilities]
+requires = [
+  "plugin.host",
+  "config.schema",
+]
+provides = [
+  "ui.overlay",
+]
