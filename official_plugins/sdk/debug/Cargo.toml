@@ -11,3 +11,4 @@ name = "debug"
 [dependencies]
 mlua.workspace = true
 plugin-sdk.workspace = true
+serde_json.workspace = true

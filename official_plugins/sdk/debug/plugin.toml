@@ -8,6 +8,7 @@ requires = [
   "plugin.host",
   "config.schema",
   "memory.read",
+  "signals.emit",
 ]
 provides = [
   "debug.memory",

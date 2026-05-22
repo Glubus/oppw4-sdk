@@ -6,7 +6,7 @@ use std::{
 
 use plugin_sdk::OwnedHostApi;
 
-use crate::{backend::RendererProbe, config, config::OverlayConfig, PLUGIN_ID};
+use crate::{backend::RendererProbe, config, config::OverlayConfig, panels, PLUGIN_ID};
 
 pub(crate) fn start(host: OwnedHostApi, path: PathBuf) {
     let _ = thread::Builder::new()
@@ -25,11 +25,26 @@ fn run(host: OwnedHostApi, path: PathBuf) {
         reload_if_changed(&host, &path, &mut state);
         if state.config.enabled {
             probe_renderer(&host, &mut state);
+            log_debug_panel_changes(&host, &mut state);
         }
         thread::sleep(Duration::from_millis(
             state.config.poll_interval_ms.max(250),
         ));
     }
+}
+
+fn log_debug_panel_changes(host: &OwnedHostApi, state: &mut OverlayState) {
+    let Some(snapshot) = panels::debug_snapshot() else {
+        return;
+    };
+    if state.last_debug_snapshot.as_ref() == Some(&snapshot) {
+        return;
+    }
+    let _ = host.log().write(
+        PLUGIN_ID,
+        format!("debug_panel_snapshot bytes={}", snapshot.len()),
+    );
+    state.last_debug_snapshot = Some(snapshot);
 }
 
 fn reload_if_changed(host: &OwnedHostApi, path: &PathBuf, state: &mut OverlayState) {
@@ -71,4 +86,5 @@ struct OverlayState {
     config: OverlayConfig,
     loaded_at: Option<SystemTime>,
     last_probe: Option<RendererProbe>,
+    last_debug_snapshot: Option<String>,
 }

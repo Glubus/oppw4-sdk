@@ -7,6 +7,7 @@ use std::{
 };
 
 use plugin_sdk::OwnedHostApi;
+use serde_json::json;
 
 use crate::{
     format, memory,
@@ -94,6 +95,7 @@ fn tick(
     last_watches: &mut HashMap<String, WatchValue>,
     last_scans: &mut HashMap<String, Vec<ScanHit>>,
 ) {
+    let mut changed = false;
     for watch in &config.watches {
         match memory::read_watch(host, watch) {
             Ok(value) => {
@@ -103,6 +105,7 @@ fn tick(
                         format!("watch {} {}", watch.id, format::watch_value(&value)),
                     );
                     last_watches.insert(watch.id.clone(), value);
+                    changed = true;
                 }
             }
             Err(error) => {
@@ -122,6 +125,7 @@ fn tick(
                         format!("scan {} hits={}", scan.id, format::scan_hits(&hits)),
                     );
                     last_scans.insert(scan.id.clone(), hits);
+                    changed = true;
                 }
             }
             Err(error) => {
@@ -131,6 +135,47 @@ fn tick(
             }
         }
     }
+
+    if changed {
+        emit_overlay_snapshot(host, last_watches, last_scans);
+    }
+}
+
+fn emit_overlay_snapshot(
+    host: &OwnedHostApi,
+    watches: &HashMap<String, WatchValue>,
+    scans: &HashMap<String, Vec<ScanHit>>,
+) {
+    let watches = watches
+        .iter()
+        .map(|(id, value)| {
+            json!({
+                "id": id,
+                "address": format!("0x{:x}", value.address),
+                "type": format!("{:?}", value.value_type),
+                "value": format::watch_value(value),
+            })
+        })
+        .collect::<Vec<_>>();
+    let scans = scans
+        .iter()
+        .map(|(id, hits)| {
+            json!({
+                "id": id,
+                "hits": format::scan_hits(hits),
+                "hit_count": hits.len(),
+            })
+        })
+        .collect::<Vec<_>>();
+    let payload = json!({
+        "schema": "sdk.debug.snapshot.v1",
+        "watches": watches,
+        "scans": scans,
+    });
+    let Ok(bytes) = serde_json::to_vec(&payload) else {
+        return;
+    };
+    let _ = host.signals().emit_bytes("sdk.debug.snapshot", &bytes);
 }
 
 fn log_reload_error(host: &OwnedHostApi, state: &mut DebugState, error: String) {

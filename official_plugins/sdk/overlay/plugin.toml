@@ -7,6 +7,7 @@ entry = "overlay.dll"
 requires = [
   "plugin.host",
   "config.schema",
+  "signals.subscribe",
 ]
 provides = [
   "ui.overlay",

@@ -54,6 +54,7 @@ Current checkpoint:
 - [x] `sdk.runtime` probe code is split by responsibility: ABI adapters, hook trampolines, memory readers, snapshots, scanners, formatters, hashes, and config parsing are no longer kept as probe monoliths.
 - [x] `sdk.debug` exists as `debug.dll` with a hot-reloaded `debug.lua` developer script for memory watches and bounded value scans.
 - [x] `sdk.overlay` exists as `overlay.dll` with config, packaging, and renderer module probing for the future in-game UI layer.
+- [x] `sdk.debug` publishes changed watch/scan snapshots through `sdk.debug.snapshot`; `sdk.overlay` subscribes and caches those snapshots for future panels.
 - [ ] Difficulty row fields `0x334..0x39c` still need runtime labels before a public `difficulty_director` API.
 - [ ] Soul reward commit fields still need confirmed runtime labels.
 - [ ] LinkData/fixed mission rank threshold fields still need labels from runtime comparison.
@@ -61,6 +62,17 @@ Current checkpoint:
 - [ ] `data_dumper` still needs implementation after mission schemas and standard reward/difficulty/rank services are shaped.
 - [ ] In-game debug UI/overlay remains future work: `sdk.overlay` currently stops at renderer probing; an `egui`-style UI still needs a DXGI Present/ResizeBuffers backend before it can draw in game.
 - [ ] Remaining SDK runtime cleanup: keep shrinking the few files still above roughly 150 lines only when the split exposes a real reusable concept, not as cosmetic churn.
+
+## Next Work Queue
+
+Immediate SDK work after the `sdk.debug` and `sdk.overlay` scaffolds:
+
+1. Build the real overlay backend: hook DXGI `IDXGISwapChain::Present`, handle `ResizeBuffers`, initialize an egui-compatible D3D11 renderer, and capture input through WndProc or a minimal input polling layer.
+2. Turn the cached `sdk.debug.snapshot` payloads into renderable overlay panels with pause/resume, clear, and export actions.
+3. Extend `sdk.debug` carefully: optional memory writes can exist later, but must be disabled by default and require explicit config.
+4. Continue runtime reverse work with the game: label difficulty row fields `0x334..0x39c`, soul reward commit fields, and fixed mission rank threshold fields.
+5. Add mission data to `oppw4-data`: `missions/<mission_id>/` source folders, schemas, generated indexes, and evidence notes.
+6. Implement `data_dumper` once mission/reward/rank schemas are shaped enough to export probe findings into data files instead of ad-hoc logs.
 
 ## Progress Checklist
 
