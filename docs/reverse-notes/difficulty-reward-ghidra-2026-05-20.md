@@ -751,7 +751,7 @@ Confirmed files/entries:
 
 ```text
 CMN/LINKDATA_A.BIN entry 1    : fixed reward rows / difficulty-scaled reward row data
-CMN/LINKDATA_A.BIN entry 3    : fixed rank rows and rank condition rows
+CMN/LINKDATA_A.BIN entry 3    : contains fixed rank rows and rank condition rows among other fixed mission/result data
 CMN/LINKDATA_A.BIN entry 2558 : base mission difficulty index table
 LANG/FRA/LINKDATA_LANG_FRA.BIN entry 0 : visible difficulty labels
 LANG/ENG/LINKDATA_LANG_ENG.BIN entry 1 : difficulty/help text, including Treasure Log fixed-difficulty text
@@ -804,7 +804,7 @@ Current interpretation:
 
 - `entry 2558` maps `(base mission id, vanilla difficulty id)` to a reward row index.
 - `entry 1` stores the reward/gameplay rows with stride `0x6c`.
-- `entry 3` stores rank rows with stride `0x44` and condition rows with stride `0x34`.
+- `entry 3` contains the matched rank rows with stride `0x44` and condition rows with stride `0x34`, but the full entry is broader fixed mission/result data and should not be treated as a rank-only table.
 - visible difficulty names/help text are in language LinkData, while gameplay difficulty behavior is in CMN numeric tables plus executable range checks.
 
 This makes a fifth difficulty a mixed data+code patch:
