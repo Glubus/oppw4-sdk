@@ -806,6 +806,17 @@ sdk_runtime [fixed_data_probe]
 
 Next game run should confirm whether the logical id table is populated before/after RDB loading and which owner pointers match the known rank/reward pointers.
 
+SDK API guardrail added after this finding:
+
+```text
+sdk-api::linkdata::fixed
+  FixedDataLogicalId      = logical runtime id passed to FUN_1415ce9d0
+  FixedDataStreamRef      = runtime logical id -> runtime stream id observation
+  FixedDataSourceCandidate = possible LinkData file/entry source for a logical id
+```
+
+This module intentionally does not parse fixed-data tables yet. It exists so tools and plugins do not confuse a logical fixed-data id like `0x14` with a raw archive entry like `2558`. A real parser should only be added after `fixed_data_probe` confirms the runtime mapping and the depack base adjustment.
+
 Confirmed files/entries:
 
 ```text

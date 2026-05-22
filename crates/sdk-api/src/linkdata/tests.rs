@@ -154,6 +154,24 @@ fn curated_entries_include_observed_movesets_without_section_claims() {
         .any(|entry| entry.entry == LinkDataEntryId::new(248)));
 }
 
+#[test]
+fn fixed_data_refs_keep_logical_ids_separate_from_archive_entries() {
+    let stream = FixedDataStreamRef::new(FixedDataLogicalId::new(0x14), 2558);
+    let candidate = FixedDataSourceCandidate::new(
+        FixedDataLogicalId::new(0x14),
+        LinkDataFile::A,
+        LinkDataEntryId::new(2558),
+    );
+
+    assert_eq!(stream.logical_id.get(), 0x14);
+    assert_eq!(stream.runtime_stream_id, 2558);
+    assert_eq!(
+        candidate.file.relative_path(),
+        "LINKDATA/CMN/LINKDATA_A.BIN"
+    );
+    assert_eq!(candidate.entry.get(), 2558);
+}
+
 fn zlib_compress(bytes: &[u8]) -> Vec<u8> {
     let mut encoder = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::default());
     encoder.write_all(bytes).expect("compress payload");
