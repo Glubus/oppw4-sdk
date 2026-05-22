@@ -743,16 +743,18 @@ If this table is LinkData-backed, adding a real new difficulty likely means:
 3. teach lookup/indexing to accept the new difficulty id;
 4. patch text/UI assets for labels.
 
-### LinkData table locations confirmed - 2026-05-22
+### LinkData source candidates - 2026-05-22
 
-Binary scans against `D:\SteamLibrary\steamapps\common\OPPW4\LINKDATA` confirm that the fixed rank/condition and difficulty reward data are LinkData-backed.
+Binary scans against `D:\SteamLibrary\steamapps\common\OPPW4\LINKDATA` confirm that the fixed rank/condition and difficulty reward byte patterns exist inside LinkData payloads.
+
+Important correction: this is not a full LinkData fixed-data depack yet. The current scanner only extracts/inflates an archive entry payload. The runtime fixed-data pointers use an additional internal depacked layout, so raw payload offsets do not always equal runtime table offsets.
 
 Confirmed files/entries:
 
 ```text
-CMN/LINKDATA_A.BIN entry 1    : fixed reward rows / difficulty-scaled reward row data
-CMN/LINKDATA_A.BIN entry 3    : contains fixed rank rows and rank condition rows among other fixed mission/result data
-CMN/LINKDATA_A.BIN entry 2558 : base mission difficulty index table
+CMN/LINKDATA_A.BIN entry 1    : contains fixed reward / difficulty-scaled reward row byte patterns
+CMN/LINKDATA_A.BIN entry 3    : contains fixed rank row and condition row byte patterns among other fixed mission/result data
+CMN/LINKDATA_A.BIN entry 2558 : contains a base mission difficulty index-table candidate
 LANG/FRA/LINKDATA_LANG_FRA.BIN entry 0 : visible difficulty labels
 LANG/ENG/LINKDATA_LANG_ENG.BIN entry 1 : difficulty/help text, including Treasure Log fixed-difficulty text
 ```
@@ -764,6 +766,16 @@ runtime fixed rank row 12 matched LINKDATA_A entry 3 at 0x320
 runtime condition row 12 matched LINKDATA_A entry 3 at 0xc8f4
 condition-threshold subsequence also appears around 0xc6bc
 ```
+
+Offset caveat:
+
+```text
+runtime code reads condition rows from fixed_rank_table + 0xc43c + row * 0x34
+raw inflated entry 3 contains the exact condition row 12 at payload offset 0xc8f4
+raw inflated entry 3 would place condition row 0 around payload offset 0xc684 if stride 0x34 is used
+```
+
+So the raw entry payload has either a preceding internal header/table area or a different depacked base than the runtime pointer. Do not patch raw offsets directly until the fixed-data depacker is mapped.
 
 Reward/difficulty proof from runtime log `2026-05-22-184942.log`:
 
@@ -789,9 +801,9 @@ runtime row fields:
   0x39c bytes=[0,3,5,6]
 ```
 
-Those exact runtime fields match `LINKDATA_A.BIN` entry `1` at offset `0x684` for the row-field block. This corresponds to the row data used by `FUN_1412f9be0` callers.
+Those exact runtime fields match `LINKDATA_A.BIN` entry `1` at raw inflated payload offset `0x684` for the row-field block. This strongly suggests entry `1` is the source for the row data used by `FUN_1412f9be0` callers, but the internal depacked layout still needs to be mapped before writing patches by offset.
 
-The row index lookup for mission `69`, difficulty `1` also matches `LINKDATA_A.BIN` entry `2558`:
+The row index lookup for mission `69`, difficulty `1` also has a candidate match in `LINKDATA_A.BIN` entry `2558`:
 
 ```text
 index_offset = 0xa8 + (mission_id * 0x6e + difficulty) * 2
@@ -803,17 +815,18 @@ entry 2558[0x3c06] = 8
 Current interpretation:
 
 - `entry 2558` maps `(base mission id, vanilla difficulty id)` to a reward row index.
-- `entry 1` stores the reward/gameplay rows with stride `0x6c`.
-- `entry 3` contains the matched rank rows with stride `0x44` and condition rows with stride `0x34`, but the full entry is broader fixed mission/result data and should not be treated as a rank-only table.
+- `entry 1` likely sources reward/gameplay rows with runtime stride `0x6c`.
+- `entry 3` contains the matched rank rows and condition rows, but raw inflated offsets do not align perfectly with runtime offsets until the fixed-data depack/base adjustment is understood. The full entry is broader fixed mission/result data and should not be treated as a rank-only table.
 - visible difficulty names/help text are in language LinkData, while gameplay difficulty behavior is in CMN numeric tables plus executable range checks.
 
 This makes a fifth difficulty a mixed data+code patch:
 
-1. extend or virtualize the index table currently addressed as `mission * 0x6e + difficulty`;
-2. add/clone reward rows in entry `1`;
-3. patch/wrap `FUN_1412f9be0` because it returns `0` when `difficulty > 3`;
-4. update menu/label text in LANG LinkData or via UI hooks;
-5. map script conditions (`CScCondGameDifficulty`) so vanilla scripts expecting `0..3` still behave.
+1. map the internal fixed-data depacker/base adjustment for the source entries;
+2. extend or virtualize the index table currently addressed as `mission * 0x6e + difficulty`;
+3. add/clone reward rows in the depacked reward-row source;
+4. patch/wrap `FUN_1412f9be0` because it returns `0` when `difficulty > 3`;
+5. update menu/label text in LANG LinkData or via UI hooks;
+6. map script conditions (`CScCondGameDifficulty`) so vanilla scripts expecting `0..3` still behave.
 
 ### Runtime path
 
