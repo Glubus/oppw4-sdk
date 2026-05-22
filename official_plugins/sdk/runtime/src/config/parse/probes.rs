@@ -3,6 +3,7 @@ use crate::config::RuntimeConfig;
 
 pub(super) fn parse_all(value: &toml::Value, config: &mut RuntimeConfig) {
     parse_difficulty_probe(value, config);
+    parse_fixed_data_probe(value, config);
     parse_player_result_probe(value, config);
     parse_result_probe(value, config);
     parse_rank_threshold_probe(value, config);
@@ -33,6 +34,25 @@ fn parse_difficulty_probe(value: &toml::Value, config: &mut RuntimeConfig) {
         "snapshot_interval_ms",
         0,
         &mut config.difficulty_probe.snapshot_interval_ms,
+    );
+}
+
+fn parse_fixed_data_probe(value: &toml::Value, config: &mut RuntimeConfig) {
+    let Some(probe) = value.get("fixed_data_probe") else {
+        return;
+    };
+    set_bool(probe, "enabled", &mut config.fixed_data_probe.enabled);
+    set_u64_min(
+        probe,
+        "interval_ms",
+        250,
+        &mut config.fixed_data_probe.interval_ms,
+    );
+    set_u64_min(
+        probe,
+        "snapshot_interval_ms",
+        0,
+        &mut config.fixed_data_probe.snapshot_interval_ms,
     );
 }
 

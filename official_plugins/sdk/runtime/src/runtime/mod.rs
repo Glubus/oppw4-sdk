@@ -14,7 +14,7 @@ use crate::{
         rank::RankThresholdExposure,
         result::{PlayerResultExposure, ResultMemoryExposure, ResultStateExposure},
     },
-    reverse::ValueScanExposure,
+    reverse::{FixedDataExposure, ValueScanExposure},
     rewards::{ItemRewardExposure, RewardCommitExposure},
     runtime::exposure::RuntimeExposure,
 };
@@ -42,5 +42,6 @@ fn install_exposures(host: OwnedHostApi, config: config::RuntimeConfig) {
     RankThresholdExposure::install(host.clone(), config.rank_threshold_probe);
     PlayerResultExposure::install(host.clone(), config.player_result_probe);
     ResultMemoryExposure::install(host.clone(), config.result_probe);
+    FixedDataExposure::install(host.clone(), config.fixed_data_probe);
     ValueScanExposure::install(host, config.value_probe);
 }

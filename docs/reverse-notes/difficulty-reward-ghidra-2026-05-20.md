@@ -796,6 +796,16 @@ FUN_1412e17a0:
 
 This is the depack layer we were missing. Raw payload scans are useful for source candidates, but patching should target the logical fixed-data stream or the normalized runtime layout, not a guessed raw offset.
 
+Runtime probe added after this finding:
+
+```text
+sdk_runtime [fixed_data_probe]
+  logs DAT_141e24ee0[0..32] after runtime init
+  logs fixed owner pointers at +0x0,+0x8,+0x10,+0x18,+0x20,+0x28,+0x58,+0x60,+0xa0,+0xd8
+```
+
+Next game run should confirm whether the logical id table is populated before/after RDB loading and which owner pointers match the known rank/reward pointers.
+
 Confirmed files/entries:
 
 ```text

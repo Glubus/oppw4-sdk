@@ -20,6 +20,7 @@ impl Default for DifficultyProbeConfig {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct RuntimeConfig {
     pub(crate) difficulty_probe: DifficultyProbeConfig,
+    pub(crate) fixed_data_probe: FixedDataProbeConfig,
     pub(crate) player_result_probe: PlayerResultProbeConfig,
     pub(crate) result_probe: ResultProbeConfig,
     pub(crate) rank_threshold_probe: RankThresholdProbeConfig,
@@ -27,6 +28,23 @@ pub(crate) struct RuntimeConfig {
     pub(crate) item_reward_probe: ItemRewardProbeConfig,
     pub(crate) result_state_probe: ResultStateProbeConfig,
     pub(crate) value_probe: ValueProbeConfig,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct FixedDataProbeConfig {
+    pub(crate) enabled: bool,
+    pub(crate) interval_ms: u64,
+    pub(crate) snapshot_interval_ms: u64,
+}
+
+impl Default for FixedDataProbeConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            interval_ms: 1000,
+            snapshot_interval_ms: 5000,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

@@ -10,7 +10,7 @@ use defaults::DEFAULT_CONFIG;
 use parse::parse;
 
 pub(crate) use types::{
-    DifficultyProbeConfig, ItemRewardProbeConfig, PlayerResultProbeConfig,
+    DifficultyProbeConfig, FixedDataProbeConfig, ItemRewardProbeConfig, PlayerResultProbeConfig,
     RankThresholdProbeConfig, ResultProbeConfig, ResultStateProbeConfig, RewardProbeConfig,
     RuntimeConfig, ValueProbeConfig,
 };

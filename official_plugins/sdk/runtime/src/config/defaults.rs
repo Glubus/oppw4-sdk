@@ -8,6 +8,11 @@ interval_ms = 250
 dump_reward_row = true
 snapshot_interval_ms = 1000
 
+[fixed_data_probe]
+enabled = true
+interval_ms = 1000
+snapshot_interval_ms = 5000
+
 [player_result_probe]
 enabled = true
 interval_ms = 500

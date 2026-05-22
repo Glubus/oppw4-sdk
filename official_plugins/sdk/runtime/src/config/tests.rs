@@ -14,6 +14,11 @@ fn parses_probe_config() {
         dump_reward_row = false
         snapshot_interval_ms = 5000
 
+        [fixed_data_probe]
+        enabled = false
+        interval_ms = 10
+        snapshot_interval_ms = 4000
+
         [player_result_probe]
         enabled = false
         interval_ms = 10
@@ -58,6 +63,9 @@ fn parses_probe_config() {
     assert_eq!(config.difficulty_probe.interval_ms, 50);
     assert!(!config.difficulty_probe.dump_reward_row);
     assert_eq!(config.difficulty_probe.snapshot_interval_ms, 5000);
+    assert!(!config.fixed_data_probe.enabled);
+    assert_eq!(config.fixed_data_probe.interval_ms, 250);
+    assert_eq!(config.fixed_data_probe.snapshot_interval_ms, 4000);
     assert!(!config.player_result_probe.enabled);
     assert_eq!(config.player_result_probe.interval_ms, 250);
     assert_eq!(config.player_result_probe.snapshot_interval_ms, 2000);
