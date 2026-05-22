@@ -42,7 +42,7 @@ fn log_debug_panel_changes(host: &OwnedHostApi, state: &mut OverlayState) {
     }
     let _ = host.log().write(
         PLUGIN_ID,
-        format!("debug_panel_snapshot bytes={}", snapshot.len()),
+        format!("debug_panel_snapshot {}", snapshot.summary()),
     );
     state.last_debug_snapshot = Some(snapshot);
 }
@@ -86,5 +86,5 @@ struct OverlayState {
     config: OverlayConfig,
     loaded_at: Option<SystemTime>,
     last_probe: Option<RendererProbe>,
-    last_debug_snapshot: Option<String>,
+    last_debug_snapshot: Option<panels::DebugPanel>,
 }

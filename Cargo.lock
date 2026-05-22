@@ -366,6 +366,8 @@ name = "oppw4-sdk-overlay-plugin"
 version = "0.1.0"
 dependencies = [
  "plugin-sdk",
+ "serde",
+ "serde_json",
  "toml",
 ]
 

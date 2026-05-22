@@ -55,6 +55,7 @@ Current checkpoint:
 - [x] `sdk.debug` exists as `debug.dll` with a hot-reloaded `debug.lua` developer script for memory watches and bounded value scans.
 - [x] `sdk.overlay` exists as `overlay.dll` with config, packaging, and renderer module probing for the future in-game UI layer.
 - [x] `sdk.debug` publishes changed watch/scan snapshots through `sdk.debug.snapshot`; `sdk.overlay` subscribes and caches those snapshots for future panels.
+- [x] `sdk.overlay` parses debug snapshots into structured panel data instead of storing raw JSON strings.
 - [ ] Difficulty row fields `0x334..0x39c` still need runtime labels before a public `difficulty_director` API.
 - [ ] Soul reward commit fields still need confirmed runtime labels.
 - [ ] LinkData/fixed mission rank threshold fields still need labels from runtime comparison.
@@ -73,6 +74,17 @@ Immediate SDK work after the `sdk.debug` and `sdk.overlay` scaffolds:
 4. Continue runtime reverse work with the game: label difficulty row fields `0x334..0x39c`, soul reward commit fields, and fixed mission rank threshold fields.
 5. Add mission data to `oppw4-data`: `missions/<mission_id>/` source folders, schemas, generated indexes, and evidence notes.
 6. Implement `data_dumper` once mission/reward/rank schemas are shaped enough to export probe findings into data files instead of ad-hoc logs.
+
+## Needs Game Validation
+
+The following items cannot be finished from the repo alone and need OPPW4 running, or a dedicated DXGI test harness where noted:
+
+- Validate `sdk.debug` pointer chains against real game memory and confirm the watched addresses do not fault during loading screens, menus, or mission transitions.
+- Tune `sdk.debug` scan ranges and intervals against real frame-time impact; current scans are bounded, but large ranges still need live performance checks.
+- Confirm `sdk.overlay` sees `dxgi.dll`/`d3d11.dll` in the real process and identify the correct swapchain creation path.
+- Implement and validate `sdk.overlay` DXGI `Present` and `ResizeBuffers` hooks against the real game swapchain, or first against a small D3D11 harness.
+- Validate WndProc/input capture in fullscreen, borderless, and windowed modes before enabling interactive egui panels.
+- Compare runtime logs/screenshots to label difficulty rows, soul rewards, and rank thresholds before exposing public director APIs.
 
 ## Progress Checklist
 
