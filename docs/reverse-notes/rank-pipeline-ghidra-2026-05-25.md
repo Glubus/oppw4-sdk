@@ -289,6 +289,23 @@ path, not the result-screen display path. Ghidra export points at
 `FUN_14132aae0`: count helper call `14132ad34`, then merge helper calls
 `14132adbc` / `14132aeb5`.
 
+Confirmed runtime threshold override test:
+
+```text
+count_threshold_override=[2000,1500,800,700,500]
+global_count_call count_raw=1378 thresholds=[1500,1000,800,700,500]
+  patched_thresholds=[2000,1500,800,700,500]
+result_count_call count_raw=1378 thresholds=[2000,1500,800,700,500]
+result_count_post_call count_rank=3(A) time_rank=5(S+)
+reward_probe param4=4(S)
+```
+
+This proves the real helper row override works for both global and result
+count calls. The reward/global rank can still remain `S` because
+`FUN_1412dd790` merges `A + S+` into `S`; threshold edits alone do not directly
+force the final rank. A full rank API needs separate controls for helper
+thresholds and merge policy.
+
 Only `14132b917` fired on that normal result path. `14132b995` and `14132bc7a`
 were installed but not reached, so they likely belong to special cap / mode `4`
 branches. The `RBX` pointer at `14132b917` is the inner rank block

@@ -88,6 +88,7 @@ static LOG_COUNT: AtomicUsize = AtomicUsize::new(0);
 static MAX_LOGS: AtomicUsize = AtomicUsize::new(0);
 static PATCH_LOG_COUNT: AtomicUsize = AtomicUsize::new(0);
 static COUNT_THRESHOLD_SHIFT: OnceLock<CountThresholdShiftPatch> = OnceLock::new();
+static CALLSITE_COUNT_THRESHOLD_OVERRIDE: OnceLock<[u32; RANK_THRESHOLD_COUNT]> = OnceLock::new();
 static CALLSITE_COUNT_INSTALLED: AtomicBool = AtomicBool::new(false);
 static CALLSITE_COUNT_CALL_INSTALLED: AtomicBool = AtomicBool::new(false);
 static GLOBAL_COUNT_CALL_INSTALLED: AtomicBool = AtomicBool::new(false);
@@ -101,6 +102,9 @@ pub(crate) fn install(
 ) {
     let legacy_shift_requested =
         runtime.shift_count_thresholds && runtime.shift_count_rank_row_ids.is_empty();
+    if let Some(thresholds) = runtime.count_threshold_override {
+        let _ = CALLSITE_COUNT_THRESHOLD_OVERRIDE.set(thresholds);
+    }
     if !config.enabled && !legacy_shift_requested {
         if config.callsite_enabled {
             let _ = HOST.set(host.clone());
@@ -600,6 +604,14 @@ fn log_count_callsite(kind: u32, row: usize, value: u32, divisor: f32) {
     } else {
         [u32::MAX; RANK_THRESHOLD_COUNT]
     };
+    let patched_thresholds = if count_slot < SLOT_COUNT {
+        CALLSITE_COUNT_THRESHOLD_OVERRIDE.get().copied().map(|override_thresholds| {
+            unsafe { write_thresholds(row, count_slot, override_thresholds) };
+            override_thresholds
+        })
+    } else {
+        None
+    };
     let normalized = if divisor == 0.0 {
         u32::MAX
     } else {
@@ -608,7 +620,7 @@ fn log_count_callsite(kind: u32, row: usize, value: u32, divisor: f32) {
     let _ = host.log().write(
         PLUGIN_ID,
         format!(
-            "rank_callsite_probe kind={label} helper_row=0x{row:x} count_raw={} divisor={divisor:.3} normalized={} selectors=[{}] count_slot={} thresholds=[{}]",
+            "rank_callsite_probe kind={label} helper_row=0x{row:x} count_raw={} divisor={divisor:.3} normalized={} selectors=[{}] count_slot={} thresholds=[{}] patched_thresholds=[{}]",
             value,
             normalized,
             selectors
@@ -622,6 +634,12 @@ fn log_count_callsite(kind: u32, row: usize, value: u32, divisor: f32) {
                 "none".to_string()
             },
             thresholds
+                .iter()
+                .map(u32::to_string)
+                .collect::<Vec<_>>()
+                .join(","),
+            patched_thresholds
+                .unwrap_or(thresholds)
                 .iter()
                 .map(u32::to_string)
                 .collect::<Vec<_>>()
