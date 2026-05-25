@@ -68,10 +68,10 @@ mod tests {
         install_require_hook(&lua).expect("require hook");
         let module = lua.create_table().expect("table");
         module.set("value", 42).expect("value");
-        register_module(&lua, "fx_director", module).expect("module");
+        register_module(&lua, "sdk.runtime.fx", module).expect("module");
 
         let value: i64 = lua
-            .load(r#"local fx_director = require("fx_director"); return fx_director.value"#)
+            .load(r#"local fx = require("sdk.runtime.fx"); return fx.value"#)
             .eval()
             .expect("eval");
 

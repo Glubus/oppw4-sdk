@@ -71,9 +71,11 @@
 ## Current Migration Notes
 
 - `lua-api` currently owns `require`, `std.character`, and current-mod file reads.
+- `sdk_runtime` owns the internal `sdk.runtime.fx` runtime FX API.
+- `sdk_rdb` owns the internal `sdk.rdb.patcher` RDB replacement API.
 - `moveset_patcher` currently owns moveset payload parsing and LinkData patch registration.
 - `moveset_patcher` must continue shrinking toward binding registration plus domain parsing only.
-- `winapi_file`, `std.character`, `fx_director` reload hooks, and `skin_patcher` virtual manager remain known large files to split.
+- `winapi_file`, `std.character`, `sdk.runtime.fx` reload hooks, and the `sdk.rdb.patcher` virtual manager remain known large files to split.
 
 ## Unsafe And Hook Rules
 

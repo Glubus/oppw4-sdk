@@ -3,12 +3,20 @@ id = "sdk_rdb"
 version = "0.1.0"
 entry = "rdb.dll"
 
+[lua]
+modules = ["sdk.rdb.patcher"]
+
 [capabilities]
 requires = [
   "plugin.host",
   "files.virtualize",
+  "lua.module",
+  "rdb.patch",
+  "std.character.extend",
 ]
 provides = [
   "rdb.read",
   "rdb.patch",
+  "rdb.skin",
+  "std.character.extend",
 ]

@@ -11,6 +11,7 @@ mod math;
 mod mission_data;
 mod mod_info;
 mod path;
+mod player;
 mod ranks;
 mod rewards;
 mod time;
@@ -28,6 +29,7 @@ pub(super) fn install(lua: &Lua) -> mlua::Result<()> {
     math::install(lua)?;
     mod_info::install(lua)?;
     path::install(lua)?;
+    player::install(lua)?;
     ranks::install(lua)?;
     rewards::install(lua)?;
     time::install(lua)?;

@@ -13,14 +13,13 @@ members = [
     "tools/mod-manifest-tool",
     "tools/plugin-manifest-tool",
     "tools/rdb-tool",
-    "official_plugins/skin_patcher",
     "official_plugins/sdk/core",
     "official_plugins/sdk/runtime",
     "official_plugins/sdk/debug",
     "official_plugins/sdk/overlay",
     "official_plugins/sdk/linkdata",
     "official_plugins/sdk/rdb",
-    "official_plugins/fx_director",
+    "official_plugins/sdk/rdb/patcher",
     "official_plugins/moveset_patcher",
 ]
 resolver = "2"

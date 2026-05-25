@@ -3,10 +3,19 @@ id = "sdk_runtime"
 version = "0.1.0"
 entry = "runtime.dll"
 
+[lua]
+modules = ["sdk.runtime.fx"]
+
 [capabilities]
 requires = [
   "plugin.host",
   "config.schema",
+  "lua.module",
+  "hooks.install",
+  "memory.read",
+  "memory.scan",
+  "memory.write",
+  "std.character.extend",
   "signals.emit",
 ]
 provides = [
@@ -16,4 +25,6 @@ provides = [
   "game.mission.difficulty",
   "game.mission.ranks",
   "game.mission.rewards",
+  "runtime.fx",
+  "std.character.extend",
 ]

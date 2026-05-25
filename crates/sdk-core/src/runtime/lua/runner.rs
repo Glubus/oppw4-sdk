@@ -1,4 +1,6 @@
-use crate::log;
+use mlua::Lua;
+
+use crate::{log, runtime::ffi};
 
 use super::logs::write_mod_entries;
 use super::module::{register_plugin_module, RegisteredModule};
@@ -31,6 +33,7 @@ pub(super) fn run_mod(
     reason: ModRunReason,
 ) -> bool {
     let result = lua_api::run_lua_mod(mod_entry, |lua| {
+        install_player_snapshot(lua)?;
         for module in modules {
             register_plugin_module(lua, &module)?;
         }
@@ -56,4 +59,18 @@ pub(super) fn run_mod(
             false
         }
     }
+}
+
+fn install_player_snapshot(lua: &Lua) -> mlua::Result<()> {
+    let rows = lua.create_table()?;
+    if let Some(active) = ffi::active_character_snapshot().filter(|active| active.sequence != 0) {
+        let row = lua.create_table()?;
+        row.set("runtime_id", active.runtime_id)?;
+        row.set("alt_id", active.alt_id)?;
+        row.set("local_player", active.local_player as u64)?;
+        row.set("fx_owner", active.fx_owner as u64)?;
+        row.set("sequence", active.sequence)?;
+        rows.set(1, row)?;
+    }
+    lua.globals().set("__oppw4_active_characters", rows)
 }

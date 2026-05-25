@@ -30,7 +30,22 @@ const RESULT_STATE_SIGNATURE: Signature = Signature::new(
     ],
 );
 
+// Instruction boundary:
+// 40 55 (2) + 41 54/55/56/57 (8) + 48 8d ac 24 20 e3 ff ff (8) = 18.
+// The following mov eax,0x1de0 starts at byte 18 and must stay intact.
 const OVERWRITE_LEN: usize = 18;
+const GLOBAL_ROOT_RVA: usize = 0x1eba750;
+const GLOBAL_OWNER_OFFSET: usize = 0x18;
+const GLOBAL_STATE_OFFSET: usize = 0x28;
+const MISSION_ID_OFFSET: usize = 0x1d750;
+const RESULT_MODE_OFFSET: usize = 0x1d753;
+const RESULT_REWARD_MODE_OFFSET: usize = 0x1d754;
+const DIFFICULTY_OFFSET: usize = 0x1d756;
+const ACTIVE_PLAYER_OFFSET: usize = 0x31;
+const RANK_ROW_TABLE_OFFSET: usize = 0x1d9b0;
+const RANK_ROW_STRIDE: usize = 0x50;
+const PLAYER_RESULT_STRIDE: usize = 0xb90;
+const PLAYER_SCORE_OFFSET: usize = 0x44c;
 
 type ResultStateFn = extern "system" fn(*mut u8);
 
@@ -116,6 +131,66 @@ extern "system" fn result_state_detour(result_state: *mut u8) {
     });
 }
 
+fn read_global_state() -> Result<usize, String> {
+    let Some(host) = HOST.get() else {
+        return Err("host unavailable".to_string());
+    };
+    let module_base = host
+        .memory()
+        .module_base()
+        .map_err(|error| format!("module_base failed: {error}"))?;
+    if module_base == 0 {
+        return Err("module base is null".to_string());
+    }
+
+    let root = read_memory_usize(module_base + GLOBAL_ROOT_RVA)?;
+    if root == 0 {
+        return Err("global root is null".to_string());
+    }
+    let owner = read_memory_usize(root + GLOBAL_OWNER_OFFSET)?;
+    if owner == 0 {
+        return Err("global owner is null".to_string());
+    }
+    let state = read_memory_usize(owner + GLOBAL_STATE_OFFSET)?;
+    if state == 0 {
+        return Err("global state is null".to_string());
+    }
+    Ok(state)
+}
+
+fn read_memory_u8(address: usize) -> Result<u8, String> {
+    let mut bytes = [0u8; 1];
+    read_memory_bytes(address, &mut bytes)?;
+    Ok(bytes[0])
+}
+
+fn read_memory_u16(address: usize) -> Result<u16, String> {
+    let mut bytes = [0u8; 2];
+    read_memory_bytes(address, &mut bytes)?;
+    Ok(u16::from_le_bytes(bytes))
+}
+
+fn read_memory_u32(address: usize) -> Result<u32, String> {
+    let mut bytes = [0u8; 4];
+    read_memory_bytes(address, &mut bytes)?;
+    Ok(u32::from_le_bytes(bytes))
+}
+
+fn read_memory_usize(address: usize) -> Result<usize, String> {
+    let mut bytes = [0u8; 8];
+    read_memory_bytes(address, &mut bytes)?;
+    Ok(u64::from_le_bytes(bytes) as usize)
+}
+
+fn read_memory_bytes(address: usize, out: &mut [u8]) -> Result<(), String> {
+    let Some(host) = HOST.get() else {
+        return Err("host unavailable".to_string());
+    };
+    host.memory()
+        .read(address, out)
+        .map_err(|error| format!("read failed address=0x{address:x}: {error}"))
+}
+
 fn log_result_state(result_state: *mut u8) {
     let Some(snapshot) =
         (unsafe { snapshot::ResultStateSnapshot::read(result_state, max_events()) })
@@ -134,8 +209,78 @@ fn log_result_state(result_state: *mut u8) {
         return;
     }
 
-    let _ = host.log().write(PLUGIN_ID, snapshot.format(index + 1));
+    let source = format_rank_source().unwrap_or_else(|error| format!("rank_source={error}"));
+    let _ = host.log().write(
+        PLUGIN_ID,
+        format!("{} {}", snapshot.format(index + 1), source),
+    );
     signals::emit_json(host, signals::RESULT_STATE_SNAPSHOT, &snapshot);
+}
+
+fn format_rank_source() -> Result<String, String> {
+    let global_state = read_global_state()?;
+    let active_player = read_memory_u8(global_state + ACTIVE_PLAYER_OFFSET)?;
+    let mission_id = read_memory_u16(global_state + MISSION_ID_OFFSET)?;
+    let result_mode = read_memory_u8(global_state + RESULT_MODE_OFFSET)?;
+    let reward_mode = read_memory_u8(global_state + RESULT_REWARD_MODE_OFFSET)?;
+    let difficulty = read_memory_u8(global_state + DIFFICULTY_OFFSET)?;
+    let rows = read_rank_rows(global_state)?;
+    let player_scores = read_player_scores(global_state)?;
+
+    Ok(format!(
+        "rank_source=global=0x{global_state:x} active_player={} mission={} difficulty={} result_mode={} reward_mode={} rows={} player_scores={}",
+        active_player,
+        mission_id,
+        difficulty,
+        result_mode,
+        reward_mode,
+        format_rank_rows(&rows),
+        format_player_scores(&player_scores),
+    ))
+}
+
+fn read_rank_rows(global_state: usize) -> Result<[(u16, u16); 4], String> {
+    let mut rows = [(0u16, 0u16); 4];
+    for (index, row) in rows.iter_mut().enumerate() {
+        let base = global_state + RANK_ROW_TABLE_OFFSET + index * RANK_ROW_STRIDE;
+        *row = (read_memory_u16(base)?, read_memory_u16(base + 2)?);
+    }
+    Ok(rows)
+}
+
+fn read_player_scores(global_state: usize) -> Result<[[u32; 3]; 4], String> {
+    let mut scores = [[0u32; 3]; 4];
+    for (player, score) in scores.iter_mut().enumerate() {
+        let base = global_state + player * PLAYER_RESULT_STRIDE + PLAYER_SCORE_OFFSET;
+        *score = [
+            read_memory_u32(base.wrapping_sub(4))?,
+            read_memory_u32(base)?,
+            read_memory_u32(base + 4)?,
+        ];
+    }
+    Ok(scores)
+}
+
+fn format_rank_rows(rows: &[(u16, u16); 4]) -> String {
+    rows.iter()
+        .enumerate()
+        .map(|(index, (rank_row, alt))| format!("p{index}:({rank_row},{alt})"))
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn format_player_scores(scores: &[[u32; 3]; 4]) -> String {
+    scores
+        .iter()
+        .enumerate()
+        .map(|(index, values)| {
+            format!(
+                "p{index}:[-4:{},+0:{},+4:{}]",
+                values[0], values[1], values[2]
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 fn should_log(hash: u64) -> bool {

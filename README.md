@@ -32,14 +32,12 @@ crates/
 official_plugins/
   sdk/
     core/         # builds sdk.dll
-    runtime/      # builds runtime.dll
+    runtime/      # builds runtime.dll; owns sdk.runtime.fx APIs
     debug/        # builds debug.dll
     overlay/      # builds overlay.dll
     linkdata/     # builds linkdata.dll
-    rdb/          # builds rdb.dll
-  skin_patcher/
-  fx_director/
-  moveset_patcher/
+    rdb/          # builds rdb.dll; owns sdk.rdb.patcher APIs
+  moveset_patcher/ # external plugin, packaged as moveset_patcher.dll
 oppw4-data/       # data-only submodule for community-editable character data
 docs/
 ```
@@ -57,13 +55,14 @@ git submodule update --init --recursive
 cargo test --workspace
 ```
 
-Official plugins can be built from this workspace once the loader and SDK
-contract has stabilized.
+The `sdk.rdb.patcher` and `sdk.runtime.fx` Lua APIs are SDK services now: they
+are provided by `plugins/sdk/rdb.dll` and `plugins/sdk/runtime.dll`. The only
+external official plugin currently packaged on its own is `moveset_patcher`.
 
-Validate a plugin manifest:
+Validate an external plugin manifest:
 
 ```powershell
-cargo run -p plugin-manifest-tool -- official_plugins/fx_director/plugin.toml
+cargo run -p plugin-manifest-tool -- official_plugins/moveset_patcher/plugin.toml
 ```
 
 Validate a Lua mod manifest:
@@ -85,10 +84,10 @@ tools/package-sdk.sh
 ```
 
 The package is written under `dist/oppw4-sdk/` with the loader proxy as
-`dinput8.dll`, SDK services in `plugins/sdk/`, official plugins in their own
-plugin folders, and the mandatory data repository under `oppw4-data/`. Active
-mods are not copied into plugin folders; runtime mods belong under the
-game-level `mods/` directory.
+`dinput8.dll`, SDK services in `plugins/sdk/`, the external
+`moveset_patcher` plugin in its own plugin folder, and the mandatory data
+repository under `oppw4-data/`. Active mods are not copied into plugin folders;
+runtime mods belong under the game-level `mods/` directory.
 
 By default the package script also builds the sibling loader workspace at
 `../oppw4-modloader`. Use `LOADER_ROOT=/path/to/oppw4-modloader` on shell or

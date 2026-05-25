@@ -47,8 +47,8 @@ fn run(host: OwnedHostApi, config: FixedDataProbeConfig, interval: Duration) {
         thread::sleep(interval);
         match snapshot::read(&host) {
             Ok(snapshot) => {
-                let periodic =
-                    snapshot_interval.is_some_and(|interval| last_snapshot_at.elapsed() >= interval);
+                let periodic = snapshot_interval
+                    .is_some_and(|interval| last_snapshot_at.elapsed() >= interval);
                 if periodic || last_snapshot.as_ref() != Some(&snapshot) {
                     let _ = host.log().write(PLUGIN_ID, snapshot.format_log());
                     last_snapshot = Some(snapshot);

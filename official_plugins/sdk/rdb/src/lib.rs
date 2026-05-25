@@ -67,6 +67,7 @@ impl Plugin for SdkRdb {
             .seek(dispatch_seek)
             .patch_read(dispatch_patch_read),
         )?;
+        sdk_rdb_patcher::initialize(host)?;
         context.log("sdk.rdb initialized");
         Ok(())
     }

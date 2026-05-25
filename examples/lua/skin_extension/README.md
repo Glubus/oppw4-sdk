@@ -1,8 +1,8 @@
 # Skin Extension Example
 
 Lua mod showing how a plugin can extend `std.character` handles. The
-`skin_patcher` plugin registers `replace_costume` and `replace_portrait` when it
-is required by a mod.
+`sdk.rdb.patcher` SDK module registers `replace_costume` and
+`replace_portrait` when it is required by a mod.
 
 Validate the manifest:
 
@@ -10,5 +10,4 @@ Validate the manifest:
 cargo run -p mod-manifest-tool -- examples/lua/skin_extension/mod.toml
 ```
 
-Install this under `skin_patcher/mods/` so the declared plugin dependency and
-Lua module are available.
+Install this under the game-level `mods/` directory so the SDK can load it.

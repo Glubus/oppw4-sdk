@@ -260,7 +260,7 @@ mod tests {
                 name = "Zoro FX"
 
                 [uses]
-                plugins = ["fx_director"]
+                plugins = ["sdk_runtime"]
 
                 [entry]
                 lua = "mod.lua"
@@ -270,7 +270,7 @@ mod tests {
 
         assert_eq!(manifest.id, "zoro_fx");
         assert_eq!(manifest.name, "Zoro FX");
-        assert_eq!(manifest.uses_plugins, ["fx_director"]);
+        assert_eq!(manifest.uses_plugins, ["sdk_runtime"]);
         assert_eq!(manifest.entry_lua, "mod.lua");
     }
 
@@ -306,13 +306,13 @@ mod tests {
                         id = "aura_zoro_lua"
 
                         [uses]
-                        plugins = ["fx_director"]
+                        plugins = ["sdk_runtime"]
 
                         [entry]
                         lua = "mod.lua"
                     "#,
                 ),
-                ("aura_zoro_lua/mod.lua", r#"require("fx_director")"#),
+                ("aura_zoro_lua/mod.lua", r#"require("sdk.runtime.fx")"#),
             ],
         );
 
@@ -323,7 +323,7 @@ mod tests {
         assert!(mods[0].is_zip());
         assert_eq!(
             mods[0].read_entry_script().expect("script"),
-            r#"require("fx_director")"#
+            r#"require("sdk.runtime.fx")"#
         );
         let _ = fs::remove_dir_all(&root);
     }

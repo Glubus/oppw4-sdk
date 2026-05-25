@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TARGET="${TARGET:-x86_64-pc-windows-gnu}"
+TARGET="${TARGET:-x86_64-pc-windows-msvc}"
 PROFILE="${PROFILE:-release}"
 OUT_DIR="${OUT_DIR:-dist/oppw4-sdk}"
 SKIP_BUILD="${SKIP_BUILD:-0}"
@@ -25,8 +25,6 @@ SDK_PACKAGES=(
   oppw4-sdk-rdb-plugin
 )
 OFFICIAL_PACKAGES=(
-  oppw4-skin-patcher-plugin
-  oppw4-fx-director-plugin
   oppw4-moveset-patcher-plugin
 )
 
@@ -84,7 +82,7 @@ copy_required_file "$TARGET_DIR/linkdata.dll" "$SDK_ROOT/linkdata.dll"
 copy_required_file "$TARGET_DIR/rdb.dll" "$SDK_ROOT/rdb.dll"
 copy_required_file "$ROOT/official_plugins/sdk/core/plugin.toml" "$SDK_ROOT/plugin.toml"
 
-for plugin in skin_patcher fx_director moveset_patcher; do
+for plugin in moveset_patcher; do
   plugin_root="$PLUGINS_ROOT/$plugin"
   source_root="$ROOT/official_plugins/$plugin"
   mkdir -p "$plugin_root"

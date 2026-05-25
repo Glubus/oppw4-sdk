@@ -1,16 +1,65 @@
-use super::fields::{set_bool, set_u64_min, set_usize_range, u32_values};
+use super::fields::{set_bool, set_u64_min, set_usize_range, u16_values, u32_array, u32_values};
 use crate::config::RuntimeConfig;
 
 pub(super) fn parse_all(value: &toml::Value, config: &mut RuntimeConfig) {
     parse_difficulty_probe(value, config);
+    parse_entity_counter_probe(value, config);
     parse_fixed_data_probe(value, config);
+    parse_spawn_scaling_probe(value, config);
+    parse_damage_formula_probe(value, config);
+    parse_rank_runtime(value, config);
     parse_player_result_probe(value, config);
     parse_result_probe(value, config);
     parse_rank_threshold_probe(value, config);
+    parse_rank_helper_probe(value, config);
     parse_reward_probe(value, config);
     parse_item_reward_probe(value, config);
     parse_result_state_probe(value, config);
     parse_value_probe(value, config);
+}
+
+fn parse_damage_formula_probe(value: &toml::Value, config: &mut RuntimeConfig) {
+    let Some(probe) = value.get("damage_formula_probe") else {
+        return;
+    };
+    set_bool(probe, "enabled", &mut config.damage_formula_probe.enabled);
+    set_usize_range(
+        probe,
+        "max_logs",
+        1,
+        4096,
+        &mut config.damage_formula_probe.max_logs,
+    );
+}
+
+fn parse_entity_counter_probe(value: &toml::Value, config: &mut RuntimeConfig) {
+    let Some(probe) = value.get("entity_counter_probe") else {
+        return;
+    };
+    set_bool(probe, "enabled", &mut config.entity_counter_probe.enabled);
+    set_u64_min(
+        probe,
+        "interval_ms",
+        250,
+        &mut config.entity_counter_probe.interval_ms,
+    );
+    set_usize_range(
+        probe,
+        "scan_bytes",
+        4096,
+        0x100000,
+        &mut config.entity_counter_probe.scan_bytes,
+    );
+    if let Some(value) = probe.get("max_value").and_then(toml::Value::as_integer) {
+        config.entity_counter_probe.max_value = (value.max(1) as u32).min(1_000_000);
+    }
+    set_usize_range(
+        probe,
+        "max_changes",
+        1,
+        512,
+        &mut config.entity_counter_probe.max_changes,
+    );
 }
 
 fn parse_difficulty_probe(value: &toml::Value, config: &mut RuntimeConfig) {
@@ -35,6 +84,77 @@ fn parse_difficulty_probe(value: &toml::Value, config: &mut RuntimeConfig) {
         0,
         &mut config.difficulty_probe.snapshot_interval_ms,
     );
+}
+
+fn parse_spawn_scaling_probe(value: &toml::Value, config: &mut RuntimeConfig) {
+    let Some(probe) = value.get("spawn_scaling_probe") else {
+        return;
+    };
+    set_bool(probe, "enabled", &mut config.spawn_scaling_probe.enabled);
+    set_u64_min(
+        probe,
+        "interval_ms",
+        250,
+        &mut config.spawn_scaling_probe.interval_ms,
+    );
+    set_u64_min(
+        probe,
+        "snapshot_interval_ms",
+        0,
+        &mut config.spawn_scaling_probe.snapshot_interval_ms,
+    );
+    set_usize_range(
+        probe,
+        "max_candidates",
+        1,
+        40,
+        &mut config.spawn_scaling_probe.max_candidates,
+    );
+}
+
+fn parse_rank_runtime(value: &toml::Value, config: &mut RuntimeConfig) {
+    let Some(runtime) = value.get("rank_runtime") else {
+        return;
+    };
+    set_bool(
+        runtime,
+        "easy_s_rankable",
+        &mut config.rank_runtime.easy_s_rankable,
+    );
+    set_bool(
+        runtime,
+        "shift_count_thresholds",
+        &mut config.rank_runtime.shift_count_thresholds,
+    );
+    if let Some(value) = runtime
+        .get("shift_count_row_offset")
+        .and_then(toml::Value::as_integer)
+        .and_then(|value| usize::try_from(value).ok())
+    {
+        config.rank_runtime.shift_count_row_offset = Some(value.min(0x10_0000));
+    }
+    if let Some(row_ids) = u16_values(runtime, "shift_count_rank_row_ids") {
+        config.rank_runtime.shift_count_rank_row_ids = row_ids;
+    }
+    if let Some(prefix) = u32_array::<3>(runtime, "shift_count_source_prefix", 1_000_000) {
+        config.rank_runtime.shift_count_source_prefix = prefix;
+    }
+    if let Some(value) = runtime
+        .get("shift_count_inserted_first")
+        .and_then(toml::Value::as_integer)
+    {
+        config.rank_runtime.shift_count_inserted_first = (value.max(0) as u32).min(1_000_000);
+    }
+    if let Some(value) = runtime
+        .get("shift_count_inserted_second")
+        .and_then(toml::Value::as_integer)
+    {
+        config.rank_runtime.shift_count_inserted_second =
+            Some((value.max(0) as u32).min(1_000_000));
+    }
+    if let Some(thresholds) = u32_array::<5>(runtime, "count_threshold_override", 1_000_000) {
+        config.rank_runtime.count_threshold_override = Some(thresholds);
+    }
 }
 
 fn parse_fixed_data_probe(value: &toml::Value, config: &mut RuntimeConfig) {
@@ -118,6 +238,35 @@ fn parse_rank_threshold_probe(value: &toml::Value, config: &mut RuntimeConfig) {
         "snapshot_interval_ms",
         0,
         &mut config.rank_threshold_probe.snapshot_interval_ms,
+    );
+}
+
+fn parse_rank_helper_probe(value: &toml::Value, config: &mut RuntimeConfig) {
+    let Some(probe) = value.get("rank_helper_probe") else {
+        return;
+    };
+    set_bool(probe, "enabled", &mut config.rank_helper_probe.enabled);
+    set_bool(
+        probe,
+        "count_enabled",
+        &mut config.rank_helper_probe.count_enabled,
+    );
+    set_bool(
+        probe,
+        "merge_enabled",
+        &mut config.rank_helper_probe.merge_enabled,
+    );
+    set_bool(
+        probe,
+        "callsite_enabled",
+        &mut config.rank_helper_probe.callsite_enabled,
+    );
+    set_usize_range(
+        probe,
+        "max_logs",
+        1,
+        4096,
+        &mut config.rank_helper_probe.max_logs,
     );
 }
 

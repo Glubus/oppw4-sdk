@@ -17,17 +17,109 @@ impl Default for DifficultyProbeConfig {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) struct RuntimeConfig {
     pub(crate) difficulty_probe: DifficultyProbeConfig,
+    pub(crate) entity_counter_probe: EntityCounterProbeConfig,
     pub(crate) fixed_data_probe: FixedDataProbeConfig,
+    pub(crate) spawn_scaling_probe: SpawnScalingProbeConfig,
+    pub(crate) damage_formula_probe: DamageFormulaProbeConfig,
+    pub(crate) rank_runtime: RankRuntimeConfig,
     pub(crate) player_result_probe: PlayerResultProbeConfig,
     pub(crate) result_probe: ResultProbeConfig,
     pub(crate) rank_threshold_probe: RankThresholdProbeConfig,
+    pub(crate) rank_helper_probe: RankHelperProbeConfig,
     pub(crate) reward_probe: RewardProbeConfig,
     pub(crate) item_reward_probe: ItemRewardProbeConfig,
     pub(crate) result_state_probe: ResultStateProbeConfig,
     pub(crate) value_probe: ValueProbeConfig,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct EntityCounterProbeConfig {
+    pub(crate) enabled: bool,
+    pub(crate) interval_ms: u64,
+    pub(crate) scan_bytes: usize,
+    pub(crate) max_value: u32,
+    pub(crate) max_changes: usize,
+}
+
+impl Default for EntityCounterProbeConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            interval_ms: 500,
+            scan_bytes: 0x30000,
+            max_value: 5000,
+            max_changes: 48,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct DamageFormulaProbeConfig {
+    pub(crate) enabled: bool,
+    pub(crate) max_logs: usize,
+}
+
+impl Default for DamageFormulaProbeConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            max_logs: 128,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct RankRuntimeConfig {
+    pub(crate) easy_s_rankable: bool,
+    pub(crate) shift_count_thresholds: bool,
+    pub(crate) shift_count_row_offset: Option<usize>,
+    pub(crate) shift_count_rank_row_ids: Vec<u16>,
+    pub(crate) shift_count_source_prefix: [u32; 3],
+    pub(crate) shift_count_inserted_first: u32,
+    pub(crate) shift_count_inserted_second: Option<u32>,
+    pub(crate) count_threshold_override: Option<[u32; 5]>,
+}
+
+impl RankRuntimeConfig {
+    pub(crate) const DEFAULT_SHIFT_COUNT_SOURCE_PREFIX: [u32; 3] = [60_000, 60_000, 48_000];
+    pub(crate) const DEFAULT_SHIFT_COUNT_INSERTED_FIRST: u32 = 72_000;
+}
+
+impl Default for RankRuntimeConfig {
+    fn default() -> Self {
+        Self {
+            easy_s_rankable: false,
+            shift_count_thresholds: false,
+            shift_count_row_offset: None,
+            shift_count_rank_row_ids: Vec::new(),
+            shift_count_source_prefix: Self::DEFAULT_SHIFT_COUNT_SOURCE_PREFIX,
+            shift_count_inserted_first: Self::DEFAULT_SHIFT_COUNT_INSERTED_FIRST,
+            shift_count_inserted_second: None,
+            count_threshold_override: None,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct SpawnScalingProbeConfig {
+    pub(crate) enabled: bool,
+    pub(crate) interval_ms: u64,
+    pub(crate) snapshot_interval_ms: u64,
+    pub(crate) max_candidates: usize,
+}
+
+impl Default for SpawnScalingProbeConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            interval_ms: 1000,
+            snapshot_interval_ms: 10000,
+            max_candidates: 40,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -96,6 +188,27 @@ impl Default for RankThresholdProbeConfig {
             enabled: true,
             interval_ms: 1000,
             snapshot_interval_ms: 1000,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct RankHelperProbeConfig {
+    pub(crate) enabled: bool,
+    pub(crate) count_enabled: bool,
+    pub(crate) merge_enabled: bool,
+    pub(crate) callsite_enabled: bool,
+    pub(crate) max_logs: usize,
+}
+
+impl Default for RankHelperProbeConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            count_enabled: false,
+            merge_enabled: false,
+            callsite_enabled: false,
+            max_logs: 256,
         }
     }
 }

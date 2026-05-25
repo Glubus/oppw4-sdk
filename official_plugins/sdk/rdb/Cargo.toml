@@ -10,3 +10,4 @@ name = "rdb"
 
 [dependencies]
 plugin-sdk.workspace = true
+sdk-rdb-patcher = { path = "patcher" }

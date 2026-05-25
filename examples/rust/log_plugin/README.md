@@ -9,10 +9,10 @@ Validate the manifest:
 cargo run -p plugin-manifest-tool -- examples/rust/log_plugin/plugin.toml
 ```
 
-Build for the Windows GNU target:
+Build with the default Windows MSVC toolchain:
 
 ```sh
-cargo build -p oppw4-log-example-plugin --target x86_64-pc-windows-gnu
+cargo build -p oppw4-log-example-plugin
 ```
 
 Copy `log_example.dll` and `plugin.toml` into a plugin folder to try it in-game.

@@ -1,5 +1,5 @@
 param(
-    [string]$Target = "x86_64-pc-windows-gnu",
+    [string]$Target = "x86_64-pc-windows-msvc",
     [ValidateSet("debug", "release")]
     [string]$Profile = "release",
     [string]$OutDir = "dist/oppw4-sdk",
@@ -31,8 +31,6 @@ $sdkPackages = @(
     "oppw4-sdk-rdb-plugin"
 )
 $officialPackages = @(
-    "oppw4-skin-patcher-plugin",
-    "oppw4-fx-director-plugin",
     "oppw4-moveset-patcher-plugin"
 )
 
@@ -45,8 +43,6 @@ $sdkDlls = @(
     @{ Name = "rdb"; File = "rdb.dll" }
 )
 $officialPlugins = @(
-    @{ Id = "skin_patcher"; File = "skin_patcher.dll"; Source = "official_plugins/skin_patcher" },
-    @{ Id = "fx_director"; File = "fx_director.dll"; Source = "official_plugins/fx_director" },
     @{ Id = "moveset_patcher"; File = "moveset_patcher.dll"; Source = "official_plugins/moveset_patcher" }
 )
 

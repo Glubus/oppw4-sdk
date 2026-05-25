@@ -11,6 +11,7 @@ const SDK_SERVICES_DIR: &str = "sdk";
 struct SdkService {
     id: &'static str,
     dll: &'static str,
+    lua_modules: &'static [&'static str],
     requires: &'static [&'static str],
     provides: &'static [&'static str],
 }
@@ -35,25 +36,66 @@ const SDK_SERVICES: &[SdkService] = &[
     SdkService {
         id: "sdk_runtime",
         dll: "runtime.dll",
+        lua_modules: &["sdk.runtime.fx"],
         requires: &[
+            "plugin.host",
             "config.schema",
+            "lua.module",
+            "hooks.install",
             "memory.read",
             "memory.scan",
             "memory.write",
+            "std.character.extend",
+            "signals.emit",
         ],
-        provides: &["game.runtime", "game.active_character", "game.status"],
+        provides: &[
+            "game.runtime",
+            "game.active_character",
+            "game.status",
+            "game.mission.difficulty",
+            "game.mission.ranks",
+            "game.mission.rewards",
+            "runtime.fx",
+            "std.character.extend",
+        ],
+    },
+    SdkService {
+        id: "sdk_debug",
+        dll: "debug.dll",
+        lua_modules: &[],
+        requires: &[
+            "plugin.host",
+            "config.schema",
+            "memory.read",
+            "signals.emit",
+        ],
+        provides: &["debug.memory"],
+    },
+    SdkService {
+        id: "sdk_overlay",
+        dll: "overlay.dll",
+        lua_modules: &[],
+        requires: &["plugin.host", "config.schema", "signals.subscribe"],
+        provides: &["ui.overlay"],
     },
     SdkService {
         id: "sdk_linkdata",
         dll: "linkdata.dll",
-        requires: &["files.virtualize"],
+        lua_modules: &[],
+        requires: &["plugin.host", "files.virtualize"],
         provides: &["linkdata.read", "linkdata.patch"],
     },
     SdkService {
         id: "sdk_rdb",
         dll: "rdb.dll",
-        requires: &["files.virtualize"],
-        provides: &["rdb.read", "rdb.patch"],
+        lua_modules: &["sdk.rdb.patcher"],
+        requires: &[
+            "plugin.host",
+            "files.virtualize",
+            "lua.module",
+            "std.character.extend",
+        ],
+        provides: &["rdb.read", "rdb.patch", "rdb.skin", "std.character.extend"],
     },
 ];
 
@@ -217,6 +259,7 @@ fn sdk_service_manifest(sdk_root: &Path, service: SdkService) -> Option<PluginMa
         service.id,
         service.dll,
         sdk_root,
+        service.lua_modules,
         service.requires,
         service.provides,
     ))
@@ -292,7 +335,10 @@ mod tests {
         let sdk_root = root.join("sdk");
         fs::create_dir_all(&sdk_root).expect("sdk dir");
         fs::write(sdk_root.join("runtime.dll"), []).expect("runtime dll");
+        fs::write(sdk_root.join("debug.dll"), []).expect("debug dll");
+        fs::write(sdk_root.join("overlay.dll"), []).expect("overlay dll");
         fs::write(sdk_root.join("linkdata.dll"), []).expect("linkdata dll");
+        fs::write(sdk_root.join("rdb.dll"), []).expect("rdb dll");
 
         let manifests = sdk_service_manifests(&root);
 
@@ -301,14 +347,22 @@ mod tests {
                 .iter()
                 .map(|manifest| manifest.id.as_str())
                 .collect::<Vec<_>>(),
-            ["sdk_runtime", "sdk_linkdata"]
+            [
+                "sdk_runtime",
+                "sdk_debug",
+                "sdk_overlay",
+                "sdk_linkdata",
+                "sdk_rdb"
+            ]
         );
         assert_eq!(manifests[0].entry_path, sdk_root.join("runtime.dll"));
         assert!(manifests[0]
             .capabilities_required
             .iter()
             .any(|capability| capability == "config.schema"));
-        assert_eq!(manifests[1].entry_path, sdk_root.join("linkdata.dll"));
+        assert_eq!(manifests[0].lua_modules, ["sdk.runtime.fx"]);
+        assert_eq!(manifests[3].entry_path, sdk_root.join("linkdata.dll"));
+        assert_eq!(manifests[4].lua_modules, ["sdk.rdb.patcher"]);
         let _ = fs::remove_dir_all(root);
     }
 

@@ -18,6 +18,12 @@ pub(crate) fn read_u32(host: &OwnedHostApi, address: usize, label: &str) -> Resu
     Ok(u32::from_le_bytes(bytes))
 }
 
+pub(crate) fn read_f32(host: &OwnedHostApi, address: usize, label: &str) -> Result<f32, String> {
+    let mut bytes = [0u8; 4];
+    read_exact(host, address, &mut bytes, label)?;
+    Ok(f32::from_le_bytes(bytes))
+}
+
 pub(crate) fn read_usize(
     host: &OwnedHostApi,
     address: usize,

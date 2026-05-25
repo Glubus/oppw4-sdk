@@ -72,6 +72,11 @@ fn read_active_character(out: &mut Oppw4ActiveCharacter) -> i32 {
     unsafe { (provider.callback)(provider.context as *mut c_void, out) }
 }
 
+pub(crate) fn active_character_snapshot() -> Option<Oppw4ActiveCharacter> {
+    let mut active = Oppw4ActiveCharacter::default();
+    (read_active_character(&mut active) == 0).then_some(active)
+}
+
 fn debug_enabled() -> i32 {
     debug::enabled() as i32
 }

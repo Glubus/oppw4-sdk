@@ -3,7 +3,10 @@ mod patching;
 mod rip;
 mod writes;
 
-pub use jumps::{emit_abs_jmp, emit_jbe, emit_jmp, emit_jne, emit_jz};
+pub use jumps::{
+    emit_abs_jmp, emit_abs_jmp_preserve_rax, emit_abs_jmp_r11, emit_jbe, emit_jmp, emit_jne,
+    emit_jz, emit_mov_r9_rsp_deref,
+};
 pub use patching::{patch_disp32_vec, patch_rel32_vec, rel32, write_rel32_jump, Rel32Patch};
 pub use rip::{
     emit_cmp_edx_rip, emit_cmp_rip_u32, emit_inc_rip_u32, emit_movss_rip_xmm0, emit_movss_rip_xmm2,

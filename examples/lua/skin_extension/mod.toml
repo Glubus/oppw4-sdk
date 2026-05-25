@@ -3,7 +3,7 @@ id = "skin_extension_example"
 name = "Skin Extension Example"
 
 [uses]
-plugins = ["skin_patcher"]
+plugins = ["sdk_rdb"]
 
 [entry]
 lua = "mod.lua"

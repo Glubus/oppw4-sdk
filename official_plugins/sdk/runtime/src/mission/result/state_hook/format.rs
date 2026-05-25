@@ -2,17 +2,20 @@ use std::fmt::Write;
 
 use super::snapshot::{
     ResultStateSnapshot, CREW_POINT_BLOCK_OFFSET, CREW_UNLOCK_WORDS, EVENT_WORDS,
+    RESULT_REWARD_BLOCK_OFFSET, RESULT_SCORE_BLOCK_OFFSET,
 };
 
 impl ResultStateSnapshot {
     pub(super) fn format(&self, call: usize) -> String {
         format!(
-            "result_state_probe call={call} ptr=0x{:x} state={} mission={} rank_fields=[{}] flags=0x{:x} result_copy=[{}] crew_points=[{}] crew_points_named={} source_rewards=[{}] soul_counter={} character_rewards=[{}] character_totals=[{}] crew_unlock_count={} crew_unlocks={} event_count={} events={}",
+            "result_state_probe call={call} ptr=0x{:x} state={} mission={} rank_fields=[{}] flags=0x{:x} result_score_named={} result_reward_named={} result_copy=[{}] crew_points=[{}] crew_points_named={} source_rewards=[{}] soul_counter={} character_rewards=[{}] character_totals=[{}] crew_unlock_count={} crew_unlocks={} event_count={} events={}",
             self.address,
             self.state,
             self.mission_id,
             format_array(&self.difficulty_or_rank),
             self.unlock_flags,
+            format_offset_block(&self.result_score, RESULT_SCORE_BLOCK_OFFSET),
+            format_offset_block(&self.result_reward, RESULT_REWARD_BLOCK_OFFSET),
             format_array(&self.result_copy),
             format_array(&self.crew_points),
             format_offset_block(&self.crew_points, CREW_POINT_BLOCK_OFFSET),

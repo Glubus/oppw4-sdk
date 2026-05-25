@@ -7,7 +7,7 @@ use crate::runtime::register_module;
 fn required_plugin_can_extend_character_handles_once() {
     let lua = Lua::new();
     crate::runtime::install_runtime(&lua).expect("runtime");
-    authorize_extension_owner(&lua, "skin_patcher").expect("authorize");
+    authorize_extension_owner(&lua, "sdk.rdb.patcher").expect("authorize");
     let patcher = lua.create_table().expect("patcher");
     patcher
         .set(
@@ -18,12 +18,12 @@ fn required_plugin_can_extend_character_handles_once() {
                     lua.create_function(|_, (_this, slot, file): (Table, u16, String)| {
                         Ok(format!("{slot}:{file}"))
                     })?;
-                register.call::<()>(("skin_patcher", "replace_costume", method))
+                register.call::<()>(("sdk.rdb.patcher", "replace_costume", method))
             })
             .expect("on import"),
         )
         .expect("hook");
-    register_module(&lua, "skin_patcher", patcher).expect("module");
+    register_module(&lua, "sdk.rdb.patcher", patcher).expect("module");
 
     let before: bool = lua
         .load(
@@ -39,7 +39,7 @@ fn required_plugin_can_extend_character_handles_once() {
     let value: String = lua
         .load(
             r#"
-            require("skin_patcher")
+            require("sdk.rdb.patcher")
             local law = character.find("law")
             return law:replace_costume(3, "my_model.g1m")
             "#,
@@ -147,7 +147,7 @@ fn character_unsafe_find_preserves_requested_id_kind() {
 fn character_new_creates_custom_handles_with_plugin_methods() {
     let lua = Lua::new();
     crate::runtime::install_runtime(&lua).expect("runtime");
-    authorize_extension_owner(&lua, "fx_director").expect("authorize");
+    authorize_extension_owner(&lua, "sdk.runtime.fx").expect("authorize");
     let patcher = lua.create_table().expect("patcher");
     patcher
         .set(
@@ -157,17 +157,17 @@ fn character_new_creates_custom_handles_with_plugin_methods() {
                 let method = lua.create_function(|_, (_this, effect): (Table, u16)| {
                     Ok(format!("fx:{effect}"))
                 })?;
-                register.call::<()>(("fx_director", "add_fx", method))
+                register.call::<()>(("sdk.runtime.fx", "add_fx", method))
             })
             .expect("on import"),
         )
         .expect("hook");
-    register_module(&lua, "fx_director", patcher).expect("module");
+    register_module(&lua, "sdk.runtime.fx", patcher).expect("module");
 
     let value: String = lua
         .load(
             r#"
-            require("fx_director")
+            require("sdk.runtime.fx")
             local custom = character.new({
                 name = "my_custom_zoro",
                 runtime_id = 730,
@@ -186,7 +186,7 @@ fn character_new_creates_custom_handles_with_plugin_methods() {
 fn character_extension_method_conflicts_fail_loudly() {
     let lua = Lua::new();
     crate::runtime::install_runtime(&lua).expect("runtime");
-    authorize_extension_owner(&lua, "skin_patcher").expect("authorize skin");
+    authorize_extension_owner(&lua, "sdk.rdb.patcher").expect("authorize skin");
     authorize_extension_owner(&lua, "other_plugin").expect("authorize other");
 
     let register: Function = lua
@@ -197,7 +197,7 @@ fn character_extension_method_conflicts_fail_loudly() {
     let second = lua.create_function(|_, ()| Ok(())).expect("second");
 
     register
-        .call::<()>(("skin_patcher", "replace_costume", first))
+        .call::<()>(("sdk.rdb.patcher", "replace_costume", first))
         .expect("first register");
     let error = register
         .call::<()>(("other_plugin", "replace_costume", second))
@@ -205,7 +205,7 @@ fn character_extension_method_conflicts_fail_loudly() {
 
     assert!(error
         .to_string()
-        .contains("already registered by skin_patcher"));
+        .contains("already registered by sdk.rdb.patcher"));
 }
 
 #[test]
@@ -219,7 +219,7 @@ fn character_extension_requires_authorized_owner() {
         .expect("register");
     let method = lua.create_function(|_, ()| Ok(())).expect("method");
     let error = register
-        .call::<()>(("skin_patcher", "replace_costume", method))
+        .call::<()>(("sdk.rdb.patcher", "replace_costume", method))
         .expect_err("unauthorized extension");
 
     assert!(error.to_string().contains("missing std.character.extend"));

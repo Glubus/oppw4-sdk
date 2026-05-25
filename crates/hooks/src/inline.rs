@@ -55,6 +55,29 @@ impl ScannedHookBuilder {
     }
 
     pub unsafe fn install_abs_jump(self, detour: usize) -> Result<InlineHook, String> {
+        self.install_abs_jump_with_options(detour, TrampolineJump::ClobberRax)
+    }
+
+    pub unsafe fn install_abs_jump_preserve_rax(self, detour: usize) -> Result<InlineHook, String> {
+        self.install_abs_jump_with_options(detour, TrampolineJump::PreserveRax)
+    }
+
+    pub unsafe fn install_abs_jump_with_return_address(
+        self,
+        detour: usize,
+    ) -> Result<InlineHook, String> {
+        let mut entry = Vec::with_capacity(17);
+        asm::emit_mov_r9_rsp_deref(&mut entry);
+        asm::emit_abs_jmp_r11(&mut entry, detour);
+        let entry = allocate_executable(&entry)?;
+        self.install_abs_jump_with_options(entry, TrampolineJump::PreserveRax)
+    }
+
+    unsafe fn install_abs_jump_with_options(
+        self,
+        detour: usize,
+        trampoline_jump: TrampolineJump,
+    ) -> Result<InlineHook, String> {
         if self.overwrite_len < 12 {
             return Err(format!(
                 "hook {} overwrite_len={} cannot fit absolute jump",
@@ -63,7 +86,7 @@ impl ScannedHookBuilder {
         }
         let original = read_original(self.site, self.overwrite_len)?;
         let mut trampoline_code = original;
-        asm::emit_abs_jmp(&mut trampoline_code, self.site + self.overwrite_len);
+        trampoline_jump.emit(&mut trampoline_code, self.site + self.overwrite_len);
         let trampoline = allocate_executable(&trampoline_code)?;
 
         let mut patch = Vec::with_capacity(self.overwrite_len);
@@ -88,6 +111,21 @@ impl ScannedHookBuilder {
         let mut patch = vec![0x90; self.overwrite_len];
         asm::write_rel32_jump(&mut patch, self.site, 5, cave)?;
         write_patch(self.site, &patch)
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+enum TrampolineJump {
+    ClobberRax,
+    PreserveRax,
+}
+
+impl TrampolineJump {
+    fn emit(self, code: &mut Vec<u8>, target: usize) {
+        match self {
+            Self::ClobberRax => asm::emit_abs_jmp(code, target),
+            Self::PreserveRax => asm::emit_abs_jmp_preserve_rax(code, target),
+        }
     }
 }
 

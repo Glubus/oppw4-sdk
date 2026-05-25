@@ -14,10 +14,37 @@ fn parses_probe_config() {
         dump_reward_row = false
         snapshot_interval_ms = 5000
 
+        [entity_counter_probe]
+        enabled = true
+        interval_ms = 10
+        scan_bytes = 99999999
+        max_value = 99999999
+        max_changes = 999
+
         [fixed_data_probe]
         enabled = false
         interval_ms = 10
         snapshot_interval_ms = 4000
+
+        [spawn_scaling_probe]
+        enabled = false
+        interval_ms = 10
+        snapshot_interval_ms = 6000
+        max_candidates = 999
+
+        [damage_formula_probe]
+        enabled = true
+        max_logs = 99999
+
+        [rank_runtime]
+        easy_s_rankable = true
+        shift_count_thresholds = true
+        shift_count_row_offset = 1234
+        shift_count_rank_row_ids = [35, 77]
+        shift_count_source_prefix = [60000, 60000, 48000]
+        shift_count_inserted_first = 72000
+        shift_count_inserted_second = 73000
+        count_threshold_override = [2000, 1200, 1200, 1050, 750]
 
         [player_result_probe]
         enabled = false
@@ -34,6 +61,13 @@ fn parses_probe_config() {
         enabled = false
         interval_ms = 10
         snapshot_interval_ms = 3000
+
+        [rank_helper_probe]
+        enabled = true
+        count_enabled = true
+        merge_enabled = true
+        callsite_enabled = true
+        max_logs = 99999
 
         [reward_probe]
         enabled = false
@@ -63,9 +97,37 @@ fn parses_probe_config() {
     assert_eq!(config.difficulty_probe.interval_ms, 50);
     assert!(!config.difficulty_probe.dump_reward_row);
     assert_eq!(config.difficulty_probe.snapshot_interval_ms, 5000);
+    assert!(config.entity_counter_probe.enabled);
+    assert_eq!(config.entity_counter_probe.interval_ms, 250);
+    assert_eq!(config.entity_counter_probe.scan_bytes, 0x100000);
+    assert_eq!(config.entity_counter_probe.max_value, 1_000_000);
+    assert_eq!(config.entity_counter_probe.max_changes, 512);
     assert!(!config.fixed_data_probe.enabled);
     assert_eq!(config.fixed_data_probe.interval_ms, 250);
     assert_eq!(config.fixed_data_probe.snapshot_interval_ms, 4000);
+    assert!(!config.spawn_scaling_probe.enabled);
+    assert_eq!(config.spawn_scaling_probe.interval_ms, 250);
+    assert_eq!(config.spawn_scaling_probe.snapshot_interval_ms, 6000);
+    assert_eq!(config.spawn_scaling_probe.max_candidates, 40);
+    assert!(config.damage_formula_probe.enabled);
+    assert_eq!(config.damage_formula_probe.max_logs, 4096);
+    assert!(config.rank_runtime.easy_s_rankable);
+    assert!(config.rank_runtime.shift_count_thresholds);
+    assert_eq!(config.rank_runtime.shift_count_row_offset, Some(1234));
+    assert_eq!(config.rank_runtime.shift_count_rank_row_ids, vec![35, 77]);
+    assert_eq!(
+        config.rank_runtime.shift_count_source_prefix,
+        [60_000, 60_000, 48_000]
+    );
+    assert_eq!(config.rank_runtime.shift_count_inserted_first, 72_000);
+    assert_eq!(
+        config.rank_runtime.shift_count_inserted_second,
+        Some(73_000)
+    );
+    assert_eq!(
+        config.rank_runtime.count_threshold_override,
+        Some([2000, 1200, 1200, 1050, 750])
+    );
     assert!(!config.player_result_probe.enabled);
     assert_eq!(config.player_result_probe.interval_ms, 250);
     assert_eq!(config.player_result_probe.snapshot_interval_ms, 2000);
@@ -76,6 +138,11 @@ fn parses_probe_config() {
     assert!(!config.rank_threshold_probe.enabled);
     assert_eq!(config.rank_threshold_probe.interval_ms, 250);
     assert_eq!(config.rank_threshold_probe.snapshot_interval_ms, 3000);
+    assert!(config.rank_helper_probe.enabled);
+    assert!(config.rank_helper_probe.count_enabled);
+    assert!(config.rank_helper_probe.merge_enabled);
+    assert!(config.rank_helper_probe.callsite_enabled);
+    assert_eq!(config.rank_helper_probe.max_logs, 4096);
     assert!(!config.reward_probe.enabled);
     assert_eq!(config.reward_probe.max_logs, 4096);
     assert!(!config.item_reward_probe.enabled);

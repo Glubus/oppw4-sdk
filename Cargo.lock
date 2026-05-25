@@ -306,19 +306,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
-name = "oppw4-fx-director-plugin"
-version = "0.1.0"
-dependencies = [
- "asm",
- "lua-api",
- "mlua",
- "plugin-sdk",
- "struct-api",
- "toml",
- "zip",
-]
-
-[[package]]
 name = "oppw4-log-example-plugin"
 version = "0.1.0"
 dependencies = [
@@ -377,6 +364,7 @@ name = "oppw4-sdk-rdb-plugin"
 version = "0.1.0"
 dependencies = [
  "plugin-sdk",
+ "sdk-rdb-patcher",
 ]
 
 [[package]]
@@ -385,21 +373,13 @@ version = "0.1.0"
 dependencies = [
  "asm",
  "hooks",
- "plugin-sdk",
- "serde",
- "serde_json",
- "toml",
-]
-
-[[package]]
-name = "oppw4-skin-patcher-plugin"
-version = "0.1.0"
-dependencies = [
  "lua-api",
  "mlua",
  "plugin-sdk",
- "rdb",
- "zip",
+ "serde",
+ "serde_json",
+ "struct-api",
+ "toml",
 ]
 
 [[package]]
@@ -543,6 +523,17 @@ name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
+
+[[package]]
+name = "sdk-rdb-patcher"
+version = "0.1.0"
+dependencies = [
+ "lua-api",
+ "mlua",
+ "plugin-sdk",
+ "rdb",
+ "zip",
+]
 
 [[package]]
 name = "serde"

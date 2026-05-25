@@ -233,15 +233,15 @@ mod tests {
         let descriptor = PluginDescriptor::parse_toml(
             r#"
                 [plugin]
-                id = "fx_director"
+                id = "example_plugin"
                 version = "0.2.0"
-                entry = "fx_director.dll"
+                entry = "example_plugin.dll"
 
                 [dependencies]
-                plugins = ["skin_patcher"]
+                plugins = ["sdk_runtime"]
 
                 [lua]
-                modules = ["fx_director"]
+                modules = ["example_plugin"]
 
                 [capabilities]
                 requires = ["lua.module", "hooks.install"]
@@ -253,11 +253,11 @@ mod tests {
         assert_eq!(
             descriptor,
             PluginDescriptor {
-                id: "fx_director".to_string(),
+                id: "example_plugin".to_string(),
                 version: "0.2.0".to_string(),
-                entry: "fx_director.dll".to_string(),
-                dependencies: vec!["skin_patcher".to_string()],
-                lua_modules: vec!["fx_director".to_string()],
+                entry: "example_plugin.dll".to_string(),
+                dependencies: vec!["sdk_runtime".to_string()],
+                lua_modules: vec!["example_plugin".to_string()],
                 capabilities_required: vec!["lua.module".to_string(), "hooks.install".to_string()],
                 capabilities_provided: vec!["std.character.extend".to_string()],
             }
@@ -329,9 +329,9 @@ mod tests {
         let descriptor = PluginDescriptor::parse_toml(
             r#"
                 [plugin]
-                id = "fx_director"
+                id = "example_plugin"
                 version = "0.2.0"
-                entry = "fx_director.dll"
+                entry = "example_plugin.dll"
 
                 [capabilities]
                 requires = [" Lua.Module ", "HOOKS.INSTALL"]
@@ -352,15 +352,15 @@ mod tests {
         let descriptor = PluginDescriptor::parse_toml(
             r#"
                 [plugin]
-                id = "fx_director"
+                id = "example_plugin"
                 version = "0.2.0"
-                entry = "fx_director.dll"
+                entry = "example_plugin.dll"
 
                 [dependencies]
-                plugins = ["Skin Patcher", "skin_patcher"]
+                plugins = ["SDK Runtime", "sdk_runtime"]
 
                 [lua]
-                modules = ["FX_Director", "fx_director"]
+                modules = ["Example_Plugin", "example_plugin"]
 
                 [capabilities]
                 requires = [" Lua.Module ", "lua.module", "Memory.Scan"]
@@ -369,8 +369,8 @@ mod tests {
         )
         .expect("descriptor");
 
-        assert_eq!(descriptor.dependencies, ["Skin_Patcher"]);
-        assert_eq!(descriptor.lua_modules, ["fx_director"]);
+        assert_eq!(descriptor.dependencies, ["SDK_Runtime"]);
+        assert_eq!(descriptor.lua_modules, ["example_plugin"]);
         assert_eq!(
             descriptor.capabilities_required,
             ["lua.module", "memory.scan"]
@@ -381,13 +381,13 @@ mod tests {
     #[test]
     fn default_manifest_uses_folder_name_and_entry() {
         let descriptor =
-            PluginDescriptor::default_for_folder("fx director", "fx_director.dll").unwrap();
+            PluginDescriptor::default_for_folder("example plugin", "example_plugin.dll").unwrap();
 
-        assert_eq!(descriptor.id, "fx_director");
+        assert_eq!(descriptor.id, "example_plugin");
         assert_eq!(descriptor.version, DEFAULT_PLUGIN_VERSION);
         assert_eq!(
             descriptor.to_toml(),
-            "[plugin]\nid = \"fx_director\"\nversion = \"0.2.0\"\nentry = \"fx_director.dll\"\n"
+            "[plugin]\nid = \"example_plugin\"\nversion = \"0.2.0\"\nentry = \"example_plugin.dll\"\n"
         );
     }
 }

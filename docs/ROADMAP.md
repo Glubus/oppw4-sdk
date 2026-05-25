@@ -6,6 +6,7 @@ This roadmap turns the current experimental modloader into a split loader + SDK 
 
 Current checkpoint:
 
+- [x] Current runtime/rank/difficulty/reward handoff is documented in `docs/HANDOFF-2026-05-25-runtime-rank-difficulty-rewards.md`.
 - [x] physical split exists under `oppw4-sdk-split/oppw4-loader` and `oppw4-sdk-split/oppw4-sdk`;
 - [x] SDK workspace builds and tests independently;
 - [x] SDK core can now be built as `sdk.dll`;
@@ -48,8 +49,11 @@ Current checkpoint:
 - [x] Runtime probes now identify Berry reward slots, medal/item reward entries, and crew point totals.
 - [x] Crew points are confirmed as the UI "récompense d'équipage" category; no separate crew reward category is tracked for now.
 - [x] `rank_threshold_probe` dumps result/rank slots and linked fixed-table rows for threshold comparison.
-- [x] Runtime log `2026-05-21-215933` confirms rank row `12` links to condition row `12` for mission `35` normal/free mode.
+- [x] Runtime log `2026-05-21-215933` confirms result/rank slots point at fixed-table row candidates for mission `35` normal/free mode.
 - [x] Runtime log `2026-05-21-221212` confirms result rank fields include kill count and clear time as f32 bits.
+- [x] Ghidra trace from the Easy cap identifies the true grade helpers: `FUN_1412dd9e0` for lower-is-better float thresholds and `FUN_1412dd950` for higher-is-better count thresholds.
+- [x] Difficulty mechanics export classifies the first gameplay-facing difficulty readers: combat scalar, AI/behavior chance tables, spawn/drop probability tables, and reward item selection.
+- [x] `spawn_scaling_probe` now logs both base reward rows and special-mode reward rows from the `FUN_1412f9be0` path, so Treasure/DLC forced rows can be separated from vanilla mission rows.
 - [x] `data_dumper` concept documented as the bridge from runtime probes to editable `oppw4-data` source folders.
 - [x] `sdk.runtime` probe code is split by responsibility: ABI adapters, hook trampolines, memory readers, snapshots, scanners, formatters, hashes, and config parsing are no longer kept as probe monoliths.
 - [x] `sdk.debug` exists as `debug.dll` with a hot-reloaded `debug.lua` developer script for memory watches and bounded value scans.
@@ -57,16 +61,30 @@ Current checkpoint:
 - [x] `sdk.debug` publishes changed watch/scan snapshots through `sdk.debug.snapshot`; `sdk.overlay` subscribes and caches those snapshots for future panels.
 - [x] `sdk.overlay` parses debug snapshots into structured panel data instead of storing raw JSON strings.
 - [x] `sdk.runtime` emits structured JSON signals for difficulty, rank, result state, Berry commit rewards, and item/medal reward snapshots.
+- [x] `rank_helper_probe` logs labelled helper calls and emits `sdk.runtime.rank.helper_call` snapshots for overlay/debug consumers.
+- [x] The Easy-only S/S+ rank cap branch in `FUN_14132b570` is identified; the old probe-side bypass was removed from diagnostics and moved behind an explicit `rank_runtime.easy_s_rankable` toggle, disabled by default.
+- [x] `rank_runtime.shift_count_thresholds` is guarded: it no longer installs the experimental count helper hook unless `rank_helper_probe.count_enabled=true`, because the count helper ABI/row pointer still needs validation before result-screen patching.
+- [x] Rank helper row source formula is identified for the normal result path: `fixed_owner+0x28+0x4c+rank_row_id*0xdc`; earlier helper probe offsets based on `owner+0x08` are invalid for threshold editing.
+- [x] `rank_runtime.shift_count_thresholds` now supports the safe fixed-table path `shift_count_rank_row_ids=[...]`, which patches verified selector-1 thresholds without hooking the result helper.
+- [x] Ghidra rank pipeline note added: visible helper rows and global reward rank are separate enough that threshold edits must be validated through `FUN_14132aae0`, not assumed from raw table bytes.
+- [x] `sdk.runtime.fx` is now an internal `sdk_runtime` source module and `sdk.rdb.patcher` is internal to `sdk_rdb`; only `moveset_patcher` remains a separate gameplay plugin for now.
 - [x] Ghidra fixed-data loader export identifies the missing LinkData depack layer: logical fixed-data ids are fetched through `FUN_1415ce9d0`, then parser functions rebuild normalized runtime tables.
 - [x] `sdk.runtime` now has a `fixed_data_probe` to log runtime fixed-data logical ids and key fixed table pointers.
 - [x] `sdk-api::linkdata::fixed` now models fixed-data logical ids separately from raw LinkData archive entries.
 - [ ] Fixed-data logical ids still need runtime mapping to raw LinkData archive entries before patching rank/reward tables by source entry.
-- [ ] Difficulty row fields `0x334..0x39c` still need runtime labels before a public `difficulty_director` API.
+- [ ] Difficulty gameplay tables at fixed offsets `0x60`, `0x8c`, `0x9c`, `0x1b08`, `0x6608`, `0xb3d8`, and `0xc57c` still need names and live labels before a public `difficulty_director` API.
+- [ ] Category rows at `0x1928`, `0x1930`, and `0x1938` are parked as unknown: quick runtime patches showed no clear visible effect, so they need a focused Ghidra/live-trace pass later instead of more blind tuning.
+- [ ] Enemy damage/HP/defense scaling readers still need a focused Ghidra export; active difficulty readers found so far are mostly rewards, AI pressure, spawn/drop probability, and mission conditions.
+- [x] The experimental Nightmare write path was removed from `sdk.runtime`; it belongs in a future Lua mod / overall mod once the public difficulty and rank APIs exist.
+- [ ] Territory/capture rules still need a focused Ghidra export and runtime probe for capture counters, capture kill thresholds, officer weight, and zone ownership state.
 - [ ] Soul reward commit fields still need confirmed runtime labels.
+- [ ] The old "condition row 12" interpretation is downgraded to raw fixed-table evidence until `rank_helper_probe` correlates helper rows with visible rank labels.
 - [ ] LinkData/fixed mission rank threshold fields still need labels from runtime comparison.
+- [ ] `rank_director` / `reward_director` public APIs should be shaped around the global rank pipeline after `FUN_14132aae0` labels are confirmed.
 - [x] Mission data domain now has seed `oppw4-data/missions/<mission_id>/` source folders, schemas, and generated index entries.
 - [ ] `data_dumper` still needs implementation after mission schemas and standard reward/difficulty/rank services are shaped.
 - [x] `std.difficulty`, `std.ranks`, and `std.rewards` exist as read-only mission-bank views.
+- [x] `std.player` exists as the core Lua player surface and exposes active character handles from the SDK active-character provider.
 - [ ] `std.difficulty`, `std.ranks`, and `std.rewards` need to move toward service-backed APIs once labels are confirmed.
 - [ ] In-game debug UI/overlay remains future work: `sdk.overlay` currently stops at renderer probing; an `egui`-style UI still needs a DXGI Present/ResizeBuffers backend before it can draw in game.
 - [ ] Remaining SDK runtime cleanup: keep shrinking the few files still above roughly 150 lines only when the split exposes a real reusable concept, not as cosmetic churn.
@@ -78,7 +96,7 @@ Immediate SDK work after the `sdk.debug` and `sdk.overlay` scaffolds:
 1. Build the real overlay backend: hook DXGI `IDXGISwapChain::Present`, handle `ResizeBuffers`, initialize an egui-compatible D3D11 renderer, and capture input through WndProc or a minimal input polling layer.
 2. Turn the cached `sdk.debug.snapshot` payloads into renderable overlay panels with pause/resume, clear, and export actions.
 3. Extend `sdk.debug` carefully: optional memory writes can exist later, but must be disabled by default and require explicit config.
-4. Continue runtime reverse work with the game: label difficulty row fields `0x334..0x39c`, soul reward commit fields, and fixed mission rank threshold fields.
+4. Continue runtime reverse work with the game: label difficulty gameplay tables, soul reward commit fields, and fixed mission rank threshold fields.
 5. Implement `data_dumper` once mission/reward/rank schemas are shaped enough to export probe findings into data files instead of ad-hoc logs.
 6. Promote read-only `std.difficulty`, `std.ranks`, and `std.rewards` into richer APIs after the mission data and labels stabilize.
 
@@ -190,9 +208,9 @@ oppw4-sdk/
       overlay/      # builds overlay.dll
       linkdata/     # builds linkdata.dll
       rdb/          # builds rdb.dll
-    skin_patcher/
-    fx_director/
-    moveset_patcher/
+    runtime/src/runtime/fx/ # internal sdk_runtime module, not packaged as a DLL
+    rdb/patcher/    # internal sdk_rdb crate, not packaged as a DLL
+    moveset_patcher/ # external plugin for now
   oppw4-data/       # data-only submodule
   examples/
   docs/
@@ -313,7 +331,7 @@ Exit criteria:
 - [x] missing capabilities are refused for every critical API;
 - [x] plugin dependencies are resolved before Lua mods run.
 
-Status: complete for the current SDK capability pass. `plugin.toml` can declare plugin dependencies, Lua modules, and required/provided capabilities. SDK core resolves plugin load order from declared dependencies, rejects duplicate Lua module names from different plugins, and refuses Lua modules that are not declared in `[lua].modules`. Capability enforcement exists for `lua.module`, `std.character.extend`, `files.virtualize`, `hooks.install`, `rdb.patch`, `linkdata.patch`, `memory.read`/`memory.scan`/`memory.write`, `signals.subscribe`/`signals.emit`, and `config.schema`. ABI diagnostics distinguish version mismatch from undersized API tables, and SDK host call errors include human-readable reasons for known failure codes. `fx_director` and `sdk_runtime` register their config defaults through the SDK config schema API.
+Status: complete for the current SDK capability pass. `plugin.toml` can declare plugin dependencies, Lua modules, and required/provided capabilities. SDK core resolves plugin load order from declared dependencies, rejects duplicate Lua module names from different plugins, and refuses Lua modules that are not declared in `[lua].modules`. Capability enforcement exists for `lua.module`, `std.character.extend`, `files.virtualize`, `hooks.install`, `rdb.patch`, `linkdata.patch`, `memory.read`/`memory.scan`/`memory.write`, `signals.subscribe`/`signals.emit`, and `config.schema`. ABI diagnostics distinguish version mismatch from undersized API tables, and SDK host call errors include human-readable reasons for known failure codes. `sdk_runtime` registers its `sdk.runtime.fx` config defaults through the SDK config schema API.
 
 ## Phase 6: Official Plugin Migration
 
@@ -327,8 +345,8 @@ Goals:
 
 Plugins:
 
-- [x] `skin_patcher`;
-- [x] `fx_director`;
+- [x] `sdk.rdb.patcher`;
+- [x] `sdk.runtime.fx`;
 - [x] `moveset_patcher`.
 
 Exit criteria:
@@ -337,7 +355,7 @@ Exit criteria:
 - [x] plugins extend `std.character` through SDK;
 - [x] plugins use SDK LinkData/RDB/file services completely;
 - [x] plugin logs/config are routed by SDK completely.
-- [x] `skin_patcher` exposes character model and texture replacement helpers through `std.character` handles.
+- [x] `sdk.rdb.patcher` exposes character model and texture replacement helpers through `std.character` handles.
 
 Status: complete for the current SDK split. Official plugins live in the SDK repo, register Lua modules through SDK APIs, route LinkData/RDB/file operations through SDK services, and use SDK log/config roots. Remaining plugin work is feature-level cleanup, not loader/SDK boundary migration.
 
@@ -424,8 +442,6 @@ OPPW4/
       overlay.dll
       linkdata.dll
       rdb.dll
-    skin_patcher/
-    fx_director/
     moveset_patcher/
   mods/
 ```

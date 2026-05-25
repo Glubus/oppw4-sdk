@@ -1,9 +1,13 @@
+mod ids;
 mod reward_row;
 mod state_probe;
+mod tables;
 
 use plugin_sdk::OwnedHostApi;
 
 use crate::{config::DifficultyProbeConfig, runtime::exposure::RuntimeExposure};
+
+pub(crate) use ids::DifficultyId;
 
 pub(crate) struct DifficultyExposure;
 

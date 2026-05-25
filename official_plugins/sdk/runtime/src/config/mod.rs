@@ -10,9 +10,10 @@ use defaults::DEFAULT_CONFIG;
 use parse::parse;
 
 pub(crate) use types::{
-    DifficultyProbeConfig, FixedDataProbeConfig, ItemRewardProbeConfig, PlayerResultProbeConfig,
-    RankThresholdProbeConfig, ResultProbeConfig, ResultStateProbeConfig, RewardProbeConfig,
-    RuntimeConfig, ValueProbeConfig,
+    DamageFormulaProbeConfig, DifficultyProbeConfig, EntityCounterProbeConfig,
+    FixedDataProbeConfig, ItemRewardProbeConfig, PlayerResultProbeConfig, RankHelperProbeConfig,
+    RankRuntimeConfig, RankThresholdProbeConfig, ResultProbeConfig, ResultStateProbeConfig,
+    RewardProbeConfig, RuntimeConfig, SpawnScalingProbeConfig, ValueProbeConfig,
 };
 
 pub(crate) fn register_schema(host: HostApi<'_>) {

@@ -149,19 +149,19 @@ Current optional schema:
 
 ```toml
 [plugin]
-id = "fx_director"
+id = "moveset_patcher"
 version = "0.2.0"
-entry = "fx_director.dll"
+entry = "moveset_patcher.dll"
 
 [dependencies]
-plugins = ["skin_patcher"]
+plugins = ["sdk_linkdata"]
 
 [lua]
-modules = ["fx_director"]
+modules = ["moveset_patcher"]
 
 [capabilities]
-requires = ["lua.module", "hooks.install"]
-provides = ["std.character.extend"]
+requires = ["lua.module", "linkdata.patch", "std.character.extend"]
+provides = ["linkdata.moveset", "std.character.extend"]
 ```
 
 SDK core currently resolves plugin load order from `[dependencies].plugins` and rejects duplicate Lua module names at runtime. Manifest dependency, Lua module, and capability lists are de-duplicated after normalization while preserving first occurrence order. A plugin must declare each Lua module in `[lua].modules`; having only `lua.module` is not enough. Module and capability names are normalized to lowercase and may contain only ASCII letters, digits, `_`, `-`, and `.`. Dotted names cannot be empty, start/end with `.`, or contain `..`. Capability checks are enforced for:
@@ -243,6 +243,39 @@ print(law.ids.runtime)
 print(law.models[1].stem)
 print(law.linkdata.moveset_entry)
 ```
+
+### `std.player`
+
+Responsibilities:
+
+- expose player-scoped runtime state from SDK core;
+- expose active character handles that still use the `std.character` extension
+  system;
+- stay core/std owned so FX, skin, moveset, rewards, and future gameplay APIs
+  do not each invent their own player concept.
+
+Initial surface:
+
+```lua
+local player = require("std.player")
+local active = player.active_character()
+
+if active then
+  active:add_fx({ effect_id = 2830 })
+end
+
+for _, character in ipairs(player.active_characters()) do
+  print(character.canonical)
+end
+```
+
+Current snapshot fields copied onto active character handles:
+
+- `runtime_id`;
+- `alt_id`;
+- `local_player`;
+- `fx_owner`;
+- `sequence`.
 
 ### `std.log`
 
@@ -424,16 +457,18 @@ Plugin modules use plugin ids.
 
 Examples:
 
-- `skin_patcher`;
-- `fx_director`;
 - `moveset_patcher`.
+
+`sdk.rdb.patcher` and `sdk.runtime.fx` are SDK service modules during the
+current split: they are loaded by `sdk.rdb` and `sdk.runtime`, not packaged as
+separate external plugin DLLs.
 
 Plugins may also extend standard handles:
 
 ```lua
 local character = require("std.character")
-require("skin_patcher")
-require("fx_director")
+require("sdk.rdb.patcher")
+local fx = require("sdk.runtime.fx")
 
 local zoro = character.find("zoro")
 zoro:add_fx({ effect_id = 2830 })

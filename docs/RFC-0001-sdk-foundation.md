@@ -137,10 +137,10 @@ Standard modules use the `std.*` namespace:
 - `std.mod`;
 - `std.files`.
 
-Feature modules are provided by plugins:
+Feature modules are provided by SDK services or official plugins:
 
-- `skin_patcher`;
-- `fx_director`;
+- `sdk.rdb.patcher`;
+- `sdk.runtime.fx`;
 - `moveset_patcher`;
 - future plugins.
 
@@ -148,8 +148,8 @@ Example:
 
 ```lua
 local character = require("std.character")
-require("skin_patcher")
-require("fx_director")
+require("sdk.rdb.patcher")
+local fx = require("sdk.runtime.fx")
 
 local zoro = character.find("zoro")
 zoro:add_fx({ effect_id = 2830 })
@@ -229,16 +229,20 @@ SDK core validates:
 - permissions/capabilities;
 - manifest-vs-registration consistency.
 
-## Official Plugins
+## Official Services And Plugins
 
-Official plugins live in the SDK repository under `official_plugins/`.
+Official SDK services and plugins live in the SDK repository under
+`official_plugins/`.
 
-They are production plugins and examples for third-party plugin authors.
+They are production implementations and examples for third-party plugin authors.
 
-Initial official plugins:
+Initial official SDK services:
 
-- `skin_patcher`: RDB/catalog/hash/asset replacement, character skin/model/portrait APIs.
-- `fx_director`: runtime effect activation, character FX APIs.
+- `sdk_rdb`: owns `sdk.rdb.patcher` for RDB/catalog/hash/asset replacement and character skin/model/portrait APIs.
+- `sdk_runtime`: owns `sdk.runtime.fx` for runtime effect activation and character FX APIs.
+
+Initial external official plugins:
+
 - `moveset_patcher`: LinkData moveset replacement, character moveset APIs.
 
 ## Configuration

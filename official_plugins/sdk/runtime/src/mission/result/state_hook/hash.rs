@@ -17,6 +17,8 @@ fn hash_blocks(hash: &mut u64, snapshot: &ResultStateSnapshot) {
     for value in snapshot
         .difficulty_or_rank
         .iter()
+        .chain(snapshot.result_score.iter())
+        .chain(snapshot.result_reward.iter())
         .chain(snapshot.result_copy.iter())
         .chain(snapshot.crew_points.iter())
         .chain(snapshot.source_rewards.iter())

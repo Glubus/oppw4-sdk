@@ -1,7 +1,7 @@
 local character = require("std.character")
 local log = require("std.log")
 
-require("skin_patcher")
+require("sdk.rdb.patcher")
 
 local law = character.find("law")
 

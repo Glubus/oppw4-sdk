@@ -21,5 +21,5 @@ Validate the manifest:
 cargo run -p mod-manifest-tool -- examples/lua/asset_replacement/mod.toml
 ```
 
-Install this under `skin_patcher/mods/` and add the referenced assets before
-trying it in-game.
+Install this under the game-level `mods/` directory and add the referenced
+assets before trying it in-game.

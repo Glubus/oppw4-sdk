@@ -1120,3 +1120,593 @@ Updated next steps:
 3. Runtime-probe `global + 0x1d756` and `DAT_141e5ec04` while changing difficulty.
 4. Patch only the unlock condition first, before attempting a new id `4`.
 5. For a new id `4`, patch both menu range and `FUN_1412f9be0` range checks.
+
+## Rank Logic / LinkData Follow-up - 2026-05-22
+
+The `global + 0x1d9b0` table is not the final visible grade (`A`, `S`, `S+`) directly.
+It is a per-player result profile / rank-row id table:
+
+```text
+result_rank_row[player] = *(u16 *)(global + 0x1d9b0 + player * 0x50)
+result_rank_aux[player] = *(u16 *)(global + 0x1d9b2 + player * 0x50)
+```
+
+Important functions:
+
+```text
+FUN_1412f6d50(player, rank_row)
+  writes global + 0x1d9b0 + player * 0x50
+  resolves fixed rank row via fixed_owner + 0x08 + rank_row * 0x44
+  copies a larger row block into the per-player runtime table
+
+FUN_1412fe2a0(global)
+  refreshes/synchronizes the four player rank rows
+  calls FUN_1412f6d50
+  in multiplayer/session mode may call FUN_1412f9d80
+
+FUN_1412f9d80(player)
+  imports rank/result profile data from DAT_141e5e3f8 blocks
+  calls FUN_1412f6d50(player, imported_rank_row)
+
+FUN_14132b570(result_state)
+  central result-screen pipeline
+  reads active player row from global + 0x1d9b0
+  calls the grade threshold helpers below
+```
+
+Visible grade calculation is handled by threshold helpers, not by the `0x1d9b0`
+row id alone:
+
+```text
+FUN_1412dd9e0(row, float_value)
+  lower-is-better threshold path, likely time-like criteria
+  returns grade enum 5, 4, 3, 2, or 0/1
+
+FUN_1412dd950(row, value, divisor)
+  higher-is-better threshold path, likely count/score-like criteria
+  returns grade enum 5, 4, 3, 2, or 0/1
+
+FUN_1412dd6c0 / FUN_1412dd640
+  similar helpers for the special `mode == 4` table at fixed_owner + 0x28 + 0x46c88
+  return max grade 4 instead of 5
+```
+
+This means custom `SS/SSS/X` ranks are not just data insertion. The rank grade
+helpers and their result-screen consumers assume a small vanilla grade enum. A
+real extension needs:
+
+- extra threshold columns or a sidecar rank rule;
+- patched/wrapped grade helper return range;
+- result UI mapping for the new grade ids;
+- reward/rank consumers updated so `5` is not the hard max.
+
+### Raw LinkData entry 3 evidence
+
+`LINKDATA_A.BIN` entry `3` still contains the fixed rank row and condition row
+byte patterns, but its raw inflated payload is not identical to the runtime
+pointer base because runtime tables have owner/object metadata around them.
+
+Confirmed raw inflated offsets from `D:\SteamLibrary\steamapps\common\OPPW4\LINKDATA\CMN\LINKDATA_A.BIN`
+entry `3`:
+
+```text
+fixed rank rows:
+  raw row 12 starts at entry3+0x330
+  row stride = 0x44
+  row 12 key fields:
+    +0x00 = 50000
+    +0x04 = 12
+    +0x06 = 12
+    +0x08 = 12
+    +0x0a = 12
+    +0x0c = 12
+    +0x0e = 12
+    +0x10 = 12
+    +0x12 = 12
+    +0x14 = 111
+    +0x18 = 36
+
+condition rows:
+  raw row 0  starts at entry3+0xc684
+  raw row 12 starts at entry3+0xc8f4
+  row stride = 0x34
+  row 12 key fields:
+    +0x00 = 1
+    +0x04 = 2000
+    +0x08 = 5000
+    +0x0c = 70
+    +0x10 = 70
+    +0x14 = 1
+    +0x18 = 7000
+    +0x1c = 9000
+    +0x20 = 630
+    +0x24 = 630
+    +0x28 = 6
+    +0x2c = 0xffff
+    +0x2e = 13
+    +0x30 = 2
+    +0x32 = 216
+```
+
+The earlier `entry3+0x320` note was a loose pattern hit starting 0x10 bytes
+before raw row 12. Use `entry3+0x330` as the raw row start.
+
+### Difficulty effect candidate
+
+`FUN_14124e670` is a strong gameplay difficulty-impact candidate, separate from
+end rewards. It reads a 6-value float table from:
+
+```text
+fixed_owner + 0x20 + 0xc57c
+fixed_owner + 0x20 + 0xc580
+fixed_owner + 0x20 + 0xc584
+fixed_owner + 0x20 + 0xc588
+fixed_owner + 0x20 + 0xc58c
+fixed_owner + 0x20 + 0xc590
+```
+
+Then, when `global + 0x1d756 != 0`, it may add `+2` before clamping the result
+into `0..9`. Callers sit in combat/AI-style functions (`FUN_141255a60`,
+`FUN_1412634e0`, `FUN_1412669e0`, etc.), so this likely affects gameplay
+pressure/level/behavior rather than result rewards only.
+
+This is a better first target for `difficulty_director` than trying to add a
+brand-new menu difficulty immediately: we can prototype a “nightmare” effect by
+wrapping this returned scalar while keeping vanilla menu ids.
+
+## Difficulty Gameplay Mechanics Follow-up - 2026-05-22
+
+Focused export:
+
+```text
+oppw4-ghidra/game_difficulty_mechanics.txt
+script: oppw4-ghidra/ExportDifficultyMechanics.java
+```
+
+The active difficulty has at least three gameplay-facing layers:
+
+1. reward/row selection through `FUN_1412f9be0(mission, difficulty)`;
+2. combat/AI pressure through `FUN_14124e670`;
+3. spawn/drop/probability tables indexed by difficulty and reward row.
+
+### Combat pressure scalar
+
+`FUN_14124e670(entity)` returns a scalar clamped to `0..9`. Confirmed callers:
+
+```text
+FUN_141255a60 -> writes scalar into actor/control state at +0x108
+FUN_1412634e0 -> indexes DAT_141eba7f0+0x80+0x60 + scalar*4 as a percent chance
+FUN_1412669e0 -> passes scalar into FUN_14126c8f0, then selects one of 8 weighted rows
+```
+
+This means the helper is not just cosmetic. It feeds runtime decisions for
+AI/combat-style behavior. A conservative Nightmare prototype can wrap this
+return value first, before touching menu difficulty ids.
+
+`FUN_1412634e0` proves the returned scalar selects a float chance table:
+
+```text
+chance = *(float *)(DAT_141eba7f0 + 0x80 + 0x60 + scalar * 4)
+if rng_percent < chance:
+  set a short state/timer
+```
+
+`FUN_141269d10` is a second direct active-difficulty reader. It uses the active
+difficulty id to select one of two 4-float tables:
+
+```text
+if actor_flag_0x232 == 0:
+  chance = *(float *)(DAT_141eba7f0 + 0x80 + 0x8c + difficulty * 4)
+else:
+  chance = *(float *)(DAT_141eba7f0 + 0x80 + 0x9c + difficulty * 4)
+```
+
+It rolls `rng % 100` against that chance and may skip or enter a movement/state
+update. This is probably AI pressure or behavior frequency, not end rewards.
+
+### Fixed probability tables
+
+Several paths normalize reward row ids first:
+
+```text
+if reward_row in 0x14..0x1d: reward_row = 0x13
+else if reward_row > 0x1d: reward_row = 0
+```
+
+`FUN_141254a70` reads active difficulty, computes `reward_row =
+FUN_1412f9be0(mission, difficulty)`, derives a category from a percent ratio,
+then indexes fixed probability helpers.
+
+Known helper layouts:
+
+```text
+FUN_1412d5870(fixed, category, difficulty, reward_row, candidate)
+  base = fixed + 0x6608 + candidate * 0x1e0
+  each difficulty has 3 category blocks, each block has 0x28 bytes
+  returns u16 chance/probability
+
+FUN_1412d59a0(fixed, category, difficulty, reward_row, candidate)
+  base = fixed + 0x1b08 + candidate * 0x1e0
+  same difficulty/category layout as FUN_1412d5870
+
+FUN_1412d5ad0(fixed, category, difficulty, reward_row)
+  row_base = fixed + reward_row * 0x18
+  category 0: row_base + 0x1928 + difficulty * 2
+  category 1: row_base + 0x1930 + difficulty * 2
+  category 2: row_base + 0x1938 + difficulty * 2
+  if difficulty > 3: difficulty = 0
+```
+
+`FUN_1412505b0` uses another fixed byte table:
+
+```text
+base = fixed + reward_row * 0x0c
+type 0: *(u8 *)(base + 0xb3d8 + difficulty)
+type 1: *(u8 *)(base + 0xb3dc + difficulty)
+type 2: *(u8 *)(base + 0xb3e0 + difficulty)
+```
+
+If the random roll passes, it calls `FUN_1415d1320`, likely spawning or granting
+an extra runtime object/reward/event near the actor.
+
+`FUN_141250830` does weighted selection with `FUN_1412d5b50`:
+
+```text
+FUN_1412d5b50(fixed, category, actor_phase, candidate)
+  candidate stride = 0x12
+
+  actor_phase < 2:
+    category 0/1/2 -> fixed + 0xb114 / 0xb116 / 0xb118 + candidate*0x12
+  actor_phase == 2:
+    category 0/1/2 -> fixed + 0xb10e / 0xb110 / 0xb112 + candidate*0x12
+  actor_phase 3..4:
+    category 0/1/2 -> fixed + 0xb108 / 0xb10a / 0xb10c + candidate*0x12
+```
+
+This helper does not read the global difficulty directly; it uses actor phase
+and category. However it sits in the same difficulty/reward-row spawn pipeline,
+so a difficulty director should treat it as adjacent behavior, not as rank UI.
+
+### Reward item selection by difficulty
+
+`FUN_1412fda60` reads a difficulty-indexed table from the fixed owner `+0xd8`
+area:
+
+```text
+row = fixed_d8 + *(u8 *)(fixed_d8 + 0x354 + reward_row * 4 + difficulty) * 8
+base_chance = min(*(u16 *)(row + 0x3cc) + bonus, 100)
+rarity_2_chance = *(u16 *)(row + 0x3d2)
+rarity_1_chance = *(u16 *)(row + 0x3d0)
+```
+
+Then it maps the selected rarity/type pair through a 100-entry table at
+`fixed_d8 + 0x14..`, returning an item/material index or `-1`.
+
+### What this implies for `difficulty_director`
+
+Adding a visible fifth difficulty is not just appending one menu row. The game
+has multiple hard `0..3` assumptions:
+
+- `FUN_1412f9be0` returns row `0` if `difficulty > 3`;
+- `FUN_1412d5ad0` maps `difficulty > 3` back to `0`;
+- table layouts such as `0xb3d8 + difficulty` only allocate four vanilla slots;
+- UI strings and unlock logic still need a separate menu/progression path.
+
+Good implementation order:
+
+1. `difficulty_director` virtual mode: keep vanilla selected difficulty, but
+   wrap combat scalar/chance helpers to make a mission harder.
+2. `reward_director` scaling: multiply confirmed result rewards based on the
+   effective/virtual difficulty.
+3. Only after that, expose a real custom difficulty id by virtualizing or
+   extending the fixed tables and patching the `difficulty > 3` guards.
+
+### UI/rank asset references
+
+String/catalog scans still do not show a clean standalone image key such as
+`rank_S` or `rank_Splus`. The visible result UI references look like layout or
+atlas entries instead:
+
+```text
+mai_epi_rank
+mai_epi_rank_A
+CUIGalleryRewardSplus
+cmn_topmenu_txt_splus_reward_confirmation
+tb_difficult
+tb_level_of_difficulty
+```
+
+`game_difficulty_readers.txt` shows calls such as:
+
+```text
+FUN_1413d6f50(..., &PTR_s_mai_epi_rank_A_..., ...)
+```
+
+So custom `SS/SSS/X` ranks likely need a result UI mapping patch or layout/atlas
+extension, not just a new obvious image filename.
+
+## Spawn Scaling Probe Follow-up - 2026-05-23
+
+Runtime log `2026-05-23-113045.log` confirmed that the first
+`spawn_scaling_probe` pass can read the fixed spawn/drop probability tables, but
+it initially only reported the base reward-row index path. That was incomplete
+for Treasure Log and other special modes because `FUN_1412f9be0(mission,
+difficulty)` can select rows through a special context table:
+
+```text
+base path:
+  fixed_owner + 0x28 + 0x00a8 + (mission * 0x6e + difficulty) * 2
+
+special path:
+  context = 0 when global + 0x1d762 != 0
+  else context = *(u32 *)(global_aux + 0xff60)
+  fixed_owner + 0x28 + 0x46cba + (context * 0x2c + difficulty) * 2
+```
+
+The runtime probe now logs both `base_row` and `special_row`, plus
+`special_context`. Until `FUN_1412f6fe0(mission)` is labelled, `special_row`
+should be treated as an observed candidate rather than a guaranteed selected
+row for every mission. For Treasure/DLC validation, compare:
+
+- `mission_id`, `mode_type`, `reward_mode`;
+- selected vanilla difficulty;
+- `base_row` vs `special_row`;
+- visible mission rewards and item drops.
+
+Confirmed spawn-scaling table meanings so far:
+
+- `0xb3d8`, `0xb3dc`, `0xb3e0`: three byte chance tables indexed by
+  `(reward_row, difficulty)` and used by `FUN_1412505b0`;
+- `0x1b08` and `0x6608`: candidate probability tables indexed by
+  `(candidate, difficulty, category, reward_row)`;
+- `0x1928`, `0x1930`, `0x1938`: category row/threshold tables indexed by
+  `(reward_row, difficulty)`;
+- `0xb108..0xb118`: actor-phase/category weights, adjacent to the same spawn
+  pipeline but not directly indexed by global difficulty;
+- `0xc57c..0xc590`: combat/AI pressure scalar source values used by
+  `FUN_14124e670`.
+
+Open labels:
+
+- exact names for each category/candidate bucket;
+- whether category rows are cooldowns, thresholds, or spawn budget gates;
+- which candidate ids map to enemy classes vs reward/drop/event spawns;
+- damage/HP/defense scaling, not yet identified;
+- territory capture counters and capture thresholds, not yet identified.
+
+Category row runtime attempts:
+
+- mission `35`, Easy, patched category rows `[0, 5, 9]`: produced a
+  close/crash-like run and no useful label;
+- mission `35`, Easy, patched category rows `[0, 2, 9]`, `[3, 9, 9]`,
+  `[9, 9, 9]`, `[0, 0, 0]`, and high/clamped values: no obvious visible
+  gameplay effect in quick tests;
+- these rows do not appear to be the HP/damage/defense scaling knobs, and
+  should not be treated as the main Nightmare difficulty lever for now.
+
+Park `0x1928`, `0x1930`, and `0x1938` as unknown category/routing/threshold
+tables. If someone has time later, re-check them with a focused Ghidra trace or
+a better live counter probe; for now the useful path is elsewhere.
+
+Nightmare design implication:
+
+- use vanilla difficulty id as the menu-facing selector at first;
+- layer extra AI pressure/spawn probability changes through runtime/data patches;
+- do not expose a new difficulty id until the `difficulty > 3` clamps and
+  `CScCondGameDifficulty` checks are fully handled.
+
+## Easy Rank Cap - 2026-05-23
+
+Runtime test `2026-05-23-131038.log` confirmed that temporarily spoofing
+`global_state + 0x1d756` from Easy (`0`) to Super Hard (`3`) during
+`FUN_14132b570` lets mission `35` award S+. This proved the cap is in the
+central result pipeline, not only in UI text.
+
+Focused Ghidra export `game_result_rank_cap_disasm.txt` found the tighter
+condition:
+
+```text
+14132be5f  CMP dword ptr [RSP + 0x38], ESI
+14132be63  JNZ 0x14132be86
+14132be65  CMP R14D, 0x4
+14132be69  JNZ 0x14132be86
+14132be6b  MOV dword ptr [RDI + 0x2a4], 0x3
+14132be75  MOV dword ptr [RDI + 0x328], 0x1
+```
+
+Interpretation:
+
+- `[rsp + 0x38]` is the copied current difficulty for this result path;
+- `R14D == 4` is the S+ battle rank candidate in this block;
+- on Easy, the game downgrades rank `4` to `3`;
+- `RDI + 0x328 = 1` is the “Easy difficulty rank cap happened” flag that
+  drives the visible warning text.
+
+The runtime previously had a diagnostic option:
+
+```toml
+[result_state_probe]
+spoof_result_difficulty = false
+bypass_easy_rank_cap = true
+```
+
+That first test patched only the conditional jump at `14132be63` (`75 21 -> eb 21`), so
+the game keeps the real selected difficulty and reward/scaling tables while
+skipping the Easy-only downgrade. If this test still awards S+, the global
+difficulty spoof can be removed and this becomes the first clean target for a
+future `rank_director`/`difficulty_director` policy.
+
+Follow-up runtime test `2026-05-23-142134.log` confirmed the missing reward path.
+The visual/result-state Easy cap bypass alone was not enough because berry and
+item rewards receive the global battle rank produced earlier by
+`FUN_14132aae0`.
+
+Additional Ghidra export found three Easy-only cap branches inside
+`FUN_14132aae0`:
+
+```text
+14132ad5d  CMP [RSP+0x28],0
+14132ad67  JNZ skip
+14132ad69  CMP ESI,5
+14132ad6c  CMOVZ ESI,EAX   ; downgrade S+/S-like criterion to 3
+...
+
+14132ae34  CMP [RSP+0x28],0
+14132ae39  JNZ skip
+...
+
+14132aea1  CMP [RSP+0x28],0
+14132aea6  JNZ skip
+...
+```
+
+The runtime now patches these branch bytes from `75` to `eb`, so Easy no longer
+enters the downgrade logic inside the global rank calculator.
+
+Confirmed log evidence from mission `35` on Easy:
+
+```text
+result_state_probe easy rank cap bypass installed
+  final_rank_site=...
+  score_rank_site=...
+  global_rank_primary_site=...
+  global_rank_mode4_site=...
+  global_rank_mode5_site=...
+
+item_reward_probe ... context=4 ...
+reward_probe ... param3=35 param4=4 ...
+result_state_probe ... mission=35 rank_fields=[12,1498,...,4,5]
+```
+
+Tester result: S rank displayed everywhere. Earlier failed runs had
+`reward_probe param4=3` and `item_reward_probe context=3`, proving that `param4`
+/ `context` is the global rank consumed by reward calculation. This matters for
+berries because the S/S+ bonus depends on that rank before final reward slots
+are written.
+
+## Rank Helper Trace - 2026-05-23
+
+Update 2026-05-24 / 2026-05-25:
+
+The temporary `bypass_easy_rank_cap` patch is disabled from runtime diagnostics.
+It was too broad: it patched several result/rank branches at once and could make
+the global rank disagree with visible sub-ranks. The code path is now exposed
+only as an explicit runtime toggle, `rank_runtime.easy_s_rankable`, default
+`false`. Probes must stay read-only; patching belongs in named runtime features
+or future director APIs.
+
+Current verified caller evidence:
+
+```text
+rank_helper_probe kind=time  caller=game+0x132ad27 ... result=5
+rank_helper_probe kind=time  caller=game+0x132b8ee ... result=5
+rank_helper_probe kind=count caller=game+0x132b917 ... result=0
+```
+
+`game+0x132b917` is the current priority for Ghidra tracing because it is the
+count helper call that returns D for the visible "ennemis vaincus" rank.
+
+The Easy-cap path gives a cleaner way to follow rank calculation than raw fixed
+table guesses. The battle/result code calls two small helper functions before
+applying mode and Easy difficulty caps:
+
+- `FUN_1412dd9e0(row, value: f32) -> rank_candidate`
+  - selector `0` is found in the `u16` selector area at `row + 0x64`;
+  - the selected slot reads five `u32` threshold columns from row offsets
+    `0x00`, `0x0c`, `0x18`, `0x24`, and `0x30`;
+  - lower values are better, so this is the clear-time style helper.
+- `FUN_1412dd950(row, value: u32, divisor: f32) -> rank_candidate`
+  - selector `1` is found in the same selector area at `row + 0x64`;
+  - the selected slot reads the same five threshold columns;
+  - higher normalized values are better, so this is the kill-count/score style
+    helper.
+
+For the normal result path at `game+0x132b8c6..0x132b917`, the helper row is not
+discovered dynamically. The caller builds it as:
+
+```text
+rank_row_id = *(u16 *)(global + 0x1d750)
+row = *(usize *)(*(usize *)(DAT_141eba738 + 0x18) + 0x28) + 0x4c + rank_row_id * 0xdc
+```
+
+So the useful helper-table offset is `0x4c + rank_row_id * 0xdc`, relative to
+the fixed owner pointer at `+0x28`. Earlier runtime logs subtracted the
+`owner+0x08` table and produced huge offsets such as `0x33600`; those offsets
+are not the helper-row source offset.
+
+This downgrades the older "condition row 12" interpretation: row `12` remains
+valid raw fixed-table evidence, but it is not enough to name visible rank
+conditions by itself. The next runtime validation is `rank_helper_probe`, which
+hooks both helper functions and logs:
+
+```text
+rank_helper_probe kind=time  caller=game+0x... row=0x... slot=... value=... thresholds=[...] result=...
+rank_helper_probe kind=count caller=game+0x... row=0x... slot=... value=... divisor=... normalized=... thresholds=[...] result=...
+```
+
+Once those logs are matched against the result screen, the SDK can expose safer
+rank APIs such as "set Easy rankable" and later "edit threshold by mission,
+mode, difficulty, and condition kind" without pretending the raw row fields are
+already fully understood.
+
+`FUN_1412dd790` is now identified as the global sub-rank merge helper. It maps
+the two helper results through score indexes at `DAT_141953390`, reads the
+score table from `fixed_owner+0x20+0x1048`, scales scores by `0.001`, sums them,
+then compares that sum against grade target indexes ending at `DAT_1419533bc`.
+
+The SDK has a read-only follow-up probe:
+
+```toml
+[rank_helper_probe]
+enabled = true
+merge_enabled = true
+```
+
+The merge probe logs `left_rank`, `right_rank`, score indexes, scaled scores,
+combined score, target thresholds, and final merged rank. Keep it disabled by
+default until a focused runtime pass is needed.
+
+## Rank Threshold Shift Test - 2026-05-25
+
+Focused runtime test added for count-style rank rows, then locked down after a
+result-screen crash. The crash happened when the count helper path was installed
+only to discover/patch the row, which means the `FUN_1412dd950` hook ABI and row
+pointer handling are not safe enough yet for automatic runtime writes.
+
+The config remains documented, but the count hook is now behind
+`rank_helper_probe.count_enabled=true` and stays disabled by default:
+
+```toml
+[rank_runtime]
+shift_count_thresholds = true
+shift_count_rank_row_ids = [35]
+shift_count_source_prefix = [60000, 60000, 48000]
+shift_count_inserted_first = 72000
+# optional, for testing [72000, 72000, ...]
+# shift_count_inserted_second = 72000
+```
+
+The safe path does not hook `FUN_1412dd950`. It computes each helper row from
+the fixed table as `fixed_owner+0x28+0x4c+rank_row_id*0xdc`, verifies selector
+`1`, then only writes if the selected slot starts with `[60000, 60000, 48000]`.
+The slot becomes:
+
+```text
+[72000, 60000, 60000, 48000, old_fourth_value]
+```
+
+Update 2026-05-25: runtime logs showed that testing mission 35 with
+`shift_count_rank_row_ids = [35]` did not patch anything. The fixed helper row
+35 contained `[1500, 1000, 800, 700, 500]`, while the active result slot for
+mission 35 reported `rank_row=12`. For the current mission-35 count-threshold
+test, target row `12` and use `shift_count_inserted_second = 72000` to test the
+explicit `[72000, 72000, 60000, 48000, ...]` layout.
+
+This is intentionally a narrow rank experiment, not a Nightmare/difficulty
+mod. It should help verify whether the visible rank grade thresholds are the
+helper-row columns directly, and whether adding a harder first gate behaves like
+the future `PK`/extra-rank design expects.
+
+Status after the crash: do not use this path for normal testing. First validate
+the count helper ABI in Ghidra before re-enabling `rank_helper_probe.count_enabled`.
+For actual tuning tests, use the fixed-table row-id path above.
