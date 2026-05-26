@@ -16,7 +16,12 @@ mod rdb;
 mod signals;
 mod r#unsafe;
 
-pub use capabilities::CapabilityService;
+pub use capabilities::{
+    CapabilityService, CAP_CONFIG_SCHEMA, CAP_FILES_VIRTUALIZE, CAP_HOOKS_INSTALL,
+    CAP_LINKDATA_PATCH, CAP_LUA_MODULE, CAP_LUA_RUNTIME, CAP_MEMORY_READ, CAP_MEMORY_SCAN,
+    CAP_MEMORY_WRITE, CAP_MOD_DISCOVERY, CAP_PLUGIN_HOST, CAP_RDB_PATCH, CAP_SIGNALS_EMIT,
+    CAP_SIGNALS_SUBSCRIBE, CAP_STD_CHARACTER_EXTEND,
+};
 pub use config::ConfigService;
 pub use difficulty::{
     DifficultyAction, DifficultyActorStat, DifficultyCondition, DifficultyConditionExpr,

@@ -2,7 +2,7 @@ use std::ffi::c_void;
 
 use crate::{
     HostApi, HostRdbPatchReadFn, Oppw4LuaRegisterFn, PluginContext, PluginResult,
-    VirtualFileProvider,
+    VirtualFileProvider, CAP_CONFIG_SCHEMA, CAP_FILES_VIRTUALIZE, CAP_LUA_MODULE, CAP_RDB_PATCH,
 };
 
 pub trait PluginFeature {
@@ -99,7 +99,7 @@ impl PluginFeature for LuaModuleFeature {
     }
 
     fn required_capabilities(&self) -> &'static [&'static str] {
-        &["lua.module"]
+        &[CAP_LUA_MODULE]
     }
 
     fn install(&self, registrar: &mut PluginRegistrar<'_>) -> PluginResult<()> {
@@ -143,7 +143,7 @@ impl PluginFeature for ConfigFeature {
     }
 
     fn required_capabilities(&self) -> &'static [&'static str] {
-        &["config.schema"]
+        &[CAP_CONFIG_SCHEMA]
     }
 
     fn install(&self, registrar: &mut PluginRegistrar<'_>) -> PluginResult<()> {
@@ -173,7 +173,7 @@ impl PluginFeature for VirtualFileProviderFeature<'_> {
     }
 
     fn required_capabilities(&self) -> &'static [&'static str] {
-        &["files.virtualize"]
+        &[CAP_FILES_VIRTUALIZE]
     }
 
     fn install(&self, registrar: &mut PluginRegistrar<'_>) -> PluginResult<()> {
@@ -212,7 +212,7 @@ impl PluginFeature for RdbPatchCallbackFeature {
     }
 
     fn required_capabilities(&self) -> &'static [&'static str] {
-        &["rdb.patch"]
+        &[CAP_RDB_PATCH]
     }
 
     fn install(&self, registrar: &mut PluginRegistrar<'_>) -> PluginResult<()> {
@@ -223,23 +223,6 @@ impl PluginFeature for RdbPatchCallbackFeature {
                 .register_patch_provider(self.provider_context, self.patch_read)
         }
     }
-}
-
-pub trait RdbPatchFeature {
-    fn id(&self) -> &'static str;
-}
-
-pub trait RdbVirtualFeature {
-    fn id(&self) -> &'static str;
-}
-
-pub trait LinkDataPatchFeature {
-    fn id(&self) -> &'static str;
-}
-
-pub trait SignalFeature {
-    fn id(&self) -> &'static str;
-    fn subscriptions(&self) -> &'static [&'static str];
 }
 
 #[cfg(test)]
