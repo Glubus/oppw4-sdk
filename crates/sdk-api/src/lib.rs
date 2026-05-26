@@ -45,7 +45,7 @@ pub use api::{
 pub use api::{
     DifficultyAction, DifficultyActorStat, DifficultyCondition, DifficultyConditionExpr,
     DifficultyFixedArea, DifficultyKnownTable, DifficultyLevel, DifficultyRule, DifficultyService,
-    DifficultyValueOp, DIFFICULTY_SET_RULE,
+    DifficultyValueOp, DIFFICULTY_STAGE_RULE,
 };
 pub use context::PluginContext;
 pub use entry::{plugin_abi_from_raw, validate_plugin_api, PluginInitError};
@@ -68,6 +68,11 @@ macro_rules! export_plugin {
     };
 }
 
+/// Experimental convenience macro for tiny plugins.
+///
+/// Prefer implementing [`Plugin`] directly when the plugin needs custom
+/// initialization, validation, logging policy, runtime hooks, or non-trivial
+/// error handling.
 #[macro_export]
 macro_rules! sdk_plugin {
     (

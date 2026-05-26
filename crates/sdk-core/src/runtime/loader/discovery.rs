@@ -1,5 +1,11 @@
 use std::{collections::HashSet, fs, path::Path};
 
+use plugin_sdk::{
+    CAP_CONFIG_SCHEMA, CAP_FILES_VIRTUALIZE, CAP_HOOKS_INSTALL, CAP_LUA_MODULE, CAP_LUA_RUNTIME,
+    CAP_MEMORY_READ, CAP_MEMORY_SCAN, CAP_MEMORY_WRITE, CAP_MOD_DISCOVERY, CAP_PLUGIN_HOST,
+    CAP_SIGNALS_EMIT, CAP_SIGNALS_SUBSCRIBE, CAP_STD_CHARACTER_EXTEND,
+};
+
 use crate::log;
 
 use super::{paths::mods_root, plugin::load_plugin};
@@ -16,20 +22,31 @@ struct SdkService {
     provides: &'static [&'static str],
 }
 
-const CORE_CAPABILITIES: &[&str] = &[
-    "plugin.host",
-    "config.schema",
-    "lua.runtime",
-    "lua.module",
-    "mod.discovery",
-    "files.virtualize",
-    "memory.read",
-    "memory.scan",
-    "memory.write",
-    "hooks.install",
-    "std.character.extend",
-    "signals.subscribe",
-    "signals.emit",
+const PUBLIC_CORE_CAPABILITIES: &[&str] = &[
+    CAP_PLUGIN_HOST,
+    CAP_CONFIG_SCHEMA,
+    CAP_LUA_RUNTIME,
+    CAP_LUA_MODULE,
+    CAP_MOD_DISCOVERY,
+    CAP_MEMORY_READ,
+    CAP_MEMORY_SCAN,
+    CAP_SIGNALS_SUBSCRIBE,
+];
+
+const SDK_INTERNAL_CORE_CAPABILITIES: &[&str] = &[
+    CAP_PLUGIN_HOST,
+    CAP_CONFIG_SCHEMA,
+    CAP_LUA_RUNTIME,
+    CAP_LUA_MODULE,
+    CAP_MOD_DISCOVERY,
+    CAP_FILES_VIRTUALIZE,
+    CAP_HOOKS_INSTALL,
+    CAP_MEMORY_READ,
+    CAP_MEMORY_SCAN,
+    CAP_MEMORY_WRITE,
+    CAP_SIGNALS_EMIT,
+    CAP_SIGNALS_SUBSCRIBE,
+    CAP_STD_CHARACTER_EXTEND,
 ];
 
 const SDK_SERVICES: &[SdkService] = &[
@@ -38,20 +55,21 @@ const SDK_SERVICES: &[SdkService] = &[
         dll: "runtime.dll",
         lua_modules: &[
             "sdk.runtime.fx",
+            "sdk.runtime.player",
             "sdk.runtime.ranks",
             "sdk.runtime.difficulty",
         ],
         requires: &[
-            "plugin.host",
-            "config.schema",
-            "lua.module",
-            "hooks.install",
-            "memory.read",
-            "memory.scan",
-            "memory.write",
-            "std.character.extend",
-            "signals.subscribe",
-            "signals.emit",
+            CAP_PLUGIN_HOST,
+            CAP_CONFIG_SCHEMA,
+            CAP_LUA_MODULE,
+            CAP_HOOKS_INSTALL,
+            CAP_MEMORY_READ,
+            CAP_MEMORY_SCAN,
+            CAP_MEMORY_WRITE,
+            CAP_STD_CHARACTER_EXTEND,
+            CAP_SIGNALS_SUBSCRIBE,
+            CAP_SIGNALS_EMIT,
         ],
         provides: &[
             "game.runtime",
@@ -69,10 +87,10 @@ const SDK_SERVICES: &[SdkService] = &[
         dll: "debug.dll",
         lua_modules: &[],
         requires: &[
-            "plugin.host",
-            "config.schema",
-            "memory.read",
-            "signals.emit",
+            CAP_PLUGIN_HOST,
+            CAP_CONFIG_SCHEMA,
+            CAP_MEMORY_READ,
+            CAP_SIGNALS_EMIT,
         ],
         provides: &["debug.memory"],
     },
@@ -80,14 +98,14 @@ const SDK_SERVICES: &[SdkService] = &[
         id: "sdk_overlay",
         dll: "overlay.dll",
         lua_modules: &[],
-        requires: &["plugin.host", "config.schema", "signals.subscribe"],
+        requires: &[CAP_PLUGIN_HOST, CAP_CONFIG_SCHEMA, CAP_SIGNALS_SUBSCRIBE],
         provides: &["ui.overlay"],
     },
     SdkService {
         id: "sdk_linkdata",
         dll: "linkdata.dll",
         lua_modules: &[],
-        requires: &["plugin.host", "files.virtualize"],
+        requires: &[CAP_PLUGIN_HOST, CAP_FILES_VIRTUALIZE],
         provides: &["linkdata.read", "linkdata.patch"],
     },
     SdkService {
@@ -95,10 +113,10 @@ const SDK_SERVICES: &[SdkService] = &[
         dll: "rdb.dll",
         lua_modules: &["sdk.rdb.patcher"],
         requires: &[
-            "plugin.host",
-            "files.virtualize",
-            "lua.module",
-            "std.character.extend",
+            CAP_PLUGIN_HOST,
+            CAP_FILES_VIRTUALIZE,
+            CAP_LUA_MODULE,
+            CAP_STD_CHARACTER_EXTEND,
         ],
         provides: &["rdb.read", "rdb.patch", "rdb.skin", "std.character.extend"],
     },
@@ -131,7 +149,7 @@ pub(super) fn load_plugins(game_root: &Path, plugin_root: &Path) -> PluginLoadRe
     report.manifests = manifests.len();
 
     let mut loaded = HashSet::new();
-    let mut capabilities = CORE_CAPABILITIES
+    let mut capabilities = PUBLIC_CORE_CAPABILITIES
         .iter()
         .map(|capability| (*capability).to_string())
         .collect::<HashSet<_>>();
@@ -143,7 +161,7 @@ pub(super) fn load_plugins(game_root: &Path, plugin_root: &Path) -> PluginLoadRe
                 deferred.push(manifest);
                 continue;
             }
-            if !capabilities_available(&manifest.capabilities_required, &capabilities) {
+            if !capabilities_available_for_manifest(&manifest, &capabilities) {
                 deferred.push(manifest);
                 continue;
             }
@@ -177,6 +195,33 @@ fn capabilities_available(required: &[String], available: &HashSet<String>) -> b
             available_capability.eq_ignore_ascii_case(required_capability)
         })
     })
+}
+
+fn capabilities_available_for_manifest(
+    manifest: &PluginManifest,
+    available: &HashSet<String>,
+) -> bool {
+    if is_sdk_service_id(&manifest.id) {
+        return manifest.capabilities_required.iter().all(|capability| {
+            has_capability(capability, available)
+                || SDK_INTERNAL_CORE_CAPABILITIES
+                    .iter()
+                    .any(|internal| internal.eq_ignore_ascii_case(capability))
+        });
+    }
+    capabilities_available(&manifest.capabilities_required, available)
+}
+
+fn is_sdk_service_id(id: &str) -> bool {
+    SDK_SERVICES
+        .iter()
+        .any(|service| service.id.eq_ignore_ascii_case(id))
+}
+
+fn has_capability(required: &str, available: &HashSet<String>) -> bool {
+    available
+        .iter()
+        .any(|capability| capability.eq_ignore_ascii_case(required))
 }
 
 fn reject_duplicate_manifests(manifests: Vec<PluginManifest>) -> Vec<PluginManifest> {
@@ -333,24 +378,55 @@ mod tests {
     }
 
     #[test]
-    fn core_capabilities_are_available_before_services() {
-        let available = CORE_CAPABILITIES
+    fn public_core_capabilities_are_available_before_services() {
+        let available = PUBLIC_CORE_CAPABILITIES
             .iter()
             .map(|capability| (*capability).to_string())
             .collect::<HashSet<_>>();
 
         assert!(capabilities_available(
-            &["FILES.VIRTUALIZE".to_string()],
-            &available
-        ));
-        assert!(capabilities_available(
-            &["lua.module".to_string(), "std.character.extend".to_string()],
+            &["lua.module".to_string(), "memory.read".to_string()],
             &available
         ));
         assert!(!capabilities_available(
             &["linkdata.patch".to_string()],
             &available
         ));
+        assert!(!capabilities_available(
+            &["files.virtualize".to_string()],
+            &available
+        ));
+        assert!(!capabilities_available(
+            &["hooks.install".to_string()],
+            &available
+        ));
+        assert!(!capabilities_available(
+            &["memory.write".to_string()],
+            &available
+        ));
+        assert!(!capabilities_available(
+            &["signals.emit".to_string()],
+            &available
+        ));
+    }
+
+    #[test]
+    fn sdk_services_can_use_internal_core_capabilities() {
+        let available = PUBLIC_CORE_CAPABILITIES
+            .iter()
+            .map(|capability| (*capability).to_string())
+            .collect::<HashSet<_>>();
+        let mut service = manifest_for_test("sdk_runtime", "sdk/runtime".into());
+        service.capabilities_required = vec![
+            "hooks.install".to_string(),
+            "memory.write".to_string(),
+            "signals.emit".to_string(),
+        ];
+        let mut plugin = manifest_for_test("third_party", "mods/third_party".into());
+        plugin.capabilities_required = service.capabilities_required.clone();
+
+        assert!(capabilities_available_for_manifest(&service, &available));
+        assert!(!capabilities_available_for_manifest(&plugin, &available));
     }
 
     #[test]
@@ -388,6 +464,7 @@ mod tests {
             manifests[0].lua_modules,
             [
                 "sdk.runtime.fx",
+                "sdk.runtime.player",
                 "sdk.runtime.ranks",
                 "sdk.runtime.difficulty"
             ]

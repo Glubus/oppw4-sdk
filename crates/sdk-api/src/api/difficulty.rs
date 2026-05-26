@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{PluginError, PluginResult};
 
-pub const DIFFICULTY_SET_RULE: &str = "sdk.runtime.difficulty.set_rule";
+pub const DIFFICULTY_STAGE_RULE: &str = "sdk.runtime.difficulty.stage_rule";
 
 #[derive(Clone, Copy)]
 pub struct DifficultyService<'api> {
@@ -15,10 +15,10 @@ impl<'api> DifficultyService<'api> {
         Self { abi }
     }
 
-    pub fn set_rule(self, rule: DifficultyRule) -> PluginResult<()> {
+    pub fn stage_rule(self, rule: DifficultyRule) -> PluginResult<()> {
         let bytes = serde_json::to_vec(&rule)
             .map_err(|error| PluginError::InitFailed(error.to_string()))?;
-        super::SignalService::new(self.abi).emit_bytes(DIFFICULTY_SET_RULE, &bytes)
+        super::SignalService::new(self.abi).emit_bytes(DIFFICULTY_STAGE_RULE, &bytes)
     }
 }
 
@@ -242,7 +242,6 @@ pub enum DifficultyCondition {
     Always,
     Flag { key: String, value: bool },
     Equals { key: String, value: String },
-    ActiveCharacter { id: String },
     Custom { key: String, value: String },
 }
 
@@ -259,10 +258,6 @@ impl DifficultyCondition {
             key: key.into(),
             value: value.into(),
         }
-    }
-
-    pub fn active_character(id: impl Into<String>) -> Self {
-        Self::ActiveCharacter { id: id.into() }
     }
 
     pub fn custom(key: impl Into<String>, value: impl Into<String>) -> Self {

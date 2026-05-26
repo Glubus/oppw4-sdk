@@ -26,7 +26,7 @@ pub use config::ConfigService;
 pub use difficulty::{
     DifficultyAction, DifficultyActorStat, DifficultyCondition, DifficultyConditionExpr,
     DifficultyFixedArea, DifficultyKnownTable, DifficultyLevel, DifficultyRule, DifficultyService,
-    DifficultyValueOp, DIFFICULTY_SET_RULE,
+    DifficultyValueOp, DIFFICULTY_STAGE_RULE,
 };
 pub use files::{FileService, VirtualFileProvider};
 pub use game::GameService;

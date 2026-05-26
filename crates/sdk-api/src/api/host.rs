@@ -23,13 +23,15 @@ struct HostApiTable {
 }
 
 // SAFETY: `HostApiTable` is a shared immutable callback table plus an opaque
-// host context pointer. The ABI contract requires host services to remain valid
-// when plugins move the owned API handle into worker threads.
+// host context pointer. `OwnedHostApi` may be moved into worker threads, so every
+// host callback reachable through this table must treat `host_context` as a
+// thread-safe handle or reject the operation internally.
 unsafe impl Send for HostApiTable {}
 
 // SAFETY: SDK services only read callback pointers from the table and pass the
-// opaque context back to the host. The host owns synchronization for that
-// context.
+// opaque context back to the host. The host core owns synchronization for that
+// context; plugins must not assume callback implementations are reentrant unless
+// the service documentation says so.
 unsafe impl Sync for HostApiTable {}
 
 impl<'api> HostApi<'api> {

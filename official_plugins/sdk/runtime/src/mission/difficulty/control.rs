@@ -3,7 +3,7 @@ use std::{
     sync::OnceLock,
 };
 
-use plugin_sdk::{DifficultyRule, OwnedHostApi, DIFFICULTY_SET_RULE};
+use plugin_sdk::{DifficultyRule, OwnedHostApi, DIFFICULTY_STAGE_RULE};
 
 use crate::runtime::probe::PLUGIN_ID;
 
@@ -12,7 +12,7 @@ static HOST: OnceLock<OwnedHostApi> = OnceLock::new();
 pub(crate) fn install(host: OwnedHostApi) {
     let _ = HOST.set(host.clone());
     unsafe {
-        subscribe(&host, DIFFICULTY_SET_RULE);
+        subscribe(&host, DIFFICULTY_STAGE_RULE);
     }
 }
 
@@ -59,7 +59,7 @@ unsafe extern "system" fn difficulty_command_callback(
 
 fn handle_command(host: &OwnedHostApi, signal: &str, payload: &[u8]) -> Result<(), String> {
     match signal {
-        DIFFICULTY_SET_RULE => stage_rule(host, read_json(payload)?),
+        DIFFICULTY_STAGE_RULE => stage_rule(host, read_json(payload)?),
         _ => Ok(()),
     }
 }
@@ -90,7 +90,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use plugin_sdk::{DifficultyAction, DifficultyRule, DifficultyValueOp, DIFFICULTY_SET_RULE};
+    use plugin_sdk::{DifficultyAction, DifficultyRule, DifficultyValueOp, DIFFICULTY_STAGE_RULE};
 
     use super::*;
 
@@ -115,12 +115,12 @@ mod tests {
     fn unknown_signals_are_ignored() {
         let payload = serde_json::to_vec(&DifficultyRule::enable_levels(["hard"])).expect("json");
         assert!(matches_signal("other.signal", &payload).is_ok());
-        assert!(matches_signal(DIFFICULTY_SET_RULE, &payload).is_ok());
+        assert!(matches_signal(DIFFICULTY_STAGE_RULE, &payload).is_ok());
     }
 
     fn matches_signal(signal: &str, payload: &[u8]) -> Result<(), String> {
         match signal {
-            DIFFICULTY_SET_RULE => {
+            DIFFICULTY_STAGE_RULE => {
                 let _: DifficultyRule = read_json(payload)?;
                 Ok(())
             }

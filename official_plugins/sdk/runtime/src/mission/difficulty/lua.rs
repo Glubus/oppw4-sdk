@@ -11,7 +11,6 @@ pub(super) fn module(lua: &Lua) -> mlua::Result<Table> {
     table.set("level", lua.create_function(level)?)?;
     table.set("all", lua.create_function(all)?)?;
     table.set("any", lua.create_function(any)?)?;
-    table.set("active_character", lua.create_function(active_character)?)?;
     table.set("flag", lua.create_function(flag)?)?;
     table.set("equals", lua.create_function(equals)?)?;
     table.set("custom", lua.create_function(custom)?)?;
@@ -85,10 +84,6 @@ fn all(lua: &Lua, values: mlua::MultiValue) -> mlua::Result<Table> {
 
 fn any(lua: &Lua, values: mlua::MultiValue) -> mlua::Result<Table> {
     condition_expr(lua, "any", values)
-}
-
-fn active_character(lua: &Lua, id: String) -> mlua::Result<Table> {
-    condition_table(lua, "active_character", "id", id)
 }
 
 fn flag(lua: &Lua, (key, value): (String, bool)) -> mlua::Result<Table> {
@@ -277,9 +272,6 @@ fn parse_condition(table: Table) -> mlua::Result<DifficultyCondition> {
         "equals" => Ok(DifficultyCondition::equals(
             table.get::<String>("key")?,
             table.get::<String>("value")?,
-        )),
-        "active_character" => Ok(DifficultyCondition::active_character(
-            table.get::<String>("id")?,
         )),
         "custom" => Ok(DifficultyCondition::custom(
             table.get::<String>("key")?,

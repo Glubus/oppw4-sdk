@@ -50,8 +50,8 @@ fn sdk_runtime_difficulty_builds_all_condition_disable_rule() {
             local difficulty = require("sdk.runtime.difficulty")
             return difficulty.level("hard")
               :condition(difficulty.all(
-                difficulty.active_character("zoro"),
-                difficulty.flag("crew.elbaph", true)
+                difficulty.equals("mission.mode", "treasure_log"),
+                difficulty.flag("rules.elbaph", true)
               ))
               :disable()
             "#,
@@ -64,8 +64,8 @@ fn sdk_runtime_difficulty_builds_all_condition_disable_rule() {
     assert_eq!(
         rule.condition,
         DifficultyConditionExpr::all([
-            DifficultyCondition::active_character("zoro"),
-            DifficultyCondition::flag("crew.elbaph", true),
+            DifficultyCondition::equals("mission.mode", "treasure_log"),
+            DifficultyCondition::flag("rules.elbaph", true),
         ])
     );
     assert_eq!(rule.action, DifficultyAction::DisableLevel);

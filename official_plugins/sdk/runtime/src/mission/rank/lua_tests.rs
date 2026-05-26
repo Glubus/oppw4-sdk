@@ -7,6 +7,13 @@ fn install(lua_state: &Lua) {
     lua_api::install_runtime(lua_state).expect("runtime");
     let module = lua::module(lua_state).expect("module");
     lua_api::register_module(lua_state, lua::MODULE_NAME, module).expect("register");
+    let player_module = crate::runtime::player::lua::module(lua_state).expect("player module");
+    lua_api::register_module(
+        lua_state,
+        crate::runtime::player::lua::MODULE_NAME,
+        player_module,
+    )
+    .expect("register player");
 }
 
 #[test]
@@ -39,9 +46,10 @@ fn sdk_runtime_ranks_builds_all_condition_disable_rule() {
         .load(
             r#"
             local ranks = require("sdk.runtime.ranks")
+            local player = require("sdk.runtime.player")
             return ranks.slot("d")
               :condition(ranks.all(
-                ranks.active_character("zoro"),
+                player:active_character("zoro"),
                 ranks.flag("crew.elbaph", true)
               ))
               :disable()
