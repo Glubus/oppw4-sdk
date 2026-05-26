@@ -138,23 +138,6 @@ fn row_operations_validate_bounds_and_sizes() {
 }
 
 #[test]
-fn curated_entries_include_observed_movesets_without_section_claims() {
-    let garp = entries::movesets::garp_entry_247::LAYOUT;
-    let rayleigh = entries::movesets::rayleigh_entry_248::LAYOUT;
-
-    assert_eq!(garp.entry, LinkDataEntryId::new(247));
-    assert_eq!(rayleigh.entry, LinkDataEntryId::new(248));
-    assert_eq!(garp.sections, []);
-    assert_eq!(rayleigh.sections, []);
-    assert!(entries::CURATED
-        .iter()
-        .any(|entry| entry.entry == LinkDataEntryId::new(247)));
-    assert!(entries::CURATED
-        .iter()
-        .any(|entry| entry.entry == LinkDataEntryId::new(248)));
-}
-
-#[test]
 fn fixed_data_refs_keep_logical_ids_separate_from_archive_entries() {
     let stream = FixedDataStreamRef::new(FixedDataLogicalId::new(0x14), 2558);
     let candidate = FixedDataSourceCandidate::new(

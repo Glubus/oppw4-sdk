@@ -4,7 +4,13 @@ version = "0.1.0"
 entry = "runtime.dll"
 
 [lua]
-modules = ["sdk.runtime.fx", "sdk.runtime.player", "sdk.runtime.ranks", "sdk.runtime.difficulty"]
+modules = [
+  "sdk.runtime.fx",
+  "sdk.runtime.player",
+  "sdk.runtime.ranks",
+  "sdk.runtime.difficulty",
+  "sdk.runtime.rewards",
+]
 
 [capabilities]
 requires = [

@@ -9,6 +9,7 @@ pub(crate) struct GameRuntime;
 
 impl GameRuntime {
     pub(crate) fn register(host: HostApi<'_>) -> PluginResult<()> {
+        status::initialize();
         let game = host.game();
         unsafe {
             game.register_status_provider(ptr::null_mut(), status::read_game_status)?;

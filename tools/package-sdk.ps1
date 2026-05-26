@@ -24,6 +24,7 @@ $dataRoot = Join-Path $root "oppw4-data"
 
 $sdkPackages = @(
     "oppw4-sdk-core-plugin",
+    "oppw4-sdk-data-plugin",
     "oppw4-sdk-runtime-plugin",
     "oppw4-sdk-debug-plugin",
     "oppw4-sdk-overlay-plugin",
@@ -36,6 +37,7 @@ $officialPackages = @(
 
 $sdkDlls = @(
     @{ Name = "sdk"; File = "sdk.dll" },
+    @{ Name = "data"; File = "data.dll" },
     @{ Name = "runtime"; File = "runtime.dll" },
     @{ Name = "debug"; File = "debug.dll" },
     @{ Name = "overlay"; File = "overlay.dll" },

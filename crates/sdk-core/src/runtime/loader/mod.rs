@@ -27,7 +27,6 @@ pub fn initialize(game_root: &Path, plugin_root: &Path, session_stamp: Option<St
 
 fn prepare_runtime(game_root: &Path, plugin_root: &Path, session_stamp: Option<String>) {
     let _ = fs::create_dir_all(plugin_root);
-    initialize_character_bank(&paths::data_root(game_root));
     logs::initialize(
         session_stamp,
         paths::mods_root(game_root)
@@ -37,22 +36,6 @@ fn prepare_runtime(game_root: &Path, plugin_root: &Path, session_stamp: Option<S
     );
     let _ = LOADED.set(Mutex::new(Vec::new()));
     lua::initialize(&paths::mods_root(game_root));
-}
-
-fn initialize_character_bank(data_root: &Path) {
-    match struct_api::initialize_data_root(data_root) {
-        Ok(()) => log::write_line(format!(
-            "plugin host: loaded character data from {}",
-            data_root.display()
-        )),
-        Err(error) => {
-            struct_api::mark_data_unavailable();
-            log::write_line(format!(
-                "plugin host: character data unavailable at {}: {error:?}",
-                data_root.display()
-            ));
-        }
-    }
 }
 
 fn remember_loaded_plugin(plugin: LoadedPlugin) {

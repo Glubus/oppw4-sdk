@@ -1,5 +1,4 @@
 pub mod archive;
-pub mod entries;
 pub mod fixed;
 pub mod sections;
 pub mod types;

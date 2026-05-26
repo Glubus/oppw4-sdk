@@ -7,6 +7,7 @@ pub(crate) const DIFFICULTY_SNAPSHOT: &str = "sdk.runtime.difficulty.snapshot";
 pub(crate) const RANK_SNAPSHOT: &str = "sdk.runtime.rank.snapshot";
 pub(crate) const RANK_HELPER_CALL: &str = "sdk.runtime.rank.helper_call";
 pub(crate) const RESULT_STATE_SNAPSHOT: &str = "sdk.runtime.result_state.snapshot";
+pub(crate) const REWARD_STAGE_RULE: &str = "sdk.runtime.rewards.stage_rule";
 pub(crate) const REWARD_COMMIT: &str = "sdk.runtime.rewards.commit";
 pub(crate) const REWARD_ITEMS: &str = "sdk.runtime.rewards.items";
 

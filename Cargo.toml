@@ -1,6 +1,5 @@
 [workspace]
 members = [
-    "crates/character-bank",
     "crates/asm",
     "crates/hooks",
     "crates/lua-runtime",
@@ -14,6 +13,8 @@ members = [
     "tools/plugin-manifest-tool",
     "tools/rdb-tool",
     "official_plugins/sdk/core",
+    "official_plugins/sdk/data",
+    "official_plugins/sdk/data/api",
     "official_plugins/sdk/runtime",
     "official_plugins/sdk/debug",
     "official_plugins/sdk/overlay",
@@ -31,7 +32,7 @@ license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
 rdb = { path = "crates/rdb" }
-struct-api = { path = "crates/character-bank" }
+struct-api = { path = "official_plugins/sdk/data/api", package = "oppw4-data" }
 asm = { path = "crates/asm" }
 hooks = { path = "crates/hooks" }
 lua-api = { path = "crates/lua-runtime" }

@@ -2,6 +2,8 @@ use std::ffi::c_void;
 
 use plugin_sdk::Oppw4ActiveCharacter;
 
+use super::state::{self, ActiveCharacter};
+
 pub(crate) unsafe extern "system" fn read_active_character(
     _provider_context: *mut c_void,
     out: *mut Oppw4ActiveCharacter,
@@ -9,11 +11,11 @@ pub(crate) unsafe extern "system" fn read_active_character(
     let Some(out) = out.as_mut() else {
         return -1;
     };
-    *out = active_character_to_abi(hooks::active_character_snapshot());
+    *out = active_character_to_abi(state::snapshot());
     0
 }
 
-fn active_character_to_abi(snapshot: hooks::ActiveCharacter) -> Oppw4ActiveCharacter {
+fn active_character_to_abi(snapshot: ActiveCharacter) -> Oppw4ActiveCharacter {
     Oppw4ActiveCharacter {
         runtime_id: snapshot.runtime_id,
         alt_id: snapshot.alt_id,

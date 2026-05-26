@@ -207,8 +207,6 @@ name = "lua-api"
 version = "0.1.0"
 dependencies = [
  "mlua",
- "serde_json",
- "struct-api",
  "toml",
  "zip",
 ]
@@ -306,6 +304,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
+name = "oppw4-data"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "oppw4-log-example-plugin"
 version = "0.1.0"
 dependencies = [
@@ -331,6 +337,16 @@ version = "0.1.0"
 dependencies = [
  "plugin-abi",
  "plugin-host",
+]
+
+[[package]]
+name = "oppw4-sdk-data-plugin"
+version = "0.1.0"
+dependencies = [
+ "lua-api",
+ "mlua",
+ "oppw4-data",
+ "plugin-sdk",
 ]
 
 [[package]]
@@ -375,10 +391,10 @@ dependencies = [
  "hooks",
  "lua-api",
  "mlua",
+ "oppw4-data",
  "plugin-sdk",
  "serde",
  "serde_json",
- "struct-api",
  "toml",
 ]
 
@@ -428,9 +444,9 @@ dependencies = [
  "hooks",
  "lua-api",
  "mlua",
+ "oppw4-data",
  "plugin-abi",
  "plugin-sdk",
- "struct-api",
  "tracing",
 ]
 
@@ -606,14 +622,6 @@ name = "smallvec"
 version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
-
-[[package]]
-name = "struct-api"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
-]
 
 [[package]]
 name = "syn"

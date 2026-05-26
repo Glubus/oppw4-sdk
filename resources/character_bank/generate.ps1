@@ -1,6 +1,6 @@
 param(
     [string]$BankRoot = $PSScriptRoot,
-    [string]$CrateDataPath = (Join-Path $PSScriptRoot "..\..\crates\character-bank\data\characters.json")
+    [string]$CrateDataPath = (Join-Path $PSScriptRoot "..\..\official_plugins\sdk\data\api\data\characters.json")
 )
 
 $ErrorActionPreference = "Stop"

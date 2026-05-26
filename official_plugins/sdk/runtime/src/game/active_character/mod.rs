@@ -1,6 +1,7 @@
 mod abi;
 mod hook;
 mod probe;
+mod state;
 
 pub(crate) use abi::read_active_character;
 

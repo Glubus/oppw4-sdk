@@ -1,6 +1,6 @@
 use std::{sync::OnceLock, thread, time::Duration};
 
-use super::hook;
+use super::{hook, state};
 
 static STARTED: OnceLock<()> = OnceLock::new();
 
@@ -26,6 +26,6 @@ fn poll_active_character() {
             continue;
         }
         last_local_player = local_player;
-        hooks::publish_local_player(local_player);
+        state::publish_local_player(local_player);
     }
 }

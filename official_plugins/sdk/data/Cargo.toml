@@ -1,0 +1,15 @@
+[package]
+name = "oppw4-sdk-data-plugin"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+name = "data"
+
+[dependencies]
+lua-api.workspace = true
+mlua.workspace = true
+plugin-sdk.workspace = true
+struct-api.workspace = true

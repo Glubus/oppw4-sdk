@@ -1,12 +1,16 @@
 use mlua::{Function, Lua, Table};
 
 use super::authorize_extension_owner;
-use crate::runtime::register_module;
+
+fn install_character(lua: &Lua) {
+    lua_api::install_require_hook(lua).expect("require hook");
+    super::install(lua).expect("character");
+}
 
 #[test]
 fn required_plugin_can_extend_character_handles_once() {
     let lua = Lua::new();
-    crate::runtime::install_runtime(&lua).expect("runtime");
+    install_character(&lua);
     authorize_extension_owner(&lua, "sdk.rdb.patcher").expect("authorize");
     let patcher = lua.create_table().expect("patcher");
     patcher
@@ -23,7 +27,7 @@ fn required_plugin_can_extend_character_handles_once() {
             .expect("on import"),
         )
         .expect("hook");
-    register_module(&lua, "sdk.rdb.patcher", patcher).expect("module");
+    lua_api::register_module(&lua, "sdk.rdb.patcher", patcher).expect("module");
 
     let before: bool = lua
         .load(
@@ -53,7 +57,7 @@ fn required_plugin_can_extend_character_handles_once() {
 #[test]
 fn std_character_module_is_requireable() {
     let lua = Lua::new();
-    crate::runtime::install_runtime(&lua).expect("runtime");
+    install_character(&lua);
 
     let value: String = lua
         .load(
@@ -72,7 +76,7 @@ fn std_character_module_is_requireable() {
 #[test]
 fn std_global_exposes_character_module() {
     let lua = Lua::new();
-    crate::runtime::install_runtime(&lua).expect("runtime");
+    install_character(&lua);
 
     let value: String = lua
         .load(
@@ -90,7 +94,7 @@ fn std_global_exposes_character_module() {
 #[test]
 fn character_find_accepts_known_ids() {
     let lua = Lua::new();
-    crate::runtime::install_runtime(&lua).expect("runtime");
+    install_character(&lua);
 
     let value: String = lua
         .load(
@@ -109,7 +113,7 @@ fn character_find_accepts_known_ids() {
 #[test]
 fn character_unsafe_find_returns_unchecked_model_handle() {
     let lua = Lua::new();
-    crate::runtime::install_runtime(&lua).expect("runtime");
+    install_character(&lua);
 
     let value: String = lua
         .load(
@@ -127,7 +131,7 @@ fn character_unsafe_find_returns_unchecked_model_handle() {
 #[test]
 fn character_unsafe_find_preserves_requested_id_kind() {
     let lua = Lua::new();
-    crate::runtime::install_runtime(&lua).expect("runtime");
+    install_character(&lua);
 
     let value: String = lua
         .load(
@@ -146,7 +150,7 @@ fn character_unsafe_find_preserves_requested_id_kind() {
 #[test]
 fn character_new_creates_custom_handles_with_plugin_methods() {
     let lua = Lua::new();
-    crate::runtime::install_runtime(&lua).expect("runtime");
+    install_character(&lua);
     authorize_extension_owner(&lua, "sdk.runtime.fx").expect("authorize");
     let patcher = lua.create_table().expect("patcher");
     patcher
@@ -162,7 +166,7 @@ fn character_new_creates_custom_handles_with_plugin_methods() {
             .expect("on import"),
         )
         .expect("hook");
-    register_module(&lua, "sdk.runtime.fx", patcher).expect("module");
+    lua_api::register_module(&lua, "sdk.runtime.fx", patcher).expect("module");
 
     let value: String = lua
         .load(
@@ -185,7 +189,7 @@ fn character_new_creates_custom_handles_with_plugin_methods() {
 #[test]
 fn character_extension_method_conflicts_fail_loudly() {
     let lua = Lua::new();
-    crate::runtime::install_runtime(&lua).expect("runtime");
+    install_character(&lua);
     authorize_extension_owner(&lua, "sdk.rdb.patcher").expect("authorize skin");
     authorize_extension_owner(&lua, "other_plugin").expect("authorize other");
 
@@ -211,7 +215,7 @@ fn character_extension_method_conflicts_fail_loudly() {
 #[test]
 fn character_extension_requires_authorized_owner() {
     let lua = Lua::new();
-    crate::runtime::install_runtime(&lua).expect("runtime");
+    install_character(&lua);
 
     let register: Function = lua
         .globals()

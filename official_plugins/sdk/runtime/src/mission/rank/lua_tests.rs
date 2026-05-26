@@ -7,10 +7,11 @@ fn install(lua_state: &Lua) {
     lua_api::install_runtime(lua_state).expect("runtime");
     let module = lua::module(lua_state).expect("module");
     lua_api::register_module(lua_state, lua::MODULE_NAME, module).expect("register");
-    let player_module = crate::runtime::player::lua::module(lua_state).expect("player module");
+    let player_module =
+        crate::runtime::player::lua_module_for_test(lua_state).expect("player module");
     lua_api::register_module(
         lua_state,
-        crate::runtime::player::lua::MODULE_NAME,
+        crate::runtime::player::LUA_MODULE_NAME_FOR_TEST,
         player_module,
     )
     .expect("register player");

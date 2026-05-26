@@ -121,6 +121,7 @@ extern "system" fn reward_commit_detour(
         bonus_a,
         bonus_b,
     );
+    super::rules::apply_reward_commit(reward_out, rank_or_mode);
 
     let _ = panic::catch_unwind(|| {
         log_reward(

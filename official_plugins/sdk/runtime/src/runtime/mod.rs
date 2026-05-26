@@ -37,9 +37,11 @@ impl Runtime {
         GameRuntime::start();
         difficulty::install_control(owned_host.clone());
         rank::install_control(owned_host.clone());
+        crate::rewards::install_control(owned_host.clone());
         lua_module::register(host, player::lua_module());
         lua_module::register(host, difficulty::lua_module());
         lua_module::register(host, rank::lua_module());
+        lua_module::register(host, crate::rewards::lua_module(owned_host.clone()));
         install_exposures(owned_host, config);
         fx::initialize(host)?;
         Ok(())

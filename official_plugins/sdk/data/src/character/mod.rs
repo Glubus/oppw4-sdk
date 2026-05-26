@@ -1,7 +1,5 @@
 use mlua::{Lua, Table, Value};
 
-use crate::runtime::{register_module, register_std_module};
-
 mod extensions;
 mod handles;
 
@@ -57,46 +55,26 @@ pub(super) fn install(lua: &Lua) -> mlua::Result<()> {
         "local_player",
         lua.create_function(|lua, ()| local_player_handle_table(lua))?,
     )?;
-    register_std_module(lua, "character", character.clone())?;
-    register_module(lua, "character", character.clone())?;
+    register_std_character_module(lua, character.clone())?;
+    lua_api::register_module(lua, "character", character.clone())?;
     lua.globals().set("character", character)
 }
 
-pub(crate) fn authorize_extension_owner(lua: &Lua, owner: &str) -> mlua::Result<()> {
-    extensions::authorize_owner(lua, owner)
+fn register_std_character_module(lua: &Lua, character: Table) -> mlua::Result<()> {
+    let globals = lua.globals();
+    let std = match globals.get::<Option<Table>>("std")? {
+        Some(std) => std,
+        None => {
+            let std = lua.create_table()?;
+            globals.set("std", std.clone())?;
+            std
+        }
+    };
+    std.set("character", character.clone())?;
+    lua_api::register_module(lua, "std.character", character)
 }
 
-pub(crate) fn active_character_handle_table(
-    lua: &Lua,
-    runtime_id: Option<u16>,
-    alt_id: Option<u16>,
-) -> mlua::Result<Table> {
-    if let Some(runtime_id) = runtime_id {
-        if let Some(character) = struct_api::find_by_id(runtime_id) {
-            return character_handle_table(lua, character);
-        }
-    }
-    if let Some(alt_id) = alt_id {
-        if let Some(character) = struct_api::find_by_id(alt_id) {
-            return character_handle_table(lua, character);
-        }
-    }
-
-    let fields = lua.create_table()?;
-    fields.set("known", false)?;
-    fields.set("unsafe", true)?;
-    if let Some(runtime_id) = runtime_id {
-        fields.set("runtime_id", runtime_id)?;
-        fields.set("id", runtime_id)?;
-        fields.set("name", format!("runtime_{runtime_id}"))?;
-    } else if let Some(alt_id) = alt_id {
-        fields.set("id", alt_id)?;
-        fields.set("name", format!("active_{alt_id}"))?;
-    } else {
-        fields.set("name", "active_character")?;
-    }
-    if let Some(alt_id) = alt_id {
-        fields.set("alt_id", alt_id)?;
-    }
-    custom_character_handle_table(lua, fields)
+#[cfg(test)]
+pub(crate) fn authorize_extension_owner(lua: &Lua, owner: &str) -> mlua::Result<()> {
+    extensions::authorize_owner(lua, owner)
 }

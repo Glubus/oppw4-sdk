@@ -51,6 +51,18 @@ const SDK_INTERNAL_CORE_CAPABILITIES: &[&str] = &[
 
 const SDK_SERVICES: &[SdkService] = &[
     SdkService {
+        id: "sdk_data",
+        dll: "data.dll",
+        lua_modules: &["std.character"],
+        requires: &[CAP_PLUGIN_HOST, CAP_LUA_MODULE],
+        provides: &[
+            "game.data",
+            "game.characters",
+            "game.missions",
+            CAP_STD_CHARACTER_EXTEND,
+        ],
+    },
+    SdkService {
         id: "sdk_runtime",
         dll: "runtime.dll",
         lua_modules: &[
@@ -58,9 +70,11 @@ const SDK_SERVICES: &[SdkService] = &[
             "sdk.runtime.player",
             "sdk.runtime.ranks",
             "sdk.runtime.difficulty",
+            "sdk.runtime.rewards",
         ],
         requires: &[
             CAP_PLUGIN_HOST,
+            "game.data",
             CAP_CONFIG_SCHEMA,
             CAP_LUA_MODULE,
             CAP_HOOKS_INSTALL,
@@ -79,7 +93,6 @@ const SDK_SERVICES: &[SdkService] = &[
             "game.mission.ranks",
             "game.mission.rewards",
             "runtime.fx",
-            "std.character.extend",
         ],
     },
     SdkService {
@@ -118,7 +131,7 @@ const SDK_SERVICES: &[SdkService] = &[
             CAP_LUA_MODULE,
             CAP_STD_CHARACTER_EXTEND,
         ],
-        provides: &["rdb.read", "rdb.patch", "rdb.skin", "std.character.extend"],
+        provides: &["rdb.read", "rdb.patch", "rdb.skin"],
     },
 ];
 
@@ -434,6 +447,7 @@ mod tests {
         let root = temp_root("sdk-services");
         let sdk_root = root.join("sdk");
         fs::create_dir_all(&sdk_root).expect("sdk dir");
+        fs::write(sdk_root.join("data.dll"), []).expect("data dll");
         fs::write(sdk_root.join("runtime.dll"), []).expect("runtime dll");
         fs::write(sdk_root.join("debug.dll"), []).expect("debug dll");
         fs::write(sdk_root.join("overlay.dll"), []).expect("overlay dll");
@@ -448,6 +462,7 @@ mod tests {
                 .map(|manifest| manifest.id.as_str())
                 .collect::<Vec<_>>(),
             [
+                "sdk_data",
                 "sdk_runtime",
                 "sdk_debug",
                 "sdk_overlay",
@@ -455,22 +470,25 @@ mod tests {
                 "sdk_rdb"
             ]
         );
-        assert_eq!(manifests[0].entry_path, sdk_root.join("runtime.dll"));
-        assert!(manifests[0]
+        assert_eq!(manifests[0].entry_path, sdk_root.join("data.dll"));
+        assert_eq!(manifests[0].lua_modules, ["std.character"]);
+        assert_eq!(manifests[1].entry_path, sdk_root.join("runtime.dll"));
+        assert!(manifests[1]
             .capabilities_required
             .iter()
             .any(|capability| capability == "config.schema"));
         assert_eq!(
-            manifests[0].lua_modules,
+            manifests[1].lua_modules,
             [
                 "sdk.runtime.fx",
                 "sdk.runtime.player",
                 "sdk.runtime.ranks",
-                "sdk.runtime.difficulty"
+                "sdk.runtime.difficulty",
+                "sdk.runtime.rewards"
             ]
         );
-        assert_eq!(manifests[3].entry_path, sdk_root.join("linkdata.dll"));
-        assert_eq!(manifests[4].lua_modules, ["sdk.rdb.patcher"]);
+        assert_eq!(manifests[4].entry_path, sdk_root.join("linkdata.dll"));
+        assert_eq!(manifests[5].lua_modules, ["sdk.rdb.patcher"]);
         let _ = fs::remove_dir_all(root);
     }
 

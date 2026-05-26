@@ -1,4 +1,4 @@
-use mlua::{Function, Lua, Table};
+use mlua::{Function, Lua};
 
 const METHODS_TABLE: &str = "__struct_api_methods";
 const OWNERS_TABLE: &str = "__struct_api_method_owners";
@@ -40,7 +40,8 @@ pub(super) fn install_registry(lua: &Lua) -> mlua::Result<()> {
     )
 }
 
+#[cfg(test)]
 pub(super) fn authorize_owner(lua: &Lua, owner: &str) -> mlua::Result<()> {
-    let authorized: Table = lua.globals().get(AUTHORIZED_OWNERS_TABLE)?;
+    let authorized: mlua::Table = lua.globals().get(AUTHORIZED_OWNERS_TABLE)?;
     authorized.set(owner.to_ascii_lowercase(), true)
 }

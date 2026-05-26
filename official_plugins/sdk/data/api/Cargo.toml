@@ -1,5 +1,5 @@
 [package]
-name = "struct-api"
+name = "oppw4-data"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
