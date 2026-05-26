@@ -1,4 +1,7 @@
-use std::{ffi::c_void, sync::OnceLock};
+use std::{
+    ffi::{c_void, CString},
+    sync::OnceLock,
+};
 
 use plugin_abi::{
     HostPatchLinkDataRowFn, HostReplaceLinkDataEntryFn, Oppw4LinkDataEntryPatch,
@@ -56,6 +59,32 @@ pub(crate) unsafe extern "system" fn host_replace_linkdata_entry(
         return -40;
     };
     unsafe { (provider.replace_entry)(provider.context as *mut c_void, patch) }
+}
+
+pub(crate) fn replace_entry_from_runtime(
+    plugin_id: &str,
+    file: u32,
+    entry: u32,
+    payload: &[u8],
+) -> Result<(), String> {
+    let Some(provider) = LINKDATA_PROVIDER.get() else {
+        return Err("linkdata provider is not registered".to_string());
+    };
+    let plugin_id = CString::new(plugin_id)
+        .map_err(|_| "linkdata patch plugin id contains an interior nul byte".to_string())?;
+    let patch = Oppw4LinkDataEntryPatch {
+        plugin_id: plugin_id.as_ptr(),
+        file,
+        entry,
+        payload: payload.as_ptr(),
+        payload_len: payload.len(),
+    };
+    let code = unsafe { (provider.replace_entry)(provider.context as *mut c_void, &patch) };
+    if code == 0 {
+        Ok(())
+    } else {
+        Err(format!("replace_linkdata_entry failed code={code}"))
+    }
 }
 
 pub(crate) unsafe extern "system" fn host_patch_linkdata_row(

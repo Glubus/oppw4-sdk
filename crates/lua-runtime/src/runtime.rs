@@ -6,7 +6,10 @@ pub(crate) mod sandbox;
 
 pub(crate) use require::register_std_module;
 pub use require::{install_require_hook, register_module};
-pub use runner::{run_lua_mod, LuaLogEntry, LuaRunError, LuaRunReport};
+pub use runner::{
+    run_lua_mod, run_lua_mods, LuaBatchRunReport, LuaLogEntry, LuaMutation, LuaRunError,
+    LuaRunReport,
+};
 
 const CHARACTER_AUTHORIZED_OWNERS_TABLE: &str = "__struct_api_authorized_method_owners";
 

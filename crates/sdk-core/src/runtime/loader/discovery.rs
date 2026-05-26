@@ -28,6 +28,7 @@ const PUBLIC_CORE_CAPABILITIES: &[&str] = &[
     CAP_LUA_RUNTIME,
     CAP_LUA_MODULE,
     CAP_MOD_DISCOVERY,
+    CAP_FILES_VIRTUALIZE,
     CAP_MEMORY_READ,
     CAP_MEMORY_SCAN,
     CAP_SIGNALS_SUBSCRIBE,
@@ -405,7 +406,7 @@ mod tests {
             &["linkdata.patch".to_string()],
             &available
         ));
-        assert!(!capabilities_available(
+        assert!(capabilities_available(
             &["files.virtualize".to_string()],
             &available
         ));

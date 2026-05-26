@@ -1,100 +1,262 @@
-use mlua::{Lua, Table, Value};
-use plugin_sdk::{RankCapEffect, RankCapRule, RankCondition, RankConditionExpr};
+use std::sync::{Arc, Mutex};
+
+use mlua::{Function, Lua, RegistryKey, Table, Value};
+
+use crate::runtime::core::{
+    bus::RuntimeHandlerError,
+    events::{RuntimeEvent, RuntimeMutation},
+    live_bus,
+    rank::{RankMutation, RankResultEvent, RankValue},
+};
 
 pub(super) const MODULE_NAME: &str = "sdk.runtime.ranks";
 
+#[derive(Clone, Default)]
+pub(super) struct RankLuaRegistry {
+    callbacks: Arc<Mutex<Vec<RankLuaCallback>>>,
+}
+
+impl RankLuaRegistry {
+    #[cfg(test)]
+    pub(super) fn new() -> Self {
+        Self::default()
+    }
+
+    #[cfg(test)]
+    pub(super) fn len(&self) -> usize {
+        self.callbacks
+            .lock()
+            .map(|callbacks| callbacks.len())
+            .unwrap_or(0)
+    }
+
+    #[cfg(test)]
+    pub(super) fn dispatch_rank_result(
+        &self,
+        lua: &Lua,
+        event: &RankResultEvent,
+    ) -> RankLuaDispatchReport {
+        let callbacks = match self.callbacks.lock() {
+            Ok(callbacks) => callbacks,
+            Err(error) => {
+                return RankLuaDispatchReport {
+                    mutations: Vec::new(),
+                    errors: vec![error.to_string()],
+                };
+            }
+        };
+        let mut report = RankLuaDispatchReport::default();
+        for callback in callbacks.iter() {
+            let callback_fn = match lua.registry_value::<Function>(&callback.key) {
+                Ok(callback_fn) => callback_fn,
+                Err(error) => {
+                    report.errors.push(error.to_string());
+                    continue;
+                }
+            };
+            let mutations = Arc::new(Mutex::new(Vec::new()));
+            let context = match rank_result_context(lua, event, Arc::clone(&mutations)) {
+                Ok(context) => context,
+                Err(error) => {
+                    report.errors.push(error.to_string());
+                    continue;
+                }
+            };
+            match callback_fn.call::<()>(context) {
+                Ok(()) => match mutations.lock() {
+                    Ok(mutations) => report.mutations.extend(mutations.iter().cloned()),
+                    Err(error) => report.errors.push(error.to_string()),
+                },
+                Err(error) => report.errors.push(error.to_string()),
+            }
+        }
+        report
+    }
+}
+
+struct RankLuaCallback {
+    #[cfg(test)]
+    key: RegistryKey,
+}
+
+#[cfg(test)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub(super) struct RankLuaDispatchReport {
+    pub(super) mutations: Vec<RankMutation>,
+    pub(super) errors: Vec<String>,
+}
+
 pub(super) fn module(lua: &Lua) -> mlua::Result<Table> {
+    module_with_registry(lua, RankLuaRegistry::default())
+}
+
+pub(super) fn module_with_registry(lua: &Lua, registry: RankLuaRegistry) -> mlua::Result<Table> {
     let table = lua.create_table()?;
-    table.set("slot", lua.create_function(slot)?)?;
-    table.set("all", lua.create_function(all)?)?;
-    table.set("any", lua.create_function(any)?)?;
-    table.set("flag", lua.create_function(flag)?)?;
-    table.set("equals", lua.create_function(equals)?)?;
-    table.set("custom", lua.create_function(custom)?)?;
+    table.set("on_result", {
+        let registry = registry.clone();
+        lua.create_function(move |lua, callback: Function| {
+            let mut callbacks = registry
+                .callbacks
+                .lock()
+                .map_err(|_| mlua::Error::external("rank lua registry lock poisoned"))?;
+            let callback_index = callbacks.len() + 1;
+            #[cfg(test)]
+            let key = lua.create_registry_value(callback.clone())?;
+            callbacks.push(RankLuaCallback {
+                #[cfg(test)]
+                key,
+            });
+            register_live_rank_callback(lua, format!("lua:on_result:{callback_index}"), callback)?;
+            Ok(())
+        })?
+    })?;
     Ok(table)
 }
 
-fn slot(lua: &Lua, slots: Value) -> mlua::Result<Table> {
-    let rule = lua.create_table()?;
-    rule.set("__rank_slots", parse_slots(slots)?)?;
-    rule.set("__rank_condition", Value::Nil)?;
-
-    rule.set(
-        "condition",
-        lua.create_function(|_, (this, condition): (Table, Value)| {
-            this.set("__rank_condition", condition)?;
-            Ok(this)
-        })?,
-    )?;
-    rule.set(
-        "enable",
-        lua.create_function(|_, this: Table| build_rule(this, RankCapEffect::Enable))?,
-    )?;
-    rule.set(
-        "disable",
-        lua.create_function(|_, this: Table| build_rule(this, RankCapEffect::Disable))?,
-    )?;
-    Ok(rule)
-}
-
-fn all(lua: &Lua, values: mlua::MultiValue) -> mlua::Result<Table> {
-    condition_expr(lua, "all", values)
-}
-
-fn any(lua: &Lua, values: mlua::MultiValue) -> mlua::Result<Table> {
-    condition_expr(lua, "any", values)
-}
-
-fn flag(lua: &Lua, (key, value): (String, bool)) -> mlua::Result<Table> {
-    let table = lua.create_table()?;
-    table.set("kind", "flag")?;
-    table.set("key", key)?;
-    table.set("value", value)?;
-    Ok(table)
-}
-
-fn equals(lua: &Lua, (key, value): (String, String)) -> mlua::Result<Table> {
-    let table = lua.create_table()?;
-    table.set("kind", "equals")?;
-    table.set("key", key)?;
-    table.set("value", value)?;
-    Ok(table)
-}
-
-fn custom(lua: &Lua, (key, value): (String, String)) -> mlua::Result<Table> {
-    condition_table(lua, "custom", "key", key).and_then(|table| {
-        table.set("value", value)?;
-        Ok(table)
-    })
-}
-
-fn condition_table(
+fn register_live_rank_callback(
     lua: &Lua,
-    kind: &'static str,
-    key_name: &'static str,
-    value: String,
+    callback_id: String,
+    callback: Function,
+) -> mlua::Result<()> {
+    #[cfg(test)]
+    if !live_callbacks_enabled(lua)? {
+        return Ok(());
+    }
+
+    let mod_id = current_mod_id(lua)?;
+    let handler_id = format!("{mod_id}:{callback_id}");
+    let live = Arc::new(Mutex::new(LiveRankCallback {
+        id: handler_id.clone(),
+        lua: Lua::clone(lua),
+        key: lua.create_registry_value(callback)?,
+    }));
+
+    live_bus::register_runtime_handler(handler_id, move |event| {
+        let RuntimeEvent::RankResult(event) = event else {
+            return Ok(Vec::new());
+        };
+        let live = live
+            .lock()
+            .map_err(|_| RuntimeHandlerError::new("rank lua callback lock poisoned"))?;
+        live.dispatch(event)
+            .map(|mutations| mutations.into_iter().map(RuntimeMutation::Rank).collect())
+            .map_err(|error| RuntimeHandlerError::new(error.to_string()))
+    });
+    Ok(())
+}
+
+struct LiveRankCallback {
+    id: String,
+    lua: Lua,
+    key: RegistryKey,
+}
+
+impl LiveRankCallback {
+    fn dispatch(&self, event: &RankResultEvent) -> mlua::Result<Vec<RankMutation>> {
+        let callback_fn = self.lua.registry_value::<Function>(&self.key)?;
+        let mutations = Arc::new(Mutex::new(Vec::new()));
+        let context = rank_result_context(&self.lua, event, Arc::clone(&mutations))?;
+        callback_fn
+            .call::<()>(context)
+            .map_err(|error| mlua::Error::external(format!("{} failed: {error}", self.id)))?;
+        let mutations = mutations
+            .lock()
+            .map_err(|_| mlua::Error::external("rank lua mutation lock poisoned"))?;
+        Ok(mutations.iter().cloned().collect())
+    }
+}
+
+fn current_mod_id(lua: &Lua) -> mlua::Result<String> {
+    lua.globals()
+        .get::<Option<String>>("__oppw4_mod_id")
+        .map(|id| id.unwrap_or_else(|| "unknown_mod".to_string()))
+}
+
+#[cfg(test)]
+fn live_callbacks_enabled(lua: &Lua) -> mlua::Result<bool> {
+    lua.globals()
+        .get::<Option<bool>>("__oppw4_runtime_live_callbacks")
+        .map(|enabled| enabled.unwrap_or(false))
+}
+
+fn rank_result_context(
+    lua: &Lua,
+    event: &RankResultEvent,
+    mutations: Arc<Mutex<Vec<RankMutation>>>,
+) -> mlua::Result<Table> {
+    let context = lua.create_table()?;
+    context.set("rank", runtime_rank(lua, event.rank, mutations)?)?;
+    if let Some(mission_id) = event.mission_id {
+        context.set("mission_id", mission_id)?;
+    }
+    Ok(context)
+}
+
+fn runtime_rank(
+    lua: &Lua,
+    rank: RankValue,
+    mutations: Arc<Mutex<Vec<RankMutation>>>,
 ) -> mlua::Result<Table> {
     let table = lua.create_table()?;
-    table.set("kind", kind)?;
-    table.set(key_name, value)?;
+    table.set("slot", rank.slot())?;
+    table.set("key", rank.key())?;
+    table.set("alias", rank.debug_alias())?;
+    table.set(
+        "contains",
+        lua.create_function(move |_lua, (_this, slots): (Table, Value)| {
+            Ok(parse_slots(slots)?
+                .iter()
+                .any(|slot| rank_matches_normalized_slot(rank, slot)))
+        })?,
+    )?;
+    table.set(
+        "set_cap",
+        lua.create_function(
+            move |_, (_this, slot, enabled): (Table, Value, Option<bool>)| {
+                for slot in parse_slots(slot)? {
+                    mutations
+                        .lock()
+                        .map_err(|_| mlua::Error::external("rank lua mutation lock poisoned"))?
+                        .push(RankMutation::SetCap {
+                            rank: rank_value_from_normalized_slot(&slot),
+                            enabled: enabled.unwrap_or(true),
+                        });
+                }
+                Ok(())
+            },
+        )?,
+    )?;
     Ok(table)
 }
 
-fn condition_expr(lua: &Lua, mode: &'static str, values: mlua::MultiValue) -> mlua::Result<Table> {
-    let table = lua.create_table()?;
-    table.set("mode", mode)?;
-    let conditions = lua.create_table()?;
-    for (index, value) in values.into_iter().enumerate() {
-        conditions.set(index + 1, value)?;
+fn rank_matches_normalized_slot(rank: RankValue, slot: &str) -> bool {
+    match rank {
+        RankValue::D => slot == "d" || slot == "0",
+        RankValue::C => slot == "c" || slot == "1",
+        RankValue::B => slot == "b" || slot == "2",
+        RankValue::A => slot == "a" || slot == "3",
+        RankValue::S => slot == "s" || slot == "4",
+        RankValue::SPlus => slot == "s_plus" || slot == "5",
+        RankValue::Unknown(value) => slot == "unknown" || slot == value.to_string(),
     }
-    table.set("conditions", conditions)?;
-    Ok(table)
+}
+
+fn rank_value_from_normalized_slot(slot: &str) -> RankValue {
+    match slot {
+        "d" | "0" => RankValue::D,
+        "c" | "1" => RankValue::C,
+        "b" | "2" => RankValue::B,
+        "a" | "3" => RankValue::A,
+        "s" | "4" => RankValue::S,
+        "s_plus" | "5" => RankValue::SPlus,
+        _ => RankValue::Unknown(u8::MAX),
+    }
 }
 
 fn parse_slots(value: Value) -> mlua::Result<Vec<String>> {
     match value {
-        Value::Integer(slot) => Ok(vec![slot.to_string()]),
-        Value::String(slot) => Ok(vec![slot.to_str()?.to_string()]),
+        Value::Integer(slot) => Ok(vec![normalize_rank_slot(slot.to_string())]),
+        Value::String(slot) => Ok(vec![normalize_rank_slot(slot.to_str()?.as_ref())]),
         Value::Table(table) => table.sequence_values::<Value>().map(parse_slot).collect(),
         other => Err(mlua::Error::FromLuaConversionError {
             from: other.type_name(),
@@ -106,8 +268,8 @@ fn parse_slots(value: Value) -> mlua::Result<Vec<String>> {
 
 fn parse_slot(value: mlua::Result<Value>) -> mlua::Result<String> {
     match value? {
-        Value::Integer(slot) => Ok(slot.to_string()),
-        Value::String(slot) => Ok(slot.to_str()?.to_string()),
+        Value::Integer(slot) => Ok(normalize_rank_slot(slot.to_string())),
+        Value::String(slot) => Ok(normalize_rank_slot(slot.to_str()?.as_ref())),
         other => Err(mlua::Error::FromLuaConversionError {
             from: other.type_name(),
             to: "rank slot".to_string(),
@@ -116,57 +278,20 @@ fn parse_slot(value: mlua::Result<Value>) -> mlua::Result<String> {
     }
 }
 
-fn build_rule(this: Table, effect: RankCapEffect) -> mlua::Result<String> {
-    let slots: Vec<String> = this.get("__rank_slots")?;
-    let condition: Value = this.get("__rank_condition")?;
-    let rule = RankCapRule::new(effect)
-        .slots(slots)
-        .condition(parse_condition_expr(condition)?);
-    serde_json::to_string(&rule).map_err(mlua::Error::external)
-}
-
-fn parse_condition_expr(value: Value) -> mlua::Result<RankConditionExpr> {
-    match value {
-        Value::Nil => Ok(RankConditionExpr::None),
-        Value::Table(table) => match table.get::<Option<String>>("mode")?.as_deref() {
-            Some("all") => Ok(RankConditionExpr::All(parse_condition_list(table)?)),
-            Some("any") => Ok(RankConditionExpr::Any(parse_condition_list(table)?)),
-            _ => Ok(RankConditionExpr::All(vec![parse_condition(table)?])),
-        },
-        other => Err(mlua::Error::FromLuaConversionError {
-            from: other.type_name(),
-            to: "rank condition".to_string(),
-            message: None,
-        }),
-    }
-}
-
-fn parse_condition_list(table: Table) -> mlua::Result<Vec<RankCondition>> {
-    let conditions: Table = table.get("conditions")?;
-    conditions
-        .sequence_values::<Table>()
-        .map(|condition| parse_condition(condition?))
-        .collect()
-}
-
-fn parse_condition(table: Table) -> mlua::Result<RankCondition> {
-    match table.get::<String>("kind")?.as_str() {
-        "always" => Ok(RankCondition::Always),
-        "flag" => Ok(RankCondition::flag(
-            table.get::<String>("key")?,
-            table.get::<bool>("value")?,
-        )),
-        "equals" => Ok(RankCondition::equals(
-            table.get::<String>("key")?,
-            table.get::<String>("value")?,
-        )),
-        "active_character" => Ok(RankCondition::active_character(table.get::<String>("id")?)),
-        "custom" => Ok(RankCondition::custom(
-            table.get::<String>("key")?,
-            table.get::<String>("value")?,
-        )),
-        kind => Err(mlua::Error::external(format!(
-            "unknown rank condition kind: {kind}"
-        ))),
+fn normalize_rank_slot(value: impl AsRef<str>) -> String {
+    match value
+        .as_ref()
+        .trim()
+        .to_ascii_lowercase()
+        .replace([' ', '-'], "_")
+        .as_str()
+    {
+        "0" | "d" => "d".to_string(),
+        "1" | "c" => "c".to_string(),
+        "2" | "b" => "b".to_string(),
+        "3" | "a" => "a".to_string(),
+        "4" | "s" => "s".to_string(),
+        "5" | "s+" | "s_plus" | "splus" => "s_plus".to_string(),
+        slot => slot.to_string(),
     }
 }

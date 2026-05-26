@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use mlua::{Lua, Table};
+use mlua::{Function, Lua, Table};
 
 use crate::runtime::fx::{
     config::{CycleMode, PluginConfig, TargetMode},
@@ -18,7 +18,60 @@ fn test_state() -> SharedFxState {
 
 fn install_test_runtime(lua: &Lua) {
     lua_api::install_runtime(lua).expect("runtime");
+    install_test_character_module(lua);
     lua_api::authorize_character_extension_owner(lua, MODULE_NAME).expect("authorize");
+}
+
+fn install_test_character_module(lua: &Lua) {
+    let authorized = lua.create_table().expect("authorized owners");
+    lua.globals()
+        .set("__struct_api_authorized_method_owners", authorized.clone())
+        .expect("authorized global");
+
+    let zoro = lua.create_table().expect("zoro");
+    zoro.set("canonical", "zoro").expect("canonical");
+    zoro.set("name", "zoro").expect("name");
+    zoro.set("runtime_id", 1u16).expect("runtime_id");
+    zoro.set("boss_runtime_id", 1u16).expect("boss_runtime_id");
+    zoro.set("playable_id", 1u16).expect("playable_id");
+    zoro.set("model_id", 1u16).expect("model_id");
+
+    let extension_target = zoro.clone();
+    lua.globals()
+        .set(
+            "__oppw4_register_character_method",
+            lua.create_function(
+                move |_, (owner, name, method): (String, String, Function)| {
+                    let allowed = authorized
+                        .get::<Option<bool>>(owner.to_ascii_lowercase())?
+                        .unwrap_or(false);
+                    if !allowed {
+                        return Err(mlua::Error::external(format!(
+                            "character.{name} refused for {owner}: missing std.character.extend"
+                        )));
+                    }
+                    extension_target.set(name, method)
+                },
+            )
+            .expect("register function"),
+        )
+        .expect("register global");
+
+    let character = lua.create_table().expect("character");
+    character
+        .set(
+            "find",
+            lua.create_function(move |_, name: String| {
+                if name == "zoro" {
+                    Ok(Some(zoro.clone()))
+                } else {
+                    Ok(None)
+                }
+            })
+            .expect("find"),
+        )
+        .expect("find");
+    lua_api::register_module(lua, "std.character", character).expect("std.character");
 }
 
 #[test]

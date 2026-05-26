@@ -1,149 +1,117 @@
 use mlua::Lua;
-use plugin_sdk::{
-    DifficultyAction, DifficultyCondition, DifficultyConditionExpr, DifficultyRule,
-    DifficultyValueOp,
+
+use crate::runtime::core::{
+    difficulty::{
+        DifficultyApplyEvent, DifficultyId, DifficultyMode, DifficultyMutation, DifficultySnapshot,
+        DifficultyValueOp as CoreDifficultyValueOp,
+    },
+    events::RuntimeMutation,
+    live_bus,
 };
 
 use super::lua;
 
-fn install(lua_state: &Lua) {
+fn install_with_registry(lua_state: &Lua) -> lua::DifficultyLuaRegistry {
     lua_api::install_runtime(lua_state).expect("runtime");
-    let module = lua::module(lua_state).expect("module");
+    let registry = lua::DifficultyLuaRegistry::new();
+    let module = lua::module_with_registry(lua_state, registry.clone()).expect("module");
     lua_api::register_module(lua_state, lua::MODULE_NAME, module).expect("register");
+    registry
 }
 
 #[test]
-fn sdk_runtime_difficulty_builds_unconditional_enable_rule() {
+fn sdk_runtime_difficulty_exposes_only_event_api() {
     let lua_state = Lua::new();
-    install(&lua_state);
+    install_with_registry(&lua_state);
 
-    let json: String = lua_state
+    let values: (String, String) = lua_state
         .load(
             r#"
             local difficulty = require("sdk.runtime.difficulty")
-            return difficulty.level({0, "super-hard"}):condition(nil):enable()
+            return type(difficulty.on_apply), tostring(difficulty.level)
             "#,
         )
         .eval()
-        .expect("rule json");
-    let rule: DifficultyRule = serde_json::from_str(&json).expect("rule");
+        .expect("api shape");
 
-    assert_eq!(
-        rule.levels
-            .iter()
-            .map(|level| level.as_str())
-            .collect::<Vec<_>>(),
-        ["easy", "super_hard"]
-    );
-    assert_eq!(rule.condition, DifficultyConditionExpr::None);
-    assert_eq!(rule.action, DifficultyAction::EnableLevel);
+    assert_eq!(values, ("function".to_string(), "nil".to_string()));
 }
 
 #[test]
-fn sdk_runtime_difficulty_builds_all_condition_disable_rule() {
+fn sdk_runtime_difficulty_on_apply_produces_core_combat_pressure_mutation() {
     let lua_state = Lua::new();
-    install(&lua_state);
-
-    let json: String = lua_state
+    let registry = install_with_registry(&lua_state);
+    lua_state
         .load(
             r#"
             local difficulty = require("sdk.runtime.difficulty")
-            return difficulty.level("hard")
-              :condition(difficulty.all(
-                difficulty.equals("mission.mode", "treasure_log"),
-                difficulty.flag("rules.elbaph", true)
-              ))
-              :disable()
+            difficulty.on_apply(function(ctx)
+              if ctx.difficulty == "super_hard" then
+                ctx.combat_pressure:multiply(1.5)
+              end
+            end)
             "#,
         )
-        .eval()
-        .expect("rule json");
-    let rule: DifficultyRule = serde_json::from_str(&json).expect("rule");
+        .exec()
+        .expect("register on_apply");
 
-    assert_eq!(rule.levels[0].as_str(), "hard");
-    assert_eq!(
-        rule.condition,
-        DifficultyConditionExpr::all([
-            DifficultyCondition::equals("mission.mode", "treasure_log"),
-            DifficultyCondition::flag("rules.elbaph", true),
-        ])
+    let event = DifficultyApplyEvent::new(
+        DifficultySnapshot::new(
+            DifficultyMode::new("treasure_log"),
+            DifficultyId::new("super_hard"),
+        )
+        .with_mission_id(35),
     );
-    assert_eq!(rule.action, DifficultyAction::DisableLevel);
+    let report = registry.dispatch_difficulty_apply(&lua_state, &event);
+
+    assert_eq!(registry.len(), 1);
+    assert_eq!(
+        report.mutations,
+        [DifficultyMutation::CombatPressure {
+            operation: CoreDifficultyValueOp::ScaleF32(1.5),
+        }]
+    );
+    assert_eq!(report.errors, Vec::<String>::new());
 }
 
 #[test]
-fn sdk_runtime_difficulty_builds_actor_stat_rule() {
-    let lua_state = Lua::new();
-    install(&lua_state);
+fn sdk_runtime_difficulty_on_apply_registers_live_bus_handler() {
+    let _guard = live_bus::test_lock();
+    live_bus::reset_runtime_handlers_for_tests();
+    {
+        let lua_state = Lua::new();
+        lua_state
+            .globals()
+            .set("__oppw4_runtime_live_callbacks", true)
+            .expect("enable live callbacks");
+        install_with_registry(&lua_state);
+        lua_state
+            .load(
+                r#"
+                local difficulty = require("sdk.runtime.difficulty")
+                difficulty.on_apply(function(ctx)
+                  ctx.combat_pressure:multiply(1.25)
+                end)
+                "#,
+            )
+            .exec()
+            .expect("register live on_apply");
+    }
 
-    let json: String = lua_state
-        .load(
-            r#"
-            local difficulty = require("sdk.runtime.difficulty")
-            return difficulty.level("super-hard")
-              :stat("defense")
-              :multiply(1.35)
-            "#,
-        )
-        .eval()
-        .expect("rule json");
-    let rule: DifficultyRule = serde_json::from_str(&json).expect("rule");
-
-    assert_eq!(rule.levels[0].as_str(), "super_hard");
-    assert_eq!(
-        rule.action,
-        DifficultyAction::ActorStat {
-            stat: "defense".into(),
-            operation: DifficultyValueOp::ScaleF32(1.35),
-        }
-    );
-}
-
-#[test]
-fn sdk_runtime_difficulty_builds_open_table_rules() {
-    let lua_state = Lua::new();
-    install(&lua_state);
-
-    let table_json: String = lua_state
-        .load(
-            r#"
-            local difficulty = require("sdk.runtime.difficulty")
-            return difficulty.level("hard")
-              :table("0xb3d8")
-              :set_u8(60)
-            "#,
-        )
-        .eval()
-        .expect("table rule json");
-    let table_rule: DifficultyRule = serde_json::from_str(&table_json).expect("table rule");
+    let event = DifficultyApplyEvent::new(DifficultySnapshot::new(
+        DifficultyMode::new("treasure_log"),
+        DifficultyId::new("super_hard"),
+    ));
+    let report = live_bus::dispatch_runtime_event(event.into());
 
     assert_eq!(
-        table_rule.action,
-        DifficultyAction::KnownTable {
-            table: "spawn_b3_a".into(),
-            operation: DifficultyValueOp::SetU8(60),
-        }
+        report.mutations,
+        [RuntimeMutation::Difficulty(
+            DifficultyMutation::CombatPressure {
+                operation: CoreDifficultyValueOp::ScaleF32(1.25),
+            }
+        )]
     );
-
-    let raw_json: String = lua_state
-        .load(
-            r#"
-            local difficulty = require("sdk.runtime.difficulty")
-            return difficulty.level("hard")
-              :raw("fixed20", "0xc57c")
-              :set(9)
-            "#,
-        )
-        .eval()
-        .expect("raw rule json");
-    let raw_rule: DifficultyRule = serde_json::from_str(&raw_json).expect("raw rule");
-
-    assert_eq!(
-        raw_rule.action,
-        DifficultyAction::RawFixedTable {
-            area: "fixed20".into(),
-            offset: 0xc57c,
-            operation: DifficultyValueOp::SetF32(9.0),
-        }
-    );
+    assert_eq!(report.errors, []);
+    live_bus::reset_runtime_handlers_for_tests();
 }

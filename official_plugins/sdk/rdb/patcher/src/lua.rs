@@ -320,6 +320,7 @@ mod tests {
     fn requiring_rdb_patcher_adds_character_methods() {
         let lua = Lua::new();
         lua_api::install_runtime(&lua).expect("runtime");
+        install_test_character_module(&lua);
         lua_api::authorize_character_extension_owner(&lua, MODULE_NAME).expect("authorize");
         let module = rdb_patcher_module(&lua).expect("module");
         lua_api::register_module(&lua, MODULE_NAME, module).expect("register");
@@ -342,6 +343,55 @@ mod tests {
             .expect("eval");
 
         assert!(ok);
+    }
+
+    fn install_test_character_module(lua: &Lua) {
+        let authorized = lua.create_table().expect("authorized owners");
+        lua.globals()
+            .set("__struct_api_authorized_method_owners", authorized.clone())
+            .expect("authorized global");
+
+        let law = lua.create_table().expect("law");
+        law.set("canonical", "law").expect("canonical");
+        law.set("model_id", 26u16).expect("model_id");
+        law.set("model_stem", "MPLC026_Law").expect("model_stem");
+
+        let extension_target = law.clone();
+        lua.globals()
+            .set(
+                "__oppw4_register_character_method",
+                lua.create_function(
+                    move |_, (owner, name, method): (String, String, Function)| {
+                        let allowed = authorized
+                            .get::<Option<bool>>(owner.to_ascii_lowercase())?
+                            .unwrap_or(false);
+                        if !allowed {
+                            return Err(mlua::Error::external(format!(
+                            "character.{name} refused for {owner}: missing std.character.extend"
+                        )));
+                        }
+                        extension_target.set(name, method)
+                    },
+                )
+                .expect("register function"),
+            )
+            .expect("register global");
+
+        let character = lua.create_table().expect("character");
+        character
+            .set(
+                "find",
+                lua.create_function(move |_, name: String| {
+                    if name == "law" {
+                        Ok(Some(law.clone()))
+                    } else {
+                        Ok(None)
+                    }
+                })
+                .expect("find"),
+            )
+            .expect("find");
+        lua_api::register_module(lua, "std.character", character).expect("std.character");
     }
 
     #[test]

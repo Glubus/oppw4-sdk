@@ -1,8 +1,9 @@
 use super::*;
+use plugin_sdk::Plugin;
 
 #[test]
 fn declares_stable_plugin_id() {
-    assert_eq!(SdkRdb::ID, "sdk_rdb");
+    assert_eq!(SdkPlugin::ID, "sdk_rdb");
 }
 
 #[test]

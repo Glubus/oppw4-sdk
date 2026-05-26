@@ -23,11 +23,7 @@ pub use capabilities::{
     CAP_SIGNALS_SUBSCRIBE, CAP_STD_CHARACTER_EXTEND,
 };
 pub use config::ConfigService;
-pub use difficulty::{
-    DifficultyAction, DifficultyActorStat, DifficultyCondition, DifficultyConditionExpr,
-    DifficultyFixedArea, DifficultyKnownTable, DifficultyLevel, DifficultyRule, DifficultyService,
-    DifficultyValueOp, DIFFICULTY_STAGE_RULE,
-};
+pub use difficulty::DifficultyService;
 pub use files::{FileService, VirtualFileProvider};
 pub use game::GameService;
 pub use hooks::HookService;
@@ -38,10 +34,6 @@ pub use lua::LuaService;
 pub use memory::MemoryService;
 pub use mods::ModService;
 pub use paths::PathService;
-pub use rank::{
-    CountThresholdOverride, CountThresholdShift, RankCapEffect, RankCapRule, RankCondition,
-    RankConditionExpr, RankService, RankSlot, RANK_OVERRIDE_COUNT_THRESHOLDS, RANK_SET_CAP,
-    RANK_SHIFT_COUNT_THRESHOLDS,
-};
+pub use rank::RankService;
 pub use rdb::RdbService;
 pub use signals::SignalService;

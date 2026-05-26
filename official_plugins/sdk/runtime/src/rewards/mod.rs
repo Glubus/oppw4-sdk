@@ -1,20 +1,25 @@
 mod commit_hook;
-mod control;
 mod item_hook;
 mod lua;
-mod rules;
 
 #[cfg(test)]
 mod lua_tests;
 
 use plugin_sdk::OwnedHostApi;
-use std::sync::Arc;
 
 use crate::{
     config::{ItemRewardProbeConfig, RewardProbeConfig},
-    runtime::{exposure::RuntimeExposure, lua_module},
+    runtime::{
+        core::{
+            bus::{RuntimeDispatchReport, RuntimeHandlerError},
+            events::{RuntimeEvent, RuntimeMutation},
+            live_bus,
+            rewards::RewardCommitEvent,
+        },
+        exposure::RuntimeExposure,
+        lua_module,
+    },
 };
-
 pub(crate) struct RewardCommitExposure;
 pub(crate) struct ItemRewardExposure;
 
@@ -34,17 +39,32 @@ impl RuntimeExposure for ItemRewardExposure {
     }
 }
 
-pub(crate) fn install_control(host: OwnedHostApi) {
-    control::install(host);
+#[allow(dead_code)]
+pub(crate) fn register_reward_handler(
+    id: impl Into<String>,
+    handler: impl Fn(&RuntimeEvent) -> Result<Vec<RuntimeMutation>, RuntimeHandlerError>
+        + Send
+        + Sync
+        + 'static,
+) {
+    live_bus::register_runtime_handler(id, handler);
+}
+
+pub(super) fn dispatch_reward_event(event: &RewardCommitEvent) -> RuntimeDispatchReport {
+    live_bus::dispatch_runtime_event(event.clone().into())
+}
+
+#[cfg(test)]
+pub(crate) fn reset_reward_handlers_for_tests() {
+    live_bus::reset_runtime_handlers_for_tests();
 }
 
 lua_module::runtime_lua_module! {
     type = RewardsLuaModule,
     module = lua::MODULE_NAME,
-    context = Arc<OwnedHostApi>,
-    factory = lua::module_with_host,
+    factory = lua::module,
 }
 
-pub(crate) fn lua_module(host: OwnedHostApi) -> RewardsLuaModule {
-    RewardsLuaModule::new(Arc::new(host))
+pub(crate) fn lua_module(_host: OwnedHostApi) -> RewardsLuaModule {
+    RewardsLuaModule
 }

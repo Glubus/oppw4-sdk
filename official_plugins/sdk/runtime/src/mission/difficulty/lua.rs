@@ -1,298 +1,231 @@
-use mlua::{Lua, Table, Value};
-use plugin_sdk::{
-    DifficultyAction, DifficultyActorStat, DifficultyCondition, DifficultyConditionExpr,
-    DifficultyFixedArea, DifficultyKnownTable, DifficultyLevel, DifficultyRule, DifficultyValueOp,
+use std::sync::{Arc, Mutex};
+
+use mlua::{Function, Lua, RegistryKey, Table, Value};
+
+use crate::runtime::core::{
+    bus::RuntimeHandlerError,
+    difficulty::{
+        DifficultyApplyEvent, DifficultyMutation, DifficultyValueOp as CoreDifficultyValueOp,
+    },
+    events::{RuntimeEvent, RuntimeMutation},
+    live_bus,
 };
 
 pub(super) const MODULE_NAME: &str = "sdk.runtime.difficulty";
 
-pub(super) fn module(lua: &Lua) -> mlua::Result<Table> {
-    let table = lua.create_table()?;
-    table.set("level", lua.create_function(level)?)?;
-    table.set("all", lua.create_function(all)?)?;
-    table.set("any", lua.create_function(any)?)?;
-    table.set("flag", lua.create_function(flag)?)?;
-    table.set("equals", lua.create_function(equals)?)?;
-    table.set("custom", lua.create_function(custom)?)?;
-    Ok(table)
+#[derive(Clone, Default)]
+pub(super) struct DifficultyLuaRegistry {
+    callbacks: Arc<Mutex<Vec<DifficultyLuaCallback>>>,
 }
 
-fn level(lua: &Lua, levels: Value) -> mlua::Result<Table> {
-    let rule = lua.create_table()?;
-    rule.set("__difficulty_levels", parse_levels(levels)?)?;
-    rule.set("__difficulty_condition", Value::Nil)?;
-    rule.set(
-        "condition",
-        lua.create_function(|_, (this, condition): (Table, Value)| {
-            this.set("__difficulty_condition", condition)?;
-            Ok(this)
-        })?,
-    )?;
-    rule.set(
-        "enable",
-        lua.create_function(|_, this: Table| build_rule(this, DifficultyAction::EnableLevel))?,
-    )?;
-    rule.set(
-        "disable",
-        lua.create_function(|_, this: Table| build_rule(this, DifficultyAction::DisableLevel))?,
-    )?;
-    rule.set(
-        "stat",
-        lua.create_function(|lua, (this, stat): (Table, String)| {
-            operation_builder(lua, this, move |operation| DifficultyAction::ActorStat {
-                stat: DifficultyActorStat::new(stat.clone()),
-                operation,
-            })
-        })?,
-    )?;
-    rule.set(
-        "combat_pressure",
-        lua.create_function(|lua, this: Table| {
-            operation_builder(lua, this, |operation| DifficultyAction::CombatPressure {
-                operation,
-            })
-        })?,
-    )?;
-    rule.set(
-        "table",
-        lua.create_function(|lua, (this, table): (Table, String)| {
-            operation_builder(lua, this, move |operation| DifficultyAction::KnownTable {
-                table: DifficultyKnownTable::new(table.clone()),
-                operation,
-            })
-        })?,
-    )?;
-    rule.set(
-        "raw",
-        lua.create_function(|lua, (this, area, offset): (Table, String, Value)| {
-            let offset = parse_offset(offset)?;
-            operation_builder(lua, this, move |operation| {
-                DifficultyAction::RawFixedTable {
-                    area: DifficultyFixedArea::new(area.clone()),
-                    offset,
-                    operation,
+impl DifficultyLuaRegistry {
+    #[cfg(test)]
+    pub(super) fn new() -> Self {
+        Self::default()
+    }
+
+    #[cfg(test)]
+    pub(super) fn len(&self) -> usize {
+        self.callbacks
+            .lock()
+            .map(|callbacks| callbacks.len())
+            .unwrap_or(0)
+    }
+
+    #[cfg(test)]
+    pub(super) fn dispatch_difficulty_apply(
+        &self,
+        lua: &Lua,
+        event: &DifficultyApplyEvent,
+    ) -> DifficultyLuaDispatchReport {
+        let callbacks = match self.callbacks.lock() {
+            Ok(callbacks) => callbacks,
+            Err(error) => {
+                return DifficultyLuaDispatchReport {
+                    mutations: Vec::new(),
+                    errors: vec![error.to_string()],
+                };
+            }
+        };
+        let mut report = DifficultyLuaDispatchReport::default();
+        for callback in callbacks.iter() {
+            let callback_fn = match lua.registry_value::<Function>(&callback.key) {
+                Ok(callback_fn) => callback_fn,
+                Err(error) => {
+                    report.errors.push(error.to_string());
+                    continue;
                 }
-            })
-        })?,
-    )?;
-    Ok(rule)
+            };
+            let mutations = Arc::new(Mutex::new(Vec::new()));
+            let context = match difficulty_apply_context(lua, event, Arc::clone(&mutations)) {
+                Ok(context) => context,
+                Err(error) => {
+                    report.errors.push(error.to_string());
+                    continue;
+                }
+            };
+            match callback_fn.call::<()>(context) {
+                Ok(()) => match mutations.lock() {
+                    Ok(mutations) => report.mutations.extend(mutations.iter().cloned()),
+                    Err(error) => report.errors.push(error.to_string()),
+                },
+                Err(error) => report.errors.push(error.to_string()),
+            }
+        }
+        report
+    }
 }
 
-fn all(lua: &Lua, values: mlua::MultiValue) -> mlua::Result<Table> {
-    condition_expr(lua, "all", values)
+struct DifficultyLuaCallback {
+    #[cfg(test)]
+    key: RegistryKey,
 }
 
-fn any(lua: &Lua, values: mlua::MultiValue) -> mlua::Result<Table> {
-    condition_expr(lua, "any", values)
+#[cfg(test)]
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(super) struct DifficultyLuaDispatchReport {
+    pub(super) mutations: Vec<DifficultyMutation>,
+    pub(super) errors: Vec<String>,
 }
 
-fn flag(lua: &Lua, (key, value): (String, bool)) -> mlua::Result<Table> {
-    let table = lua.create_table()?;
-    table.set("kind", "flag")?;
-    table.set("key", key)?;
-    table.set("value", value)?;
-    Ok(table)
+pub(super) fn module(lua: &Lua) -> mlua::Result<Table> {
+    module_with_registry(lua, DifficultyLuaRegistry::default())
 }
 
-fn equals(lua: &Lua, (key, value): (String, String)) -> mlua::Result<Table> {
-    let table = lua.create_table()?;
-    table.set("kind", "equals")?;
-    table.set("key", key)?;
-    table.set("value", value)?;
-    Ok(table)
-}
-
-fn custom(lua: &Lua, (key, value): (String, String)) -> mlua::Result<Table> {
-    condition_table(lua, "custom", "key", key).and_then(|table| {
-        table.set("value", value)?;
-        Ok(table)
-    })
-}
-
-fn condition_table(
+pub(super) fn module_with_registry(
     lua: &Lua,
-    kind: &'static str,
-    key_name: &'static str,
-    value: String,
+    registry: DifficultyLuaRegistry,
 ) -> mlua::Result<Table> {
     let table = lua.create_table()?;
-    table.set("kind", kind)?;
-    table.set(key_name, value)?;
+    table.set("on_apply", {
+        let registry = registry.clone();
+        lua.create_function(move |lua, callback: Function| {
+            let mut callbacks = registry
+                .callbacks
+                .lock()
+                .map_err(|_| mlua::Error::external("difficulty lua registry lock poisoned"))?;
+            let callback_index = callbacks.len() + 1;
+            #[cfg(test)]
+            let key = lua.create_registry_value(callback.clone())?;
+            callbacks.push(DifficultyLuaCallback {
+                #[cfg(test)]
+                key,
+            });
+            register_live_difficulty_callback(
+                lua,
+                format!("lua:on_apply:{callback_index}"),
+                callback,
+            )?;
+            Ok(())
+        })?
+    })?;
     Ok(table)
 }
 
-fn condition_expr(lua: &Lua, mode: &'static str, values: mlua::MultiValue) -> mlua::Result<Table> {
+fn register_live_difficulty_callback(
+    lua: &Lua,
+    callback_id: String,
+    callback: Function,
+) -> mlua::Result<()> {
+    #[cfg(test)]
+    if !live_callbacks_enabled(lua)? {
+        return Ok(());
+    }
+
+    let mod_id = current_mod_id(lua)?;
+    let handler_id = format!("{mod_id}:{callback_id}");
+    let live = Arc::new(Mutex::new(LiveDifficultyCallback {
+        id: handler_id.clone(),
+        lua: Lua::clone(lua),
+        key: lua.create_registry_value(callback)?,
+    }));
+
+    live_bus::register_runtime_handler(handler_id, move |event| {
+        let RuntimeEvent::DifficultyApply(event) = event else {
+            return Ok(Vec::new());
+        };
+        let live = live
+            .lock()
+            .map_err(|_| RuntimeHandlerError::new("difficulty lua callback lock poisoned"))?;
+        live.dispatch(event)
+            .map(|mutations| {
+                mutations
+                    .into_iter()
+                    .map(RuntimeMutation::Difficulty)
+                    .collect()
+            })
+            .map_err(|error| RuntimeHandlerError::new(error.to_string()))
+    });
+    Ok(())
+}
+
+struct LiveDifficultyCallback {
+    id: String,
+    lua: Lua,
+    key: RegistryKey,
+}
+
+impl LiveDifficultyCallback {
+    fn dispatch(&self, event: &DifficultyApplyEvent) -> mlua::Result<Vec<DifficultyMutation>> {
+        let callback_fn = self.lua.registry_value::<Function>(&self.key)?;
+        let mutations = Arc::new(Mutex::new(Vec::new()));
+        let context = difficulty_apply_context(&self.lua, event, Arc::clone(&mutations))?;
+        callback_fn
+            .call::<()>(context)
+            .map_err(|error| mlua::Error::external(format!("{} failed: {error}", self.id)))?;
+        let mutations = mutations
+            .lock()
+            .map_err(|_| mlua::Error::external("difficulty lua mutation lock poisoned"))?;
+        Ok(mutations.iter().cloned().collect())
+    }
+}
+
+fn current_mod_id(lua: &Lua) -> mlua::Result<String> {
+    lua.globals()
+        .get::<Option<String>>("__oppw4_mod_id")
+        .map(|id| id.unwrap_or_else(|| "unknown_mod".to_string()))
+}
+
+#[cfg(test)]
+fn live_callbacks_enabled(lua: &Lua) -> mlua::Result<bool> {
+    lua.globals()
+        .get::<Option<bool>>("__oppw4_runtime_live_callbacks")
+        .map(|enabled| enabled.unwrap_or(false))
+}
+
+fn difficulty_apply_context(
+    lua: &Lua,
+    event: &DifficultyApplyEvent,
+    mutations: Arc<Mutex<Vec<DifficultyMutation>>>,
+) -> mlua::Result<Table> {
+    let context = lua.create_table()?;
+    context.set("mode", event.snapshot.mode.key())?;
+    context.set("difficulty", event.snapshot.difficulty.key())?;
+    if let Some(mission_id) = event.snapshot.mission_id {
+        context.set("mission_id", mission_id)?;
+    }
+    context.set("combat_pressure", runtime_combat_pressure(lua, mutations)?)?;
+    Ok(context)
+}
+
+fn runtime_combat_pressure(
+    lua: &Lua,
+    mutations: Arc<Mutex<Vec<DifficultyMutation>>>,
+) -> mlua::Result<Table> {
     let table = lua.create_table()?;
-    table.set("mode", mode)?;
-    let conditions = lua.create_table()?;
-    for (index, value) in values.into_iter().enumerate() {
-        conditions.set(index + 1, value)?;
-    }
-    table.set("conditions", conditions)?;
-    Ok(table)
-}
-
-fn operation_builder<F>(lua: &Lua, rule: Table, action: F) -> mlua::Result<Table>
-where
-    F: Fn(DifficultyValueOp) -> DifficultyAction + Clone + Send + 'static,
-{
-    let builder = lua.create_table()?;
-    builder.set("__difficulty_rule", rule)?;
-    builder.set(
-        "set",
-        lua.create_function({
-            let action = action.clone();
-            move |_, (this, value): (Table, Value)| {
-                build_operation_rule(this, action(DifficultyValueOp::SetF32(parse_f32(value)?)))
-            }
-        })?,
-    )?;
-    builder.set(
-        "add",
-        lua.create_function({
-            let action = action.clone();
-            move |_, (this, value): (Table, Value)| {
-                build_operation_rule(this, action(DifficultyValueOp::AddF32(parse_f32(value)?)))
-            }
-        })?,
-    )?;
-    builder.set(
+    table.set(
         "multiply",
-        lua.create_function({
-            let action = action.clone();
-            move |_, (this, value): (Table, Value)| {
-                build_operation_rule(this, action(DifficultyValueOp::ScaleF32(parse_f32(value)?)))
-            }
+        lua.create_function(move |_, (_this, factor): (Table, Value)| {
+            mutations
+                .lock()
+                .map_err(|_| mlua::Error::external("difficulty lua mutation lock poisoned"))?
+                .push(DifficultyMutation::CombatPressure {
+                    operation: CoreDifficultyValueOp::ScaleF32(parse_f32(factor)?),
+                });
+            Ok(())
         })?,
     )?;
-    builder.set(
-        "set_u16",
-        lua.create_function({
-            let action = action.clone();
-            move |_, (this, value): (Table, Value)| {
-                build_operation_rule(this, action(DifficultyValueOp::SetU16(parse_u16(value)?)))
-            }
-        })?,
-    )?;
-    builder.set(
-        "add_i16",
-        lua.create_function({
-            let action = action.clone();
-            move |_, (this, value): (Table, Value)| {
-                build_operation_rule(this, action(DifficultyValueOp::AddI16(parse_i16(value)?)))
-            }
-        })?,
-    )?;
-    builder.set(
-        "set_u8",
-        lua.create_function(move |_, (this, value): (Table, Value)| {
-            build_operation_rule(this, action(DifficultyValueOp::SetU8(parse_u8(value)?)))
-        })?,
-    )?;
-    Ok(builder)
-}
-
-fn build_operation_rule(this: Table, action: DifficultyAction) -> mlua::Result<String> {
-    let rule: Table = this.get("__difficulty_rule")?;
-    build_rule(rule, action)
-}
-
-fn build_rule(this: Table, action: DifficultyAction) -> mlua::Result<String> {
-    let levels: Vec<String> = this.get("__difficulty_levels")?;
-    let condition: Value = this.get("__difficulty_condition")?;
-    let rule = DifficultyRule {
-        levels: levels.into_iter().map(DifficultyLevel::new).collect(),
-        condition: parse_condition_expr(condition)?,
-        action,
-        enabled: true,
-    };
-    serde_json::to_string(&rule).map_err(mlua::Error::external)
-}
-
-fn parse_levels(value: Value) -> mlua::Result<Vec<String>> {
-    match value {
-        Value::Integer(level) => Ok(vec![normalize_level(level.to_string())]),
-        Value::String(level) => Ok(vec![normalize_level(level.to_str()?.as_ref())]),
-        Value::Table(table) => table.sequence_values::<Value>().map(parse_level).collect(),
-        other => Err(mlua::Error::FromLuaConversionError {
-            from: other.type_name(),
-            to: "difficulty level or difficulty level list".to_string(),
-            message: None,
-        }),
-    }
-}
-
-fn parse_level(value: mlua::Result<Value>) -> mlua::Result<String> {
-    match value? {
-        Value::Integer(level) => Ok(normalize_level(level.to_string())),
-        Value::String(level) => Ok(normalize_level(level.to_str()?.as_ref())),
-        other => Err(mlua::Error::FromLuaConversionError {
-            from: other.type_name(),
-            to: "difficulty level".to_string(),
-            message: None,
-        }),
-    }
-}
-
-fn normalize_level(value: impl Into<String>) -> String {
-    DifficultyLevel::new(value).as_str().to_string()
-}
-
-fn parse_condition_expr(value: Value) -> mlua::Result<DifficultyConditionExpr> {
-    match value {
-        Value::Nil => Ok(DifficultyConditionExpr::None),
-        Value::Table(table) => match table.get::<Option<String>>("mode")?.as_deref() {
-            Some("all") => Ok(DifficultyConditionExpr::All(parse_condition_list(table)?)),
-            Some("any") => Ok(DifficultyConditionExpr::Any(parse_condition_list(table)?)),
-            _ => Ok(DifficultyConditionExpr::All(vec![parse_condition(table)?])),
-        },
-        other => Err(mlua::Error::FromLuaConversionError {
-            from: other.type_name(),
-            to: "difficulty condition".to_string(),
-            message: None,
-        }),
-    }
-}
-
-fn parse_condition_list(table: Table) -> mlua::Result<Vec<DifficultyCondition>> {
-    let conditions: Table = table.get("conditions")?;
-    conditions
-        .sequence_values::<Table>()
-        .map(|condition| parse_condition(condition?))
-        .collect()
-}
-
-fn parse_condition(table: Table) -> mlua::Result<DifficultyCondition> {
-    match table.get::<String>("kind")?.as_str() {
-        "always" => Ok(DifficultyCondition::Always),
-        "flag" => Ok(DifficultyCondition::flag(
-            table.get::<String>("key")?,
-            table.get::<bool>("value")?,
-        )),
-        "equals" => Ok(DifficultyCondition::equals(
-            table.get::<String>("key")?,
-            table.get::<String>("value")?,
-        )),
-        "custom" => Ok(DifficultyCondition::custom(
-            table.get::<String>("key")?,
-            table.get::<String>("value")?,
-        )),
-        kind => Err(mlua::Error::external(format!(
-            "unknown difficulty condition kind: {kind}"
-        ))),
-    }
-}
-
-fn parse_offset(value: Value) -> mlua::Result<usize> {
-    match value {
-        Value::Integer(value) if value >= 0 => Ok(value as usize),
-        Value::String(value) => parse_usize_string(value.to_str()?.as_ref()),
-        other => Err(mlua::Error::FromLuaConversionError {
-            from: other.type_name(),
-            to: "positive integer or hex offset string".to_string(),
-            message: None,
-        }),
-    }
+    Ok(table)
 }
 
 fn parse_f32(value: Value) -> mlua::Result<f32> {
@@ -305,40 +238,4 @@ fn parse_f32(value: Value) -> mlua::Result<f32> {
             message: None,
         }),
     }
-}
-
-fn parse_u16(value: Value) -> mlua::Result<u16> {
-    u16::try_from(parse_i64(value, "u16")?).map_err(mlua::Error::external)
-}
-
-fn parse_i16(value: Value) -> mlua::Result<i16> {
-    i16::try_from(parse_i64(value, "i16")?).map_err(mlua::Error::external)
-}
-
-fn parse_u8(value: Value) -> mlua::Result<u8> {
-    u8::try_from(parse_i64(value, "u8")?).map_err(mlua::Error::external)
-}
-
-fn parse_i64(value: Value, type_name: &'static str) -> mlua::Result<i64> {
-    match value {
-        Value::Integer(value) => Ok(value),
-        other => Err(mlua::Error::FromLuaConversionError {
-            from: other.type_name(),
-            to: type_name.to_string(),
-            message: None,
-        }),
-    }
-}
-
-fn parse_usize_string(value: &str) -> mlua::Result<usize> {
-    let value = value.trim();
-    let parsed = if let Some(hex) = value
-        .strip_prefix("0x")
-        .or_else(|| value.strip_prefix("0X"))
-    {
-        usize::from_str_radix(hex, 16)
-    } else {
-        value.parse()
-    };
-    parsed.map_err(mlua::Error::external)
 }

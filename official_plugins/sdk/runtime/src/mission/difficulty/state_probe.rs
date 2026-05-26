@@ -7,11 +7,19 @@ use std::{
 };
 
 use plugin_sdk::OwnedHostApi;
+use serde::Serialize;
 
 use crate::{
     config::DifficultyProbeConfig,
     mission::difficulty::reward_row::{read_reward_row_dump, RewardRowDump},
     runtime::{
+        core::{
+            difficulty::{
+                DifficultyApplyEvent, DifficultyId as CoreDifficultyId,
+                DifficultyMode as CoreDifficultyMode, DifficultySnapshot as CoreDifficultySnapshot,
+            },
+            live_bus,
+        },
         probe::{snapshot_interval, PLUGIN_ID},
         signals,
     },
@@ -107,6 +115,76 @@ fn log_pending_error(
 fn log_snapshot(host: &OwnedHostApi, snapshot: snapshot::DifficultySnapshot) {
     let _ = host.log().write(PLUGIN_ID, snapshot.format_log());
     signals::emit_json(host, signals::DIFFICULTY_SNAPSHOT, &snapshot);
+    publish_difficulty_event(host, snapshot);
+}
+
+fn publish_difficulty_event(host: &OwnedHostApi, snapshot: snapshot::DifficultySnapshot) {
+    let event = DifficultyApplyEvent::new(core_snapshot_from_probe(snapshot));
+    let report = live_bus::dispatch_runtime_event(event.clone().into());
+    let apply_report =
+        crate::mission::difficulty::apply_difficulty_mutations(host, &report.mutations);
+    let _ = host.log().write(
+        PLUGIN_ID,
+        difficulty_event_log(
+            &event,
+            report.mutations.len(),
+            report.errors.len(),
+            apply_report.accepted,
+            apply_report.skipped,
+        ),
+    );
+    signals::emit_json(
+        host,
+        signals::DIFFICULTY_EVENT,
+        &DifficultyEventPayload::from(&event),
+    );
+}
+
+fn core_snapshot_from_probe(snapshot: snapshot::DifficultySnapshot) -> CoreDifficultySnapshot {
+    CoreDifficultySnapshot::new(
+        CoreDifficultyMode::new(snapshot.mode_type.to_string()),
+        CoreDifficultyId::new(snapshot.difficulty.to_string()),
+    )
+    .with_mission_id(u32::from(snapshot.mission_id))
+}
+
+fn difficulty_event_log(
+    event: &DifficultyApplyEvent,
+    mutation_count: usize,
+    error_count: usize,
+    accepted_count: usize,
+    skipped_count: usize,
+) -> String {
+    let mission = event
+        .snapshot
+        .mission_id
+        .map(|mission_id| mission_id.to_string())
+        .unwrap_or_else(|| "unknown".to_string());
+    format!(
+        "difficulty_event mission={mission} mode={} difficulty={} mutations={mutation_count} accepted={accepted_count} skipped={skipped_count} errors={error_count}",
+        event.snapshot.mode.key(),
+        event.snapshot.difficulty.key(),
+    )
+}
+
+#[derive(Debug, Serialize)]
+struct DifficultyEventPayload {
+    schema: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    mission_id: Option<u32>,
+    mode: String,
+    difficulty: String,
+}
+
+impl From<&DifficultyApplyEvent> for DifficultyEventPayload {
+    fn from(event: &DifficultyApplyEvent) -> Self {
+        Self {
+            schema: "sdk.runtime.difficulty.event.v1",
+            mission_id: event.snapshot.mission_id,
+            mode: event.snapshot.mode.key().to_string(),
+            difficulty: event.snapshot.difficulty.key().to_string(),
+        }
+    }
 }
 
 fn log_reward_row(
@@ -152,4 +230,46 @@ fn log_missing_reward_row(
             snapshot.mission_id, snapshot.difficulty
         ),
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn core_snapshot_uses_probe_mode_and_difficulty() {
+        let snapshot = snapshot::DifficultySnapshot {
+            module_base: 0,
+            global: 0,
+            mission_id: 35,
+            mode_type: 2,
+            reward_mode: 0,
+            difficulty: 3,
+            special_flag: 0,
+            cached_mission: 0,
+            cached_difficulty: 0,
+        };
+
+        let core = core_snapshot_from_probe(snapshot);
+
+        assert_eq!(core.mission_id, Some(35));
+        assert_eq!(core.mode.key(), "treasure_log");
+        assert_eq!(core.difficulty.key(), "super_hard");
+    }
+
+    #[test]
+    fn difficulty_event_log_is_compact() {
+        let event = DifficultyApplyEvent::new(
+            CoreDifficultySnapshot::new(
+                CoreDifficultyMode::new("treasure_log"),
+                CoreDifficultyId::new("hard"),
+            )
+            .with_mission_id(77),
+        );
+
+        assert_eq!(
+            difficulty_event_log(&event, 0, 0, 0, 0),
+            "difficulty_event mission=77 mode=treasure_log difficulty=hard mutations=0 accepted=0 skipped=0 errors=0"
+        );
+    }
 }

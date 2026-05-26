@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use plugin_sdk::{export_plugin, Plugin, PluginContext, PluginResult};
 
 mod character;
+mod log;
 
 struct SdkData;
 
@@ -10,6 +11,7 @@ impl Plugin for SdkData {
     const ID: &'static str = "sdk_data";
 
     fn init(context: PluginContext<'_>) -> PluginResult<()> {
+        log::init(context.host());
         initialize_data(context);
         register_character_module(context);
         Ok(())

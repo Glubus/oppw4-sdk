@@ -9,8 +9,8 @@ mod mod_info;
 mod path;
 mod time;
 
-pub(crate) use log::collect_entries as collect_log_entries;
 pub use log::LuaLogEntry;
+pub(crate) use log::{clear_entries as clear_log_entries, collect_entries as collect_log_entries};
 
 pub(super) fn install(lua: &Lua) -> mlua::Result<()> {
     buffer::install(lua)?;

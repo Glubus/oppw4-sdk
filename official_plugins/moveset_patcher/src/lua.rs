@@ -35,67 +35,246 @@ unsafe extern "system" fn register_moveset_patcher_module(
         .and_then(|table| lua_api::register_module(lua, PLUGIN_ID, table))
     {
         Ok(()) => 0,
-        Err(_) => -2,
+        Err(error) => {
+            log::write_global(format!("moveset_patcher module register error: {error}"));
+            -2
+        }
     }
 }
 
 fn moveset_patcher_module(lua: &Lua) -> mlua::Result<Table> {
     let table = lua.create_table()?;
     table.set("id", PLUGIN_ID)?;
-    table.set("patch", lua.create_function(patch_definition)?)?;
-    table.set("load_patch", lua.create_function(load_patch)?)?;
     table.set(
-        "__oppw4_on_import",
-        lua.create_function(|lua, ()| register_character_extensions(lua))?,
+        "patch",
+        lua.load(
+            r#"
+            return function(definition)
+                local trace = rawget(_G, "__oppw4_trace")
+                if trace ~= nil then trace("moveset_patcher.patch enter") end
+                if trace ~= nil then
+                    trace("moveset_patcher.patch keys payload_file=" .. tostring(definition.payload_file) .. " payload=" .. tostring(definition.payload ~= nil))
+                end
+                if trace ~= nil then trace("moveset_patcher.patch exit") end
+                return definition
+            end
+            "#,
+        )
+        .eval::<Function>()?,
     )?;
+    table.set(
+        "__patch_from_source",
+        lua.create_function(patch_from_source)?,
+    )?;
+    table.set(
+        "load_patch",
+        lua.load(
+            r#"
+            return function(module, path)
+                local cache = rawget(_G, "__oppw4_mod_file_cache")
+                if cache ~= nil then
+                    local source = cache[path]
+                    if source == nil then
+                        source = cache[(path:gsub("\\", "/"))]
+                    end
+                    if source ~= nil then
+                        return module.__patch_from_source(path, source)
+                    end
+                end
+                return module.__load_patch_fallback(path)
+            end
+            "#,
+        )
+        .eval::<Function>()?
+        .bind(table.clone())?,
+    )?;
+    table.set("__load_patch_fallback", lua.create_function(load_patch)?)?;
+    register_character_extensions(lua)?;
     Ok(table)
 }
 
 fn register_character_extensions(lua: &Lua) -> mlua::Result<()> {
-    let register: Function = lua.globals().get("__oppw4_register_character_method")?;
-    register.call::<()>((
-        PLUGIN_ID,
-        "replace_movesets",
-        lua.create_function(replace_movesets)?,
-    ))
+    log::write_global("register_character_extensions start");
+    let method = replace_movesets_method(lua)?;
+    if character_method_tables_exist(lua)? {
+        lua_api::authorize_character_extension_owner(lua, PLUGIN_ID)?;
+        register_character_method_direct(lua, PLUGIN_ID, "replace_movesets", method)?;
+    } else {
+        let register: Function = lua.globals().get("__oppw4_register_character_method")?;
+        register.call::<()>((PLUGIN_ID, "replace_movesets", method))?;
+    }
+    log::write_global("register_character_extensions ok");
+    Ok(())
+}
+
+fn replace_movesets_method(lua: &Lua) -> mlua::Result<Function> {
+    let internal = lua.create_function(replace_movesets_direct)?;
+    lua.load(
+        r#"
+        return function(internal)
+            return function(character, moveset)
+                local trace = rawget(_G, "__oppw4_trace")
+                if trace ~= nil then trace("replace_movesets lua enter") end
+                local entry = character.moveset_linkdata_entry
+                if trace ~= nil then trace("replace_movesets lua entry=" .. tostring(entry)) end
+                if entry == nil then
+                    local name = character.canonical or character.name or "unknown"
+                    error("no SDK moveset target for character=" .. tostring(name) .. "; add movesets.json in oppw4-data or pass a custom SDK character handle")
+                end
+                local name = character.canonical or character.name or "unknown"
+                if trace ~= nil then
+                    trace("replace_movesets lua call internal name=" .. tostring(name) .. " payload_file=" .. tostring(moveset.payload_file) .. " payload=" .. tostring(moveset.payload ~= nil))
+                end
+                return internal(entry, name, moveset.payload_file, moveset.payload)
+            end
+        end
+        "#,
+    )
+    .eval::<Function>()?
+    .call(internal)
+}
+
+fn character_method_tables_exist(lua: &Lua) -> mlua::Result<bool> {
+    let globals = lua.globals();
+    Ok(globals
+        .get::<Option<Table>>("__struct_api_methods")?
+        .is_some()
+        && globals
+            .get::<Option<Table>>("__struct_api_method_owners")?
+            .is_some()
+        && globals
+            .get::<Option<Table>>("__struct_api_authorized_method_owners")?
+            .is_some())
+}
+
+fn register_character_method_direct(
+    lua: &Lua,
+    owner: &str,
+    name: &str,
+    method: Function,
+) -> mlua::Result<()> {
+    let globals = lua.globals();
+    let methods: Table = globals.get("__struct_api_methods")?;
+    let owners: Table = globals.get("__struct_api_method_owners")?;
+    let authorized: Table = globals.get("__struct_api_authorized_method_owners")?;
+    let owner_key = owner.to_ascii_lowercase();
+    if !authorized
+        .get::<Option<bool>>(owner_key.as_str())?
+        .unwrap_or(false)
+    {
+        return Err(mlua::Error::external(format!(
+            "character.{name} refused for {owner}: missing std.character.extend"
+        )));
+    }
+    if let Some(existing_owner) = owners.get::<Option<String>>(name)? {
+        if !existing_owner.eq_ignore_ascii_case(&owner_key) {
+            return Err(mlua::Error::external(format!(
+                "character.{name} already registered by {existing_owner}, refused by {owner}"
+            )));
+        }
+    }
+    owners.set(name, owner_key)?;
+    methods.set(name, method)
 }
 
 fn patch_definition(lua: &Lua, definition: Table) -> mlua::Result<Table> {
-    let (payload, file_entry) =
-        if let Some(path) = definition.get::<Option<String>>("payload_file")? {
-            read_payload_file(lua, Path::new(&path))?
-        } else {
-            (payload::from_lua_table(definition.clone())?, None)
-        };
+    log::write_global("patch_definition start");
+    if let Some(path) = definition.get::<Option<String>>("payload_file")? {
+        log::write_global(format!("patch_definition deferred payload_file={path}"));
+        let output = lua.create_table()?;
+        output.set("payload_file", path)?;
+        if let Some(entry) = definition.get::<Option<u16>>("entry")? {
+            output.set("source_entry", entry)?;
+        }
+        log::write_global("patch_definition ok deferred");
+        return Ok(output);
+    }
+
+    let (payload, file_entry) = (payload::from_lua_table(definition.clone())?, None);
 
     let output = lua.create_table()?;
     if let Some(entry) = definition.get::<Option<u16>>("entry")?.or(file_entry) {
         output.set("source_entry", entry)?;
     }
     output.set("payload", lua.create_string(&payload)?)?;
+    let entry = output.get::<Option<u16>>("source_entry")?.unwrap_or(0);
+    log::write_global(format!(
+        "patch_definition ok source_entry={entry} payload_bytes={}",
+        payload.len()
+    ));
     Ok(output)
 }
 
 fn load_patch(lua: &Lua, path: String) -> mlua::Result<Table> {
+    log::write_global(format!("load_patch start path={path}"));
     let source = lua_api::read_mod_text(lua, Path::new(&path))?;
+    log::write_global(format!(
+        "load_patch read path={path} bytes={}",
+        source.len()
+    ));
+    patch_from_source(lua, (path, source))
+}
+
+fn patch_from_source(lua: &Lua, (path, source): (String, String)) -> mlua::Result<Table> {
+    log::write_global(format!(
+        "load_patch source path={path} bytes={}",
+        source.len()
+    ));
     let definition = lua.load(&source).set_name(path).eval::<Table>()?;
-    patch_definition(lua, definition)
+    let patch = patch_definition(lua, definition)?;
+    let entry = patch.get::<Option<u16>>("source_entry")?.unwrap_or(0);
+    let payload_len = patch
+        .get::<Option<mlua::String>>("payload")?
+        .map(|payload| payload.as_bytes().len())
+        .unwrap_or(0);
+    log::write_global(format!(
+        "load_patch ok source_entry={entry} payload_bytes={payload_len}"
+    ));
+    Ok(patch)
 }
 
 fn read_payload_file(lua: &Lua, path: &Path) -> mlua::Result<(Vec<u8>, Option<u16>)> {
+    log::write_global(format!("read_payload_file start path={}", path.display()));
     let bytes = lua_api::read_mod_bytes(lua, path)?;
+    log::write_global(format!(
+        "read_payload_file bytes path={} len={}",
+        path.display(),
+        bytes.len()
+    ));
     match path.extension().and_then(|extension| extension.to_str()) {
         Some(extension) if extension.eq_ignore_ascii_case("json") => {
             let text = String::from_utf8(bytes).map_err(mlua::Error::external)?;
+            log::write_global(format!(
+                "read_payload_file json parse start path={} len={}",
+                path.display(),
+                text.len()
+            ));
             let entry = payload::json_entry(&text).map_err(mlua::Error::external)?;
             let bytes = payload::from_json_str(&text).map_err(mlua::Error::external)?;
+            log::write_global(format!(
+                "read_payload_file json ok path={} payload_bytes={}",
+                path.display(),
+                bytes.len()
+            ));
             Ok((bytes, entry))
         }
-        Some(extension) if extension.eq_ignore_ascii_case("bin") => Ok((bytes, None)),
+        Some(extension) if extension.eq_ignore_ascii_case("bin") => {
+            log::write_global(format!(
+                "read_payload_file bin ok path={} payload_bytes={}",
+                path.display(),
+                bytes.len()
+            ));
+            Ok((bytes, None))
+        }
         Some(extension)
             if extension.eq_ignore_ascii_case("txt") || extension.eq_ignore_ascii_case("hex") =>
         {
             let text = String::from_utf8(bytes).map_err(mlua::Error::external)?;
+            log::write_global(format!(
+                "read_payload_file hex parse start path={} len={}",
+                path.display(),
+                text.len()
+            ));
             crate::hex::parse_payload(&text)
                 .map(|payload| (payload, None))
                 .map_err(mlua::Error::external)
@@ -107,34 +286,41 @@ fn read_payload_file(lua: &Lua, path: &Path) -> mlua::Result<(Vec<u8>, Option<u1
     }
 }
 
-fn replace_movesets(_: &Lua, (character, moveset): (Table, Table)) -> mlua::Result<()> {
-    let entry = character.get::<Option<u16>>("moveset_linkdata_entry")?.ok_or_else(|| {
-        let name = character_name(&character)
-            .ok()
-            .flatten()
-            .unwrap_or_else(|| "unknown".to_string());
-        mlua::Error::external(format!(
-            "no SDK moveset target for character={name}; add movesets.json in oppw4-data or pass a custom SDK character handle"
-        ))
-    })?;
-    let payload = moveset
-        .get::<Option<mlua::String>>("payload")?
-        .ok_or_else(|| mlua::Error::external("replace_movesets expects moveset.payload"))?;
-    let character_name = character_name(&character)?.unwrap_or_else(|| "unknown".to_string());
-    let payload_len = payload.as_bytes().len();
-    state::replace_entry(entry as usize, payload.as_bytes().as_ref())
-        .map_err(mlua::Error::external)?;
+fn replace_movesets_direct(
+    lua: &Lua,
+    (entry, character_name, payload_file, payload): (
+        u16,
+        String,
+        Option<String>,
+        Option<mlua::String>,
+    ),
+) -> mlua::Result<()> {
+    let payload = if let Some(payload) = payload {
+        payload.as_bytes().to_vec()
+    } else if let Some(path) = payload_file {
+        log::write_global(format!("replace_movesets payload_file start path={path}"));
+        let (payload, file_entry) = read_payload_file(lua, Path::new(&path))?;
+        if let Some(file_entry) = file_entry {
+            log::write_global(format!(
+                "replace_movesets payload_file entry_hint={file_entry} ignored target_entry={entry}"
+            ));
+        }
+        payload
+    } else {
+        return Err(mlua::Error::external(
+            "replace_movesets expects moveset.payload or moveset.payload_file",
+        ));
+    };
+    let payload_len = payload.len();
+    log::write_global(format!(
+        "replace_movesets start character={character_name} entry={entry} bytes={payload_len}"
+    ));
+    state::replace_entry(entry as usize, &payload).map_err(mlua::Error::external)?;
     log::write_global(format!(
         "moveset patch registered character={character_name} entry={entry} bytes={payload_len} patches={}",
         state::edit_count()
     ));
     Ok(())
-}
-
-fn character_name(character: &Table) -> mlua::Result<Option<String>> {
-    Ok(character
-        .get::<Option<String>>("canonical")?
-        .or_else(|| character.get::<Option<String>>("name").ok().flatten()))
 }
 
 #[cfg(test)]
@@ -146,6 +332,7 @@ mod tests {
     fn requiring_moveset_patcher_adds_replace_method() {
         let lua = Lua::new();
         lua_api::install_runtime(&lua).expect("runtime");
+        install_test_character_module(&lua);
         lua_api::authorize_character_extension_owner(&lua, PLUGIN_ID).expect("authorize");
         let module = moveset_patcher_module(&lua).expect("module");
         lua_api::register_module(&lua, PLUGIN_ID, module).expect("register");
@@ -163,6 +350,52 @@ mod tests {
             .expect("eval");
 
         assert!(has_method);
+    }
+
+    fn install_test_character_module(lua: &Lua) {
+        let authorized = lua.create_table().expect("authorized owners");
+        lua.globals()
+            .set("__struct_api_authorized_method_owners", authorized.clone())
+            .expect("authorized global");
+
+        let garp = lua.create_table().expect("garp");
+        garp.set("canonical", "garp").expect("canonical");
+        let extension_target = garp.clone();
+        lua.globals()
+            .set(
+                "__oppw4_register_character_method",
+                lua.create_function(
+                    move |_, (owner, name, method): (String, String, Function)| {
+                        let allowed = authorized
+                            .get::<Option<bool>>(owner.to_ascii_lowercase())?
+                            .unwrap_or(false);
+                        if !allowed {
+                            return Err(mlua::Error::external(format!(
+                            "character.{name} refused for {owner}: missing std.character.extend"
+                        )));
+                        }
+                        extension_target.set(name, method)
+                    },
+                )
+                .expect("register function"),
+            )
+            .expect("register global");
+
+        let character = lua.create_table().expect("character");
+        character
+            .set(
+                "find",
+                lua.create_function(move |_, name: String| {
+                    if name == "garp" {
+                        Ok(Some(garp.clone()))
+                    } else {
+                        Ok(None)
+                    }
+                })
+                .expect("find"),
+            )
+            .expect("find");
+        lua_api::register_module(lua, "std.character", character).expect("std.character");
     }
 
     #[test]
@@ -348,7 +581,18 @@ mod tests {
             )
             .expect("payload");
 
-        replace_movesets(&lua, (character, moveset)).expect("replace");
+        replace_movesets_direct(
+            &lua,
+            (
+                character
+                    .get::<u16>("moveset_linkdata_entry")
+                    .expect("target entry"),
+                character.get::<String>("canonical").expect("canonical"),
+                None,
+                Some(moveset.get::<mlua::String>("payload").expect("payload")),
+            ),
+        )
+        .expect("replace");
 
         let edits = crate::state::edit_count();
         assert!(edits >= 1);
@@ -375,7 +619,10 @@ mod tests {
             )
             .expect("payload");
 
-        let error = replace_movesets(&lua, (character, moveset)).expect_err("missing target");
+        let method = replace_movesets_method(&lua).expect("method");
+        let error = method
+            .call::<()>((character, moveset))
+            .expect_err("missing target");
 
         assert!(error.to_string().contains("no SDK moveset target"));
     }

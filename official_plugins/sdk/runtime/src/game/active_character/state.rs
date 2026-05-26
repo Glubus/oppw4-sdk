@@ -3,6 +3,11 @@ use std::{
     sync::atomic::{AtomicU16, AtomicU64, AtomicUsize, Ordering},
 };
 
+use crate::runtime::core::{
+    live_bus,
+    player::{self, PlayerChangeEvent, PlayerSnapshot},
+};
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct ActiveCharacter {
     pub(super) runtime_id: u16,
@@ -33,6 +38,7 @@ pub(super) fn publish_local_player(local_player: usize) {
     ALT_ID.store(alt_id, Ordering::Relaxed);
     RUNTIME_ID.store(runtime_id, Ordering::Release);
     SEQUENCE.fetch_add(1, Ordering::AcqRel);
+    publish_player_core_snapshot(runtime_id);
 }
 
 pub(super) fn snapshot() -> ActiveCharacter {
@@ -45,6 +51,15 @@ pub(super) fn snapshot() -> ActiveCharacter {
         source: SOURCE.load(Ordering::Relaxed),
         sequence: SEQUENCE.load(Ordering::Relaxed),
     }
+}
+
+fn publish_player_core_snapshot(runtime_id: u16) {
+    if runtime_id == u16::MAX {
+        return;
+    }
+    let snapshot = PlayerSnapshot::new().with_active_character(format!("runtime:{runtime_id}"));
+    player::update_snapshot(snapshot.clone());
+    let _ = live_bus::dispatch_runtime_event(PlayerChangeEvent::new(snapshot).into());
 }
 
 fn read_u16(address: usize) -> Option<u16> {

@@ -18,9 +18,6 @@ pub(crate) struct ModulePermissions {
 }
 
 pub(super) fn register_plugin_module(lua: &Lua, module: &RegisteredModule) -> mlua::Result<()> {
-    if module.permissions.character_extension {
-        lua_api::authorize_character_extension_owner(lua, &module.plugin_id)?;
-    }
     let result = unsafe {
         (module.register)(
             module.context as *mut c_void,
@@ -34,5 +31,58 @@ pub(super) fn register_plugin_module(lua: &Lua, module: &RegisteredModule) -> ml
             "lua module register failed plugin={} module={} result={result}",
             module.plugin_id, module.module_name
         )))
+    }?;
+    if module.permissions.character_extension {
+        lua_api::authorize_character_extension_owner(lua, &module.plugin_id)?;
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use mlua::Table;
+    use std::ptr;
+
+    unsafe extern "system" fn install_character_registry(
+        _context: *mut c_void,
+        lua: *mut c_void,
+    ) -> i32 {
+        let Some(lua) = (unsafe { lua.cast::<Lua>().as_ref() }) else {
+            return -1;
+        };
+        let globals = lua.globals();
+        let Ok(authorized) = lua.create_table() else {
+            return -2;
+        };
+        if globals
+            .set("__struct_api_authorized_method_owners", authorized)
+            .is_err()
+        {
+            return -3;
+        }
+        0
+    }
+
+    #[test]
+    fn character_registry_module_can_authorize_after_registration() {
+        let lua = Lua::new();
+        let module = RegisteredModule {
+            plugin_id: "sdk_data".to_string(),
+            module_name: "std.character".to_string(),
+            context: ptr::null_mut::<c_void>() as usize,
+            register: install_character_registry,
+            permissions: ModulePermissions {
+                character_extension: true,
+            },
+        };
+
+        register_plugin_module(&lua, &module).expect("register module");
+
+        let authorized: Table = lua
+            .globals()
+            .get("__struct_api_authorized_method_owners")
+            .expect("authorized table");
+        assert_eq!(authorized.get::<bool>("sdk_data").expect("owner"), true);
     }
 }

@@ -1,6 +1,5 @@
 use std::{
-    cell::RefCell,
-    rc::Rc,
+    sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
 
@@ -54,18 +53,18 @@ fn cooldown(lua: &Lua, duration_ms: i64) -> mlua::Result<mlua::Table> {
             "cooldown duration must be non-negative",
         ));
     }
-    let state = Rc::new(RefCell::new(Cooldown {
+    let state = Arc::new(Mutex::new(Cooldown {
         duration_ms,
         last_trigger_ms: None,
     }));
     let table = lua.create_table()?;
 
     {
-        let state = Rc::clone(&state);
+        let state = Arc::clone(&state);
         table.set(
             "ready",
             lua.create_function(move |lua, _: mlua::Table| {
-                let state = state.borrow();
+                let state = state.lock().map_err(lock_error)?;
                 Ok(match state.last_trigger_ms {
                     Some(last) => current_ms(lua)?.saturating_sub(last) >= state.duration_ms,
                     None => true,
@@ -74,21 +73,21 @@ fn cooldown(lua: &Lua, duration_ms: i64) -> mlua::Result<mlua::Table> {
         )?;
     }
     {
-        let state = Rc::clone(&state);
+        let state = Arc::clone(&state);
         table.set(
             "trigger",
             lua.create_function(move |lua, _: mlua::Table| {
-                state.borrow_mut().last_trigger_ms = Some(current_ms(lua)?);
+                state.lock().map_err(lock_error)?.last_trigger_ms = Some(current_ms(lua)?);
                 Ok(())
             })?,
         )?;
     }
     {
-        let state = Rc::clone(&state);
+        let state = Arc::clone(&state);
         table.set(
             "remaining_ms",
             lua.create_function(move |lua, _: mlua::Table| {
-                let state = state.borrow();
+                let state = state.lock().map_err(lock_error)?;
                 Ok(match state.last_trigger_ms {
                     Some(last) => {
                         let elapsed = current_ms(lua)?.saturating_sub(last);
@@ -100,11 +99,11 @@ fn cooldown(lua: &Lua, duration_ms: i64) -> mlua::Result<mlua::Table> {
         )?;
     }
     {
-        let state = Rc::clone(&state);
+        let state = Arc::clone(&state);
         table.set(
             "reset",
             lua.create_function(move |_, _: mlua::Table| {
-                state.borrow_mut().last_trigger_ms = None;
+                state.lock().map_err(lock_error)?.last_trigger_ms = None;
                 Ok(())
             })?,
         )?;
@@ -117,6 +116,10 @@ fn cooldown(lua: &Lua, duration_ms: i64) -> mlua::Result<mlua::Table> {
 struct Cooldown {
     duration_ms: i64,
     last_trigger_ms: Option<i64>,
+}
+
+fn lock_error<T>(_error: std::sync::PoisonError<T>) -> mlua::Error {
+    mlua::Error::external("time cooldown lock poisoned")
 }
 
 fn current_ms(lua: &Lua) -> mlua::Result<i64> {

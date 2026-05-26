@@ -43,6 +43,9 @@ struct MissionIndexFile {
 #[derive(Debug, Deserialize)]
 struct MissionIndexEntry {
     path: String,
+    difficulties: Option<String>,
+    rank_conditions: Option<String>,
+    rewards: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -128,7 +131,7 @@ pub fn read_data_root(root: &Path) -> Result<Vec<Mission>, MissionDataError> {
         }
         let data_path = path.join("data.json");
         if data_path.is_file() {
-            missions.push(read_mission_dir(&path, &data_path, None, None, None)?);
+            missions.push(read_mission_dir(None, &path, &data_path, None, None, None)?);
         }
     }
     missions.sort_by(|left, right| left.id.cmp(&right.id));
@@ -149,13 +152,21 @@ fn read_indexed_data_root(
         let mission_dir = data_path
             .parent()
             .ok_or_else(|| MissionDataError::InvalidDirectory(entry.path.clone()))?;
-        missions.push(read_mission_dir(mission_dir, &data_path, None, None, None)?);
+        missions.push(read_mission_dir(
+            Some(root),
+            mission_dir,
+            &data_path,
+            entry.difficulties.as_deref(),
+            entry.rank_conditions.as_deref(),
+            entry.rewards.as_deref(),
+        )?);
     }
     missions.sort_by(|left, right| left.id.cmp(&right.id));
     Ok(missions)
 }
 
 fn read_mission_dir(
+    root: Option<&Path>,
     mission_dir: &Path,
     data_path: &Path,
     difficulties_ref: Option<&str>,
@@ -173,23 +184,27 @@ fn read_mission_dir(
         mission_id: data.ids.mission,
         linkdata_id: data.ids.linkdata,
         modes: data.modes,
-        difficulties: read_optional_json(mission_dir, difficulties_ref, "difficulties.json")?,
+        difficulties: read_optional_json(root, mission_dir, difficulties_ref, "difficulties.json")?,
         rank_conditions: read_optional_json(
+            root,
             mission_dir,
             rank_conditions_ref,
             "rank_conditions.json",
         )?,
-        rewards: read_optional_json(mission_dir, rewards_ref, "rewards.json")?,
+        rewards: read_optional_json(root, mission_dir, rewards_ref, "rewards.json")?,
     })
 }
 
 fn read_optional_json<T: for<'de> Deserialize<'de>>(
+    root: Option<&Path>,
     mission_dir: &Path,
     indexed_ref: Option<&str>,
     fallback: &str,
 ) -> Result<Option<T>, MissionDataError> {
-    let path =
-        indexed_ref.map_or_else(|| mission_dir.join(fallback), |path| mission_dir.join(path));
+    let path = indexed_ref.map_or_else(
+        || mission_dir.join(fallback),
+        |path| root.unwrap_or(mission_dir).join(path),
+    );
     if !path.is_file() {
         return Ok(None);
     }
@@ -234,6 +249,8 @@ mod tests {
 
     fn workspace_data_root() -> std::path::PathBuf {
         Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..")
             .join("..")
             .join("..")
             .join("oppw4-data")

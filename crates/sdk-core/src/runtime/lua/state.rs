@@ -4,10 +4,12 @@ use std::{
     time::{Duration, Instant},
 };
 
+use crate::runtime::logs as host_logs;
+
 use super::{
     hot_reload::{mod_fingerprint, ModFingerprint},
     module::RegisteredModule,
-    runner::{run_mod, ModRunReason},
+    runner::{run_initial_mods, run_mod, ModRunReason},
 };
 
 #[derive(Default)]
@@ -64,19 +66,44 @@ impl LuaHost {
     }
 
     pub(super) fn run_ready_mods(&mut self) {
-        for mod_entry in lua_api::discover_mods(&self.mods_root) {
+        let discovered = lua_api::discover_mods(&self.mods_root);
+        self.log_diagnostic(format!(
+            "run_ready_mods root={} discovered={} modules={}",
+            self.mods_root.display(),
+            discovered.len(),
+            self.modules
+                .iter()
+                .map(|module| format!("{}:{}", module.plugin_id, module.module_name))
+                .collect::<Vec<_>>()
+                .join(",")
+        ));
+        let mut ready = Vec::new();
+        for mod_entry in discovered {
             if self.executed.contains(&mod_entry.manifest.id) {
                 continue;
             }
             if !self.mod_dependencies_available(&mod_entry.manifest.uses_plugins) {
                 continue;
             }
-            if self.run_mod(&mod_entry, ModRunReason::Initial) {
+            self.log_diagnostic(format!(
+                "mod queued id={} uses={:?}",
+                mod_entry.manifest.id, mod_entry.manifest.uses_plugins
+            ));
+            ready.push((
+                mod_entry.clone(),
+                self.modules_for_mod(&mod_entry.manifest.uses_plugins),
+            ));
+        }
+
+        for (mod_entry, ok) in run_initial_mods(ready) {
+            if ok {
                 self.executed.insert(mod_entry.manifest.id.clone());
                 if let Some(fingerprint) = mod_fingerprint(&mod_entry) {
                     self.fingerprints
                         .insert(mod_entry.manifest.id.clone(), fingerprint);
                 }
+            } else {
+                self.log_diagnostic(format!("mod failed id={}", mod_entry.manifest.id));
             }
         }
     }
@@ -145,13 +172,22 @@ impl LuaHost {
         self.modules
             .iter()
             .filter(|module| {
-                uses_plugins
-                    .iter()
-                    .any(|plugin| module.plugin_id.eq_ignore_ascii_case(plugin))
+                is_global_module(module)
+                    || uses_plugins
+                        .iter()
+                        .any(|plugin| module.plugin_id.eq_ignore_ascii_case(plugin))
             })
             .cloned()
             .collect()
     }
+
+    fn log_diagnostic(&self, message: impl AsRef<str>) {
+        host_logs::write_mod("_lua_host", message.as_ref());
+    }
+}
+
+fn is_global_module(module: &RegisteredModule) -> bool {
+    module.module_name.starts_with("std.")
 }
 
 #[cfg(test)]
@@ -188,6 +224,23 @@ mod tests {
             .expect("replacement");
 
         assert_eq!(host.modules.len(), 1);
+    }
+
+    #[test]
+    fn standard_modules_are_available_to_plugin_mods_without_extra_dependency() {
+        let mut host = LuaHost::default();
+        host.register_module(module("sdk_data", "std.character"))
+            .expect("std character");
+        host.register_module(module("moveset_patcher", "moveset_patcher"))
+            .expect("moveset module");
+
+        let modules = host.modules_for_mod(&["moveset_patcher".to_string()]);
+        let names = modules
+            .iter()
+            .map(|module| module.module_name.as_str())
+            .collect::<Vec<_>>();
+
+        assert_eq!(names, ["std.character", "moveset_patcher"]);
     }
 
     fn module(plugin_id: &str, module_name: &str) -> RegisteredModule {

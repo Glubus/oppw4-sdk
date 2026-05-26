@@ -1,6 +1,7 @@
 mod hot_reload;
 mod logs;
 mod module;
+mod owned_modules;
 mod runner;
 mod state;
 
@@ -66,8 +67,11 @@ pub(crate) unsafe fn register_module(
         "lua host: registered module plugin={} module={}",
         entry.plugin_id, entry.module_name
     ));
-    host.run_ready_mods();
     0
+}
+
+pub(crate) fn run_ready_mods() {
+    with_host(|host| host.run_ready_mods());
 }
 
 fn with_host(action: impl FnOnce(&mut LuaHost)) {

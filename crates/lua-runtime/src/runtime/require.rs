@@ -3,12 +3,39 @@ use mlua::{Function, Lua, Table, Value};
 pub fn install_require_hook(lua: &Lua) -> mlua::Result<()> {
     let globals = lua.globals();
     restrict_package_searchers(lua)?;
-    let require: Function = globals.get("require")?;
+    let package: Table = globals.get("package")?;
+    let preload: Table = package.get("preload")?;
+    let loaded: Table = package.get("loaded")?;
     let imported = lua.create_table()?;
     globals.set(
         "require",
-        lua.create_function(move |_, name: String| {
-            let module: Value = require.call(name.as_str())?;
+        lua.create_function(move |lua, name: String| {
+            trace(lua, format!("require start name={name}"));
+            let cached: Value = loaded.get(name.as_str())?;
+            if !matches!(cached, Value::Nil) {
+                trace(lua, format!("require cached name={name}"));
+                return Ok(cached);
+            }
+            let loader: Value = preload.get(name.as_str()).map_err(|_| {
+                mlua::Error::RuntimeError(format!("module '{name}' is not registered"))
+            })?;
+            if matches!(loader, Value::Nil) {
+                return Err(mlua::Error::RuntimeError(format!(
+                    "module '{name}' is not registered"
+                )));
+            }
+            trace(lua, format!("require loader start name={name}"));
+            let module: Value = match loader {
+                Value::Function(loader) => loader.call(())?,
+                value => value,
+            };
+            trace(lua, format!("require resolved name={name}"));
+            let module = if matches!(module, Value::Nil) {
+                Value::Boolean(true)
+            } else {
+                module
+            };
+            loaded.set(name.as_str(), module.clone())?;
             let already_imported = imported
                 .get::<Option<bool>>(name.as_str())?
                 .unwrap_or(false);
@@ -16,13 +43,23 @@ pub fn install_require_hook(lua: &Lua) -> mlua::Result<()> {
                 imported.set(name.as_str(), true)?;
                 if let Value::Table(table) = &module {
                     if let Some(on_import) = table.get::<Option<Function>>("__oppw4_on_import")? {
+                        trace(lua, format!("require on_import start name={name}"));
                         on_import.call::<()>(())?;
+                        trace(lua, format!("require on_import ok name={name}"));
                     }
                 }
             }
+            trace(lua, format!("require ok name={name}"));
             Ok(module)
         })?,
     )
+}
+
+fn trace(lua: &Lua, message: String) {
+    let Ok(Some(trace)) = lua.globals().get::<Option<Function>>("__oppw4_trace") else {
+        return;
+    };
+    let _ = trace.call::<()>(message);
 }
 
 fn restrict_package_searchers(lua: &Lua) -> mlua::Result<()> {
@@ -37,11 +74,7 @@ fn restrict_package_searchers(lua: &Lua) -> mlua::Result<()> {
 pub fn register_module(lua: &Lua, name: &str, table: Table) -> mlua::Result<()> {
     let package: Table = lua.globals().get("package")?;
     let preload: Table = package.get("preload")?;
-    let key = lua.create_registry_value(table)?;
-    preload.set(
-        name,
-        lua.create_function(move |lua, ()| lua.registry_value::<Table>(&key))?,
-    )
+    preload.set(name, table)
 }
 
 pub(crate) fn register_std_module(lua: &Lua, name: &str, table: Table) -> mlua::Result<()> {

@@ -58,6 +58,10 @@ pub(crate) fn collect_entries(lua: &Lua) -> mlua::Result<Vec<LuaLogEntry>> {
         .collect()
 }
 
+pub(crate) fn clear_entries(lua: &Lua) -> mlua::Result<()> {
+    lua.globals().set(LOG_BUFFER_GLOBAL, lua.create_table()?)
+}
+
 fn push_entry(lua: &Lua, level: &str, message: &str) -> mlua::Result<()> {
     let entries: Table = lua.globals().get(LOG_BUFFER_GLOBAL)?;
     let entry = lua.create_table()?;

@@ -29,6 +29,7 @@ mod log;
 mod plugin;
 mod r#unsafe;
 
+pub use api::DifficultyService;
 pub use api::{
     CapabilityService, ConfigService, FileService, GameService, HookService, HostApi,
     LinkDataRowTarget, LinkDataService, LogService, LuaService, MemoryService, ModService,
@@ -36,16 +37,6 @@ pub use api::{
     CAP_FILES_VIRTUALIZE, CAP_HOOKS_INSTALL, CAP_LINKDATA_PATCH, CAP_LUA_MODULE, CAP_LUA_RUNTIME,
     CAP_MEMORY_READ, CAP_MEMORY_SCAN, CAP_MEMORY_WRITE, CAP_MOD_DISCOVERY, CAP_PLUGIN_HOST,
     CAP_RDB_PATCH, CAP_SIGNALS_EMIT, CAP_SIGNALS_SUBSCRIBE, CAP_STD_CHARACTER_EXTEND,
-};
-pub use api::{
-    CountThresholdOverride, CountThresholdShift, RankCapEffect, RankCapRule, RankCondition,
-    RankConditionExpr, RankSlot, RANK_OVERRIDE_COUNT_THRESHOLDS, RANK_SET_CAP,
-    RANK_SHIFT_COUNT_THRESHOLDS,
-};
-pub use api::{
-    DifficultyAction, DifficultyActorStat, DifficultyCondition, DifficultyConditionExpr,
-    DifficultyFixedArea, DifficultyKnownTable, DifficultyLevel, DifficultyRule, DifficultyService,
-    DifficultyValueOp, DIFFICULTY_STAGE_RULE,
 };
 pub use context::PluginContext;
 pub use entry::{plugin_abi_from_raw, validate_plugin_api, PluginInitError};

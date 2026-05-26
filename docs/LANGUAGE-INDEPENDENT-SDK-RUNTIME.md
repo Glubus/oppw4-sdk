@@ -288,8 +288,9 @@ RewardCrewPoints
 - `reward_commit` receives global rank as `param4`;
 - slot `6` is the visible berry subtotal/total candidate.
 
-4. Keep current staged rule/DSL APIs as temporary compatibility.
-   They can compile into the same mutations internally.
+4. Remove the old staged rule/DSL APIs.
+   The SDK is still experimental, so gameplay decisions should move directly
+   to typed runtime events and mutations instead of carrying compatibility.
 
 5. Convert Lua to an event frontend.
    Target API:
@@ -332,7 +333,7 @@ Do not expose reverse names to modders:
 - `slots`
 - `param4`
 - `reward_commit_detour`
-- `stage_rule`
+- command-style signals such as old staged rules
 
 Do not make loose string maps the core model. Parse script input into typed
 Rust structs.

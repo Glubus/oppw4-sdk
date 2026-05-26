@@ -1,3 +1,4 @@
+pub(crate) mod core;
 pub(crate) mod exposure;
 pub(crate) mod fx;
 pub(crate) mod lua_module;
@@ -35,9 +36,6 @@ impl Runtime {
         let owned_host = host.owned();
 
         GameRuntime::start();
-        difficulty::install_control(owned_host.clone());
-        rank::install_control(owned_host.clone());
-        crate::rewards::install_control(owned_host.clone());
         lua_module::register(host, player::lua_module());
         lua_module::register(host, difficulty::lua_module());
         lua_module::register(host, rank::lua_module());

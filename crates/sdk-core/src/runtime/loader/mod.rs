@@ -23,6 +23,7 @@ pub fn initialize(game_root: &Path, plugin_root: &Path, session_stamp: Option<St
         "plugin host: scanned={} manifests={} loaded={}",
         report.scanned, report.manifests, report.loaded
     ));
+    lua::run_ready_mods();
 }
 
 fn prepare_runtime(game_root: &Path, plugin_root: &Path, session_stamp: Option<String>) {

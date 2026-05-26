@@ -1,4 +1,4 @@
-mod control;
+mod director;
 mod ids;
 mod lua;
 mod reward_row;
@@ -15,6 +15,7 @@ use crate::{
     runtime::{exposure::RuntimeExposure, lua_module},
 };
 
+pub(crate) use director::apply_difficulty_mutations;
 pub(crate) use ids::DifficultyId;
 
 pub(crate) struct DifficultyExposure;
@@ -35,8 +36,4 @@ lua_module::runtime_lua_module! {
 
 pub(crate) fn lua_module() -> DifficultyLuaModule {
     DifficultyLuaModule
-}
-
-pub(crate) fn install_control(host: OwnedHostApi) {
-    control::install(host);
 }

@@ -19,18 +19,41 @@ pub(super) fn install(lua: &Lua) -> mlua::Result<()> {
         "find",
         lua.create_function(|lua, query: Value| match query {
             Value::String(name) => {
-                let Some(character) = struct_api::find(name.to_str()?.as_ref()) else {
+                let name = name.to_str()?;
+                crate::log::write_line(format!("std.character.find enter query={}", name.as_ref()));
+                let Some(character) = struct_api::find(name.as_ref()) else {
+                    crate::log::write_line(format!(
+                        "std.character.find miss query={}",
+                        name.as_ref()
+                    ));
                     return Ok(Value::Nil);
                 };
-                Ok(Value::Table(character_handle_table(lua, character)?))
+                crate::log::write_line(format!(
+                    "std.character.find found canonical={}",
+                    character.canonical
+                ));
+                let handle = character_handle_table(lua, character)?;
+                crate::log::write_line("std.character.find handle ok");
+                Ok(Value::Table(handle))
             }
             Value::Integer(id) if (0..=u16::MAX as i64).contains(&id) => {
+                crate::log::write_line(format!("std.character.find enter id={id}"));
                 let Some(character) = struct_api::find_by_id(id as u16) else {
+                    crate::log::write_line(format!("std.character.find miss id={id}"));
                     return Ok(Value::Nil);
                 };
-                Ok(Value::Table(character_handle_table(lua, character)?))
+                crate::log::write_line(format!(
+                    "std.character.find found canonical={}",
+                    character.canonical
+                ));
+                let handle = character_handle_table(lua, character)?;
+                crate::log::write_line("std.character.find handle ok");
+                Ok(Value::Table(handle))
             }
-            _ => Ok(Value::Nil),
+            _ => {
+                crate::log::write_line("std.character.find unsupported query");
+                Ok(Value::Nil)
+            }
         })?,
     )?;
     character.set(

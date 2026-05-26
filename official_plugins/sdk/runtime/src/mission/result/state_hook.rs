@@ -13,10 +13,19 @@ use std::{
 
 use hooks::{HookBuilder, InlineHook, Signature};
 use plugin_sdk::OwnedHostApi;
+use serde::Serialize;
 
 use crate::{
     config::ResultStateProbeConfig,
-    runtime::{probe::PLUGIN_ID, signals},
+    runtime::{
+        core::{
+            difficulty::{DifficultyId, DifficultyMode, DifficultySnapshot},
+            live_bus, player,
+            rank::{RankResultEvent, RankValue},
+        },
+        probe::PLUGIN_ID,
+        signals,
+    },
 };
 
 const RESULT_STATE_SIGNATURE: Signature = Signature::new(
@@ -215,6 +224,116 @@ fn log_result_state(result_state: *mut u8) {
         format!("{} {}", snapshot.format(index + 1), source),
     );
     signals::emit_json(host, signals::RESULT_STATE_SNAPSHOT, &snapshot);
+    publish_rank_result_event(host, &snapshot);
+}
+
+fn publish_rank_result_event(host: &OwnedHostApi, snapshot: &snapshot::ResultStateSnapshot) {
+    let mut event =
+        RankResultEvent::new(rank_value_from_result_fields(snapshot.difficulty_or_rank))
+            .with_mission_id(snapshot.mission_id);
+
+    if let Ok(context) = read_rank_runtime_context() {
+        event = event.with_difficulty(
+            DifficultySnapshot::new(
+                DifficultyMode::new(context.result_mode.to_string()),
+                DifficultyId::new(context.difficulty.to_string()),
+            )
+            .with_mission_id(u32::from(context.mission_id)),
+        );
+    }
+
+    event = event.with_player(player::latest_snapshot());
+    let report = live_bus::dispatch_runtime_event(event.clone().into());
+    let apply_report = crate::mission::rank::apply_rank_mutations(host, &report.mutations);
+    let _ = host.log().write(
+        PLUGIN_ID,
+        rank_event_log(
+            &event,
+            report.mutations.len(),
+            report.errors.len(),
+            apply_report.applied,
+            apply_report.skipped,
+        ),
+    );
+    signals::emit_json(host, signals::RANK_EVENT, &RankEventPayload::from(&event));
+}
+
+fn rank_value_from_result_fields(fields: [u32; 5]) -> RankValue {
+    RankValue::from_slot(fields[3].min(u32::from(u8::MAX)) as u8)
+}
+
+fn rank_event_log(
+    event: &RankResultEvent,
+    mutation_count: usize,
+    error_count: usize,
+    applied_count: usize,
+    skipped_count: usize,
+) -> String {
+    let mission = event
+        .mission_id
+        .map(|mission_id| mission_id.to_string())
+        .unwrap_or_else(|| "unknown".to_string());
+    let difficulty = event
+        .difficulty
+        .as_ref()
+        .map(|difficulty| difficulty.difficulty.key())
+        .unwrap_or("unknown");
+    let mode = event
+        .difficulty
+        .as_ref()
+        .map(|difficulty| difficulty.mode.key())
+        .unwrap_or("unknown");
+
+    format!(
+        "rank_event rank={} mission={mission} mode={mode} difficulty={difficulty} mutations={mutation_count} applied={applied_count} skipped={skipped_count} errors={error_count}",
+        event.rank
+    )
+}
+
+#[derive(Debug, Serialize)]
+struct RankEventPayload {
+    schema: &'static str,
+    rank: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    mission_id: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    difficulty: Option<String>,
+}
+
+impl From<&RankResultEvent> for RankEventPayload {
+    fn from(event: &RankResultEvent) -> Self {
+        Self {
+            schema: "sdk.runtime.rank.event.v1",
+            rank: event.rank.to_string(),
+            mission_id: event.mission_id,
+            mode: event
+                .difficulty
+                .as_ref()
+                .map(|difficulty| difficulty.mode.key().to_string()),
+            difficulty: event
+                .difficulty
+                .as_ref()
+                .map(|difficulty| difficulty.difficulty.key().to_string()),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct RankRuntimeContext {
+    mission_id: u16,
+    result_mode: u8,
+    difficulty: u8,
+}
+
+fn read_rank_runtime_context() -> Result<RankRuntimeContext, String> {
+    let global_state = read_global_state()?;
+    Ok(RankRuntimeContext {
+        mission_id: read_memory_u16(global_state + MISSION_ID_OFFSET)?,
+        result_mode: read_memory_u8(global_state + RESULT_MODE_OFFSET)?,
+        difficulty: read_memory_u8(global_state + DIFFICULTY_OFFSET)?,
+    })
 }
 
 fn format_rank_source() -> Result<String, String> {
@@ -294,4 +413,39 @@ fn should_log(hash: u64) -> bool {
 
 fn max_events() -> usize {
     MAX_EVENTS.load(Ordering::Relaxed)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rank_value_uses_visible_result_field() {
+        assert_eq!(
+            rank_value_from_result_fields([12, 1498, 0, 4, 5]),
+            RankValue::S
+        );
+        assert_eq!(
+            rank_value_from_result_fields([12, 1421, 0, 5, 5]),
+            RankValue::SPlus
+        );
+    }
+
+    #[test]
+    fn rank_event_log_is_compact() {
+        let event = RankResultEvent::new(RankValue::SPlus)
+            .with_mission_id(35)
+            .with_difficulty(
+                DifficultySnapshot::new(
+                    DifficultyMode::new("treasure_log"),
+                    DifficultyId::new("super_hard"),
+                )
+                .with_mission_id(35),
+            );
+
+        assert_eq!(
+            rank_event_log(&event, 1, 0, 1, 0),
+            "rank_event rank=S+ mission=35 mode=treasure_log difficulty=super_hard mutations=1 applied=1 skipped=0 errors=0"
+        );
+    }
 }

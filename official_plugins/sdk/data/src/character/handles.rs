@@ -2,6 +2,10 @@ use mlua::{Lua, Table, Value};
 use struct_api::{Character, CharacterAsset, CharacterBodyPart, CharacterCostume};
 
 pub(super) fn character_handle_table(lua: &Lua, character: &Character) -> mlua::Result<Table> {
+    crate::log::write_line(format!(
+        "character_handle start canonical={}",
+        character.canonical
+    ));
     let table = lua.create_table()?;
     table.set("kind", "character")?;
     table.set("known", true)?;
@@ -29,6 +33,10 @@ pub(super) fn character_handle_table(lua: &Lua, character: &Character) -> mlua::
     table.set("costumes", costumes_table(lua, &character.costumes)?)?;
 
     attach_character_metatable(lua, &table)?;
+    crate::log::write_line(format!(
+        "character_handle ok canonical={}",
+        character.canonical
+    ));
     Ok(table)
 }
 
@@ -202,8 +210,15 @@ fn attach_character_metatable(lua: &Lua, table: &Table) -> mlua::Result<()> {
     let methods: Table = lua.globals().get("__struct_api_methods")?;
     metatable.set(
         "__index",
-        lua.create_function(move |_, (_this, key): (Table, String)| {
-            methods.get::<Value>(key.as_str())
+        lua.create_function(move |lua, (_this, key): (Table, String)| {
+            let _ = lua;
+            crate::log::write_line(format!("character.__index enter key={key}"));
+            let value = methods.get::<Value>(key.as_str())?;
+            crate::log::write_line(format!(
+                "character.__index exit key={key} type={}",
+                value.type_name()
+            ));
+            Ok(value)
         })?,
     )?;
     table.set_metatable(Some(metatable));

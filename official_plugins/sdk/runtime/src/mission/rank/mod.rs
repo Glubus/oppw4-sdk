@@ -1,4 +1,4 @@
-mod control;
+mod director;
 mod easy_cap;
 mod helper_probe;
 mod lua;
@@ -43,9 +43,7 @@ pub(crate) fn install_helper(
     helper_probe::install(host, config, runtime);
 }
 
-pub(crate) fn install_control(host: OwnedHostApi) {
-    control::install(host);
-}
+pub(crate) use director::apply_rank_mutations;
 
 lua_module::runtime_lua_module! {
     type = RankLuaModule,

@@ -39,7 +39,7 @@ lua-api = { path = "crates/lua-runtime" }
 plugin-abi = { path = "crates/sdk-abi" }
 plugin-host = { path = "crates/sdk-core" }
 plugin-sdk = { path = "crates/sdk-api" }
-mlua = { version = "0.10", features = ["lua54", "vendored"] }
+mlua = { version = "0.10", features = ["lua54", "vendored", "send"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tracing = "0.1"

@@ -785,6 +785,8 @@ mod tests {
         std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("..")
             .join("..")
+            .join("..")
+            .join("..")
             .join("oppw4-data")
     }
 }
