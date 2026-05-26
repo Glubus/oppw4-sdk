@@ -2,7 +2,7 @@ local character = require("std.character")
 local log = require("std.log")
 local moveset_patcher = require("moveset_patcher")
 
-local young_garp_moveset = moveset_patcher.moveset({
+local young_garp_moveset = moveset_patcher.patch({
   section_count = 1,
   sections = {
     {

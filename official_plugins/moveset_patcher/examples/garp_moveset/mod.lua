@@ -1,7 +1,7 @@
 local moveset_patcher = require("moveset_patcher")
 local character = require("std.character")
 
-local my_movesets = moveset_patcher.moveset({
+local my_movesets = moveset_patcher.patch({
   payload_file = "garp_moveset_readable.json",
 })
 

@@ -223,9 +223,10 @@ const CALLSITE_PROBES: &[CallsiteProbe] = &[
 fn install_callsite_hooks(host: &OwnedHostApi) {
     let base = module_base();
     if base == 0 {
-        let _ = host
-            .log()
-            .write(PLUGIN_ID, "rank_callsite_probe install failed: module base is null");
+        let _ = host.log().write(
+            PLUGIN_ID,
+            "rank_callsite_probe install failed: module base is null",
+        );
         return;
     }
 
@@ -262,9 +263,10 @@ fn install_count_call_wrapper(
     kind: u32,
 ) {
     if installed.swap(true, Ordering::SeqCst) {
-        let _ = host
-            .log()
-            .write(PLUGIN_ID, format!("rank_callsite_probe {name} already installed"));
+        let _ = host.log().write(
+            PLUGIN_ID,
+            format!("rank_callsite_probe {name} already installed"),
+        );
         return;
     }
 
@@ -275,9 +277,7 @@ fn install_count_call_wrapper(
         installed.store(false, Ordering::SeqCst);
         let _ = host.log().write(
             PLUGIN_ID,
-            format!(
-                "rank_callsite_probe {name} read failed site=0x{site:x} result={read}"
-            ),
+            format!("rank_callsite_probe {name} read failed site=0x{site:x} result={read}"),
         );
         return;
     }
@@ -331,9 +331,7 @@ fn install_count_call_wrapper(
             installed.store(false, Ordering::SeqCst);
             let _ = host.log().write(
                 PLUGIN_ID,
-                format!(
-                    "rank_callsite_probe {name} install failed site=0x{site:x}: {error}"
-                ),
+                format!("rank_callsite_probe {name} install failed site=0x{site:x}: {error}"),
             );
         }
     }
@@ -389,21 +387,21 @@ fn install_callsite_hook(host: &OwnedHostApi, base: usize, probe: CallsiteProbe)
 
     let result = unsafe {
         (|| -> Result<usize, String> {
-        match CaveArena::new(site, 0x400) {
-            Some(mut arena) => {
-                let cave = build_callsite_cave(site + probe.original.len(), probe);
-                let cave_address = arena.alloc(&cave, 16)?;
-                let mut patch = vec![0x90; probe.original.len()];
-                asm::write_rel32_jump(&mut patch, site, 5, cave_address)?;
-                let write = hooks::write_memory(site, patch.as_ptr(), patch.len());
-                if write == 0 {
-                    Ok(cave_address)
-                } else {
-                    Err(format!("write failed result={write}"))
+            match CaveArena::new(site, 0x400) {
+                Some(mut arena) => {
+                    let cave = build_callsite_cave(site + probe.original.len(), probe);
+                    let cave_address = arena.alloc(&cave, 16)?;
+                    let mut patch = vec![0x90; probe.original.len()];
+                    asm::write_rel32_jump(&mut patch, site, 5, cave_address)?;
+                    let write = hooks::write_memory(site, patch.as_ptr(), patch.len());
+                    if write == 0 {
+                        Ok(cave_address)
+                    } else {
+                        Err(format!("write failed result={write}"))
+                    }
                 }
+                None => Err("cave allocation failed".to_string()),
             }
-            None => Err("cave allocation failed".to_string()),
-        }
         })()
     };
 
@@ -446,7 +444,7 @@ fn build_callsite_cave(return_address: usize, probe: CallsiteProbe) -> Vec<u8> {
         CallsiteValue::RbxOffset(offset) => code.extend_from_slice(&[0x44, 0x8b, 0x43, offset]),
     }
     code.extend_from_slice(&[0x48, 0xb8]);
-    code.extend_from_slice(&(rank_callsite_probe_log as usize as u64).to_le_bytes());
+    code.extend_from_slice(&(rank_callsite_probe_log as *const () as usize as u64).to_le_bytes());
     code.extend_from_slice(&[0xff, 0xd0]);
     code.extend_from_slice(&[0x48, 0x83, 0xc4, 0x20]);
     pop_scratch_registers(&mut code);
@@ -454,7 +452,11 @@ fn build_callsite_cave(return_address: usize, probe: CallsiteProbe) -> Vec<u8> {
     code
 }
 
-fn build_count_call_wrapper_cave(helper_address: usize, return_address: usize, kind: u32) -> Vec<u8> {
+fn build_count_call_wrapper_cave(
+    helper_address: usize,
+    return_address: usize,
+    kind: u32,
+) -> Vec<u8> {
     let mut code = Vec::new();
     push_scratch_registers(&mut code);
     code.extend_from_slice(&[0x48, 0x83, 0xec, 0x30]);
@@ -467,7 +469,7 @@ fn build_count_call_wrapper_cave(helper_address: usize, return_address: usize, k
     code.extend_from_slice(&[0x45, 0x8b, 0xc3]);
     code.extend_from_slice(&[0xf3, 0x0f, 0x10, 0xda]);
     code.extend_from_slice(&[0x48, 0xb8]);
-    code.extend_from_slice(&(rank_count_call_probe_log as usize as u64).to_le_bytes());
+    code.extend_from_slice(&(rank_count_call_probe_log as *const () as usize as u64).to_le_bytes());
     code.extend_from_slice(&[0xff, 0xd0]);
     code.extend_from_slice(&[0xf3, 0x0f, 0x10, 0x54, 0x24, 0x20]);
     code.extend_from_slice(&[0x48, 0x83, 0xc4, 0x30]);
@@ -605,10 +607,13 @@ fn log_count_callsite(kind: u32, row: usize, value: u32, divisor: f32) {
         [u32::MAX; RANK_THRESHOLD_COUNT]
     };
     let patched_thresholds = if count_slot < SLOT_COUNT {
-        CALLSITE_COUNT_THRESHOLD_OVERRIDE.get().copied().map(|override_thresholds| {
-            unsafe { write_thresholds(row, count_slot, override_thresholds) };
-            override_thresholds
-        })
+        CALLSITE_COUNT_THRESHOLD_OVERRIDE
+            .get()
+            .copied()
+            .map(|override_thresholds| {
+                unsafe { write_thresholds(row, count_slot, override_thresholds) };
+                override_thresholds
+            })
     } else {
         None
     };
@@ -1561,9 +1566,7 @@ mod tests {
 
     #[test]
     fn detects_removed_time_callsite_rip_relative_load() {
-        let removed_time_site = [
-            0x89, 0x43, 0x10, 0x48, 0x8b, 0x05, 0x40, 0xee, 0xb8, 0x00,
-        ];
+        let removed_time_site = [0x89, 0x43, 0x10, 0x48, 0x8b, 0x05, 0x40, 0xee, 0xb8, 0x00];
 
         assert!(has_rip_relative_instruction(&removed_time_site));
     }

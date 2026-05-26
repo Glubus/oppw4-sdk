@@ -1,13 +1,18 @@
+mod control;
 mod easy_cap;
 mod helper_probe;
+mod lua;
 mod threshold_patch;
 mod threshold_probe;
+
+#[cfg(test)]
+mod lua_tests;
 
 use plugin_sdk::OwnedHostApi;
 
 use crate::{
     config::{RankHelperProbeConfig, RankRuntimeConfig, RankThresholdProbeConfig},
-    runtime::exposure::RuntimeExposure,
+    runtime::{exposure::RuntimeExposure, lua_module},
 };
 
 pub(crate) struct RankRuntimeExposure;
@@ -36,4 +41,18 @@ pub(crate) fn install_helper(
     runtime: RankRuntimeConfig,
 ) {
     helper_probe::install(host, config, runtime);
+}
+
+pub(crate) fn install_control(host: OwnedHostApi) {
+    control::install(host);
+}
+
+lua_module::runtime_lua_module! {
+    type = RankLuaModule,
+    module = lua::MODULE_NAME,
+    factory = lua::module,
+}
+
+pub(crate) fn lua_module() -> RankLuaModule {
+    RankLuaModule
 }

@@ -6,13 +6,15 @@ mod mods;
 
 use plugin_sdk::{HostApi, PluginError, PluginResult};
 
+use crate::runtime::lua_module;
+
 pub(crate) const PLUGIN_ID: &str = "sdk_runtime";
 
 pub fn initialize(host: HostApi<'_>) -> PluginResult<()> {
     log::initialize(host);
     config::register_schema(host);
     let shared_config = mods::load_config(host);
-    mods::register_lua_modules(host, shared_config.clone());
+    lua_module::register(host, mods::RuntimeFxLuaModule::new(shared_config.clone()));
     let plugin = shared_config.lock().expect("fx state lock").plugin_config();
     log::write_line(format!(
         "fx_director init trigger={:?} hotkey_vk=0x{:02x} observe_effect_ids={} observe_character_probe={} install_delay_ms={} wait_for={:?} refresh_interval_ms={}",

@@ -8,7 +8,7 @@ use std::{
 };
 
 use plugin_sdk::{
-    export_plugin, HostRdbPatchReadFn, Oppw4FileProvider, Plugin, PluginContext, PluginResult,
+    HostRdbPatchReadFn, Oppw4FileProvider, PluginFeature, PluginRegistrar, PluginResult,
     VirtualFileProvider,
 };
 
@@ -41,13 +41,15 @@ struct OpenRdbHandle {
     provider_handle: u64,
 }
 
-struct SdkRdb;
+struct RdbServiceFeature;
 
-impl Plugin for SdkRdb {
-    const ID: &'static str = "sdk_rdb";
+impl PluginFeature for RdbServiceFeature {
+    fn id(&self) -> &'static str {
+        "sdk.rdb.service"
+    }
 
-    fn init(context: PluginContext<'_>) -> PluginResult<()> {
-        let host = context.host();
+    fn install(&self, registrar: &mut PluginRegistrar<'_>) -> PluginResult<()> {
+        let host = registrar.host();
         unsafe {
             host.rdb().register_service_with_virtual_provider(
                 std::ptr::null_mut(),
@@ -67,13 +69,30 @@ impl Plugin for SdkRdb {
             .seek(dispatch_seek)
             .patch_read(dispatch_patch_read),
         )?;
-        sdk_rdb_patcher::initialize(host)?;
-        context.log("sdk.rdb initialized");
         Ok(())
     }
 }
 
-export_plugin!(SdkRdb);
+struct RdbPatcherFeature;
+
+impl PluginFeature for RdbPatcherFeature {
+    fn id(&self) -> &'static str {
+        "sdk.rdb.patcher"
+    }
+
+    fn install(&self, registrar: &mut PluginRegistrar<'_>) -> PluginResult<()> {
+        sdk_rdb_patcher::initialize(registrar.host())
+    }
+}
+
+plugin_sdk::sdk_plugin! {
+    id = "sdk_rdb",
+    name = "SDK RDB",
+    features = [
+        RdbServiceFeature,
+        RdbPatcherFeature,
+    ],
+}
 
 unsafe extern "system" fn register_patch_provider(
     _service_context: *mut c_void,

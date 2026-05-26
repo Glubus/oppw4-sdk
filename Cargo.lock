@@ -450,6 +450,8 @@ dependencies = [
  "lua-api",
  "mlua",
  "plugin-abi",
+ "serde",
+ "serde_json",
  "toml",
  "tracing",
  "zip",

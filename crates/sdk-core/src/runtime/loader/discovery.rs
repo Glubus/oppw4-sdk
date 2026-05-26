@@ -36,7 +36,11 @@ const SDK_SERVICES: &[SdkService] = &[
     SdkService {
         id: "sdk_runtime",
         dll: "runtime.dll",
-        lua_modules: &["sdk.runtime.fx"],
+        lua_modules: &[
+            "sdk.runtime.fx",
+            "sdk.runtime.ranks",
+            "sdk.runtime.difficulty",
+        ],
         requires: &[
             "plugin.host",
             "config.schema",
@@ -46,6 +50,7 @@ const SDK_SERVICES: &[SdkService] = &[
             "memory.scan",
             "memory.write",
             "std.character.extend",
+            "signals.subscribe",
             "signals.emit",
         ],
         provides: &[
@@ -122,6 +127,7 @@ pub(super) fn load_plugins(game_root: &Path, plugin_root: &Path) -> PluginLoadRe
             .filter_map(plugin_manifest)
             .collect::<Vec<_>>(),
     );
+    manifests = reject_duplicate_manifests(manifests);
     report.manifests = manifests.len();
 
     let mut loaded = HashSet::new();
@@ -171,6 +177,24 @@ fn capabilities_available(required: &[String], available: &HashSet<String>) -> b
             available_capability.eq_ignore_ascii_case(required_capability)
         })
     })
+}
+
+fn reject_duplicate_manifests(manifests: Vec<PluginManifest>) -> Vec<PluginManifest> {
+    let mut seen = HashSet::new();
+    let mut unique = Vec::with_capacity(manifests.len());
+    for manifest in manifests {
+        let key = manifest.id.to_ascii_lowercase();
+        if seen.insert(key) {
+            unique.push(manifest);
+        } else {
+            log::write_line(format!(
+                "plugin host: duplicate plugin id rejected id={} path={}",
+                manifest.id,
+                manifest.entry_path.display()
+            ));
+        }
+    }
+    unique
 }
 
 fn log_unresolved_manifests(
@@ -360,10 +384,35 @@ mod tests {
             .capabilities_required
             .iter()
             .any(|capability| capability == "config.schema"));
-        assert_eq!(manifests[0].lua_modules, ["sdk.runtime.fx"]);
+        assert_eq!(
+            manifests[0].lua_modules,
+            [
+                "sdk.runtime.fx",
+                "sdk.runtime.ranks",
+                "sdk.runtime.difficulty"
+            ]
+        );
         assert_eq!(manifests[3].entry_path, sdk_root.join("linkdata.dll"));
         assert_eq!(manifests[4].lua_modules, ["sdk.rdb.patcher"]);
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn duplicate_plugin_ids_are_rejected() {
+        let root = temp_root("duplicate-plugin-ids");
+        let first = manifest_for_test("zoro_elbaf", root.join("a"));
+        let duplicate = manifest_for_test("ZORO_ELBAF", root.join("b"));
+        let other = manifest_for_test("zoro_elbaf_battle", root.join("c"));
+
+        let manifests = reject_duplicate_manifests(vec![first, duplicate, other]);
+
+        assert_eq!(
+            manifests
+                .iter()
+                .map(|manifest| manifest.id.as_str())
+                .collect::<Vec<_>>(),
+            ["zoro_elbaf", "zoro_elbaf_battle"]
+        );
     }
 
     fn temp_root(label: &str) -> PathBuf {
@@ -372,5 +421,20 @@ mod tests {
             .expect("time")
             .as_nanos();
         std::env::temp_dir().join(format!("oppw4-{label}-{nanos}"))
+    }
+
+    fn manifest_for_test(id: &str, root: PathBuf) -> PluginManifest {
+        PluginManifest {
+            id: id.to_string(),
+            version: "0.1.0".to_string(),
+            dependencies: Vec::new(),
+            lua_modules: Vec::new(),
+            capabilities_required: Vec::new(),
+            capabilities_provided: Vec::new(),
+            mods_root: root.join("mods"),
+            entry_path: root.join(format!("{id}.dll")),
+            log_root: root.join("logs"),
+            root,
+        }
     }
 }

@@ -1,5 +1,6 @@
 pub(crate) mod exposure;
 pub(crate) mod fx;
+pub(crate) mod lua_module;
 pub(crate) mod memory;
 pub(crate) mod probe;
 pub(crate) mod reader;
@@ -11,7 +12,7 @@ use crate::{
     config,
     game::GameRuntime,
     mission::{
-        difficulty::DifficultyExposure,
+        difficulty::{self, DifficultyExposure},
         rank::{self, RankRuntimeExposure, RankThresholdExposure},
         result::{PlayerResultExposure, ResultMemoryExposure, ResultStateExposure},
     },
@@ -33,6 +34,10 @@ impl Runtime {
         let owned_host = host.owned();
 
         GameRuntime::start();
+        difficulty::install_control(owned_host.clone());
+        rank::install_control(owned_host.clone());
+        lua_module::register(host, difficulty::lua_module());
+        lua_module::register(host, rank::lua_module());
         install_exposures(owned_host, config);
         fx::initialize(host)?;
         Ok(())

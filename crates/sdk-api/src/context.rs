@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use crate::{
     validate_plugin_api, HostApi, LogPolicy, Oppw4ActiveCharacter, Oppw4GameStatus,
-    Oppw4LuaRegisterFn, Oppw4PluginApi, Plugin, PluginError, PluginModInfo, PluginResult,
-    VirtualFileProvider,
+    Oppw4LuaRegisterFn, Oppw4PluginApi, Plugin, PluginError, PluginModInfo, PluginRegistrar,
+    PluginResult, VirtualFileProvider,
 };
 
 #[derive(Clone, Copy)]
@@ -37,6 +37,10 @@ impl<'api> PluginContext<'api> {
 
     pub const fn plugin_id(self) -> &'static str {
         self.plugin_id
+    }
+
+    pub const fn registrar(self) -> PluginRegistrar<'api> {
+        PluginRegistrar::new(self)
     }
 
     pub fn game_root(self) -> Option<PathBuf> {

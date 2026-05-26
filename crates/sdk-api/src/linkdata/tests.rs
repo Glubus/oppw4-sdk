@@ -98,7 +98,7 @@ fn section_rows_can_be_replaced_inserted_and_removed() {
         sections.section(0).expect("section 0"),
         [1, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0]
     );
-    assert_eq!(sections.section(1).expect("section 1"), []);
+    assert_eq!(sections.section(1).expect("section 1"), &[] as &[u8]);
 }
 
 #[test]

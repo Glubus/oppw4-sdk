@@ -3,8 +3,9 @@ use std::sync::Arc;
 use plugin_abi::Oppw4PluginApi;
 
 use super::{
-    CapabilityService, ConfigService, FileService, GameService, HookService, LinkDataService,
-    LogService, LuaService, MemoryService, ModService, PathService, RdbService, SignalService,
+    CapabilityService, ConfigService, DifficultyService, FileService, GameService, HookService,
+    LinkDataService, LogService, LuaService, MemoryService, ModService, PathService, RankService,
+    RdbService, SignalService,
 };
 
 #[derive(Clone, Copy)]
@@ -60,6 +61,10 @@ impl<'api> HostApi<'api> {
         ConfigService::new(self.abi)
     }
 
+    pub const fn difficulty(self) -> DifficultyService<'api> {
+        DifficultyService::new(self.abi)
+    }
+
     pub const fn hooks(self) -> HookService<'api> {
         HookService::new(self.abi)
     }
@@ -86,6 +91,10 @@ impl<'api> HostApi<'api> {
 
     pub const fn rdb(self) -> RdbService<'api> {
         RdbService::new(self.abi)
+    }
+
+    pub const fn rank(self) -> RankService<'api> {
+        RankService::new(self.abi)
     }
 
     pub const fn signals(self) -> SignalService<'api> {
@@ -132,6 +141,10 @@ impl OwnedHostApi {
         self.as_ref().configs()
     }
 
+    pub fn difficulty(&self) -> DifficultyService<'_> {
+        self.as_ref().difficulty()
+    }
+
     pub fn hooks(&self) -> HookService<'_> {
         self.as_ref().hooks()
     }
@@ -158,6 +171,10 @@ impl OwnedHostApi {
 
     pub fn rdb(&self) -> RdbService<'_> {
         self.as_ref().rdb()
+    }
+
+    pub fn rank(&self) -> RankService<'_> {
+        self.as_ref().rank()
     }
 
     pub fn signals(&self) -> SignalService<'_> {

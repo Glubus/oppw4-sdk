@@ -72,17 +72,12 @@ fn register_character_extensions(lua: &Lua) -> mlua::Result<()> {
     ))?;
     register.call::<()>((
         MODULE_NAME,
-        "replace_models",
-        lua.create_function(replace_models)?,
+        "replace_model",
+        lua.create_function(replace_model)?,
     ))?;
     register.call::<()>((
         MODULE_NAME,
         "replace_textures",
-        lua.create_function(replace_textures)?,
-    ))?;
-    register.call::<()>((
-        MODULE_NAME,
-        "replaces_textures",
         lua.create_function(replace_textures)?,
     ))
 }
@@ -118,7 +113,7 @@ fn replace_portrait(
     Ok(())
 }
 
-fn replace_models(
+fn replace_model(
     lua: &Lua,
     (character, costume, model): (Table, String, String),
 ) -> mlua::Result<()> {
@@ -134,7 +129,7 @@ fn replace_models(
     )
     .map_err(mlua::Error::external)?;
     log::write_line(format!(
-        "lua skin_patcher replace_models character={name} costume={costume} target={target} source={model} replacements={count}"
+        "lua skin_patcher replace_model character={name} costume={costume} target={target} source={model} replacements={count}"
     ));
     Ok(())
 }
@@ -179,7 +174,7 @@ fn model_target_file(character: &Table, costume: &str) -> mlua::Result<String> {
                 .map(|id| format!("MPLC{id:03}"))
         })
         .ok_or_else(|| {
-            mlua::Error::external("replace_models needs a character with model_stem or model_id")
+            mlua::Error::external("replace_model needs a character with model_stem or model_id")
         })?;
     Ok(ensure_extension(&stem, "g1m"))
 }
@@ -339,9 +334,8 @@ mod tests {
                 law:replace_portrait(2, "portrait.g1t")
                 return law.replace_costume ~= nil
                     and law.replace_portrait ~= nil
-                    and law.replace_models ~= nil
+                    and law.replace_model ~= nil
                     and law.replace_textures ~= nil
-                    and law.replaces_textures ~= nil
             "#,
             )
             .eval()

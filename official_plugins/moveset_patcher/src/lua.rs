@@ -42,8 +42,8 @@ unsafe extern "system" fn register_moveset_patcher_module(
 fn moveset_patcher_module(lua: &Lua) -> mlua::Result<Table> {
     let table = lua.create_table()?;
     table.set("id", PLUGIN_ID)?;
-    table.set("moveset", lua.create_function(moveset_definition)?)?;
-    table.set("moveset_file", lua.create_function(moveset_file)?)?;
+    table.set("patch", lua.create_function(patch_definition)?)?;
+    table.set("load_patch", lua.create_function(load_patch)?)?;
     table.set(
         "__oppw4_on_import",
         lua.create_function(|lua, ()| register_character_extensions(lua))?,
@@ -60,7 +60,7 @@ fn register_character_extensions(lua: &Lua) -> mlua::Result<()> {
     ))
 }
 
-fn moveset_definition(lua: &Lua, definition: Table) -> mlua::Result<Table> {
+fn patch_definition(lua: &Lua, definition: Table) -> mlua::Result<Table> {
     let (payload, file_entry) =
         if let Some(path) = definition.get::<Option<String>>("payload_file")? {
             read_payload_file(lua, Path::new(&path))?
@@ -76,10 +76,10 @@ fn moveset_definition(lua: &Lua, definition: Table) -> mlua::Result<Table> {
     Ok(output)
 }
 
-fn moveset_file(lua: &Lua, path: String) -> mlua::Result<Table> {
+fn load_patch(lua: &Lua, path: String) -> mlua::Result<Table> {
     let source = lua_api::read_mod_text(lua, Path::new(&path))?;
     let definition = lua.load(&source).set_name(path).eval::<Table>()?;
-    moveset_definition(lua, definition)
+    patch_definition(lua, definition)
 }
 
 fn read_payload_file(lua: &Lua, path: &Path) -> mlua::Result<(Vec<u8>, Option<u16>)> {
@@ -186,7 +186,7 @@ mod tests {
             .eval::<Table>()
             .expect("table");
 
-        let moveset = moveset_definition(&lua, definition).expect("definition");
+        let moveset = patch_definition(&lua, definition).expect("definition");
 
         assert_eq!(
             moveset.get::<u16>("source_entry").expect("source_entry"),
@@ -197,7 +197,7 @@ mod tests {
     }
 
     #[test]
-    fn moveset_file_loads_readable_lua_table() {
+    fn load_patch_loads_readable_lua_table() {
         let lua = Lua::new();
         let root =
             std::env::temp_dir().join(format!("oppw4-moveset-readable-{}", std::process::id()));
@@ -225,7 +225,7 @@ mod tests {
             .set("__oppw4_mod_is_zip", false)
             .expect("zip global");
 
-        let moveset = moveset_file(&lua, "moveset.lua".to_string()).expect("moveset file");
+        let moveset = load_patch(&lua, "moveset.lua".to_string()).expect("moveset file");
 
         assert_eq!(
             moveset.get::<u16>("source_entry").expect("source_entry"),
@@ -235,7 +235,7 @@ mod tests {
     }
 
     #[test]
-    fn moveset_file_loads_nested_zip_payload() {
+    fn load_patch_loads_nested_zip_payload() {
         let lua = Lua::new();
         let root =
             std::env::temp_dir().join(format!("oppw4-moveset-zip-readable-{}", std::process::id()));
@@ -275,7 +275,7 @@ mod tests {
             .set("__oppw4_mod_is_zip", true)
             .expect("zip global");
 
-        let moveset = moveset_file(&lua, "moveset.lua".to_string()).expect("moveset file");
+        let moveset = load_patch(&lua, "moveset.lua".to_string()).expect("moveset file");
 
         assert_eq!(
             moveset.get::<u16>("source_entry").expect("source_entry"),
@@ -285,7 +285,7 @@ mod tests {
     }
 
     #[test]
-    fn moveset_file_loads_dumped_entry_when_available() {
+    fn load_patch_loads_dumped_entry_when_available() {
         let path = std::env::var_os("OPPW4_MOVESET_DUMP_TEST")
             .map(PathBuf::from)
             .unwrap_or_else(|| {
@@ -306,7 +306,7 @@ mod tests {
             .set("__oppw4_mod_is_zip", false)
             .expect("zip global");
 
-        let moveset = moveset_file(
+        let moveset = load_patch(
             &lua,
             path.file_name()
                 .expect("dump filename")

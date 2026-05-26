@@ -105,5 +105,6 @@ repository.
 - [Roadmap](docs/ROADMAP.md)
 - [Architecture rules](docs/RULES.md)
 - [API surfaces](docs/API-SURFACES.md)
+- [Plugin API design](docs/PLUGIN-API.md)
 - [Plugin development](docs/PLUGIN-DEVELOPMENT.md)
 - [SDK data dumper concept](docs/DATA-DUMPER.md)

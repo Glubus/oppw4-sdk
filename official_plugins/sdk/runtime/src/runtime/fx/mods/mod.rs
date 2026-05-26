@@ -7,5 +7,5 @@ mod state;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use lua_modules::register_lua_modules;
+pub(crate) use lua_modules::RuntimeFxLuaModule;
 pub(crate) use state::{load_config, FxInstallPlan, SharedFxState};

@@ -23,6 +23,7 @@ mod api;
 mod context;
 mod entry;
 mod error;
+mod feature;
 mod helpers;
 mod log;
 mod plugin;
@@ -31,11 +32,26 @@ mod r#unsafe;
 pub use api::{
     CapabilityService, ConfigService, FileService, GameService, HookService, HostApi,
     LinkDataRowTarget, LinkDataService, LogService, LuaService, MemoryService, ModService,
-    OwnedHostApi, PathService, VirtualFileProvider,
+    OwnedHostApi, PathService, RankService, VirtualFileProvider,
+};
+pub use api::{
+    CountThresholdOverride, CountThresholdShift, RankCapEffect, RankCapRule, RankCondition,
+    RankConditionExpr, RankSlot, RANK_OVERRIDE_COUNT_THRESHOLDS, RANK_SET_CAP,
+    RANK_SHIFT_COUNT_THRESHOLDS,
+};
+pub use api::{
+    DifficultyAction, DifficultyActorStat, DifficultyCondition, DifficultyConditionExpr,
+    DifficultyFixedArea, DifficultyKnownTable, DifficultyLevel, DifficultyRule, DifficultyService,
+    DifficultyValueOp, DIFFICULTY_SET_RULE,
 };
 pub use context::PluginContext;
 pub use entry::{plugin_abi_from_raw, validate_plugin_api, PluginInitError};
 pub use error::{PluginError, PluginResult};
+pub use feature::{
+    ConfigFeature, LinkDataPatchFeature, LuaModuleFeature, PluginFeature, PluginRegistrar,
+    RdbPatchCallbackFeature, RdbPatchFeature, RdbVirtualFeature, SignalFeature,
+    VirtualFileProviderFeature,
+};
 pub use helpers::cstring_lossy;
 pub use log::{mirror_mod_log_to_host, LogPolicy, PluginLogger};
 pub use plugin::{init_plugin, Plugin};
@@ -47,5 +63,73 @@ macro_rules! export_plugin {
         pub unsafe extern "system" fn oppw4_plugin_init(api: *const $crate::Oppw4PluginApi) -> i32 {
             unsafe { $crate::init_plugin::<$plugin>(api) }
         }
+    };
+}
+
+#[macro_export]
+macro_rules! sdk_plugin {
+    (
+        id = $id:literal,
+        name = $name:literal,
+        features = [$( $feature:expr ),* $(,)?] $(,)?
+    ) => {
+        pub const PLUGIN_ID: &str = $id;
+        #[allow(dead_code)]
+        pub const PLUGIN_NAME: &str = $name;
+
+        struct SdkPlugin;
+
+        impl $crate::Plugin for SdkPlugin {
+            const ID: &'static str = PLUGIN_ID;
+
+            fn init(context: $crate::PluginContext<'_>) -> $crate::PluginResult<()> {
+                #[allow(unused_mut)]
+                let mut registrar = context.registrar();
+                $(
+                    registrar.add($feature)?;
+                )*
+                registrar.finish()
+            }
+        }
+
+        $crate::export_plugin!(SdkPlugin);
+    };
+}
+
+#[macro_export]
+macro_rules! lua_module {
+    (
+        plugin = $plugin:expr,
+        module = $module:expr,
+        register = $register:path $(,)?
+    ) => {
+        $crate::LuaModuleFeature::new($plugin, $module, $register)
+    };
+}
+
+#[macro_export]
+macro_rules! config_schema {
+    (
+        id = $id:expr,
+        name = $name:expr,
+        toml = $toml:expr $(,)?
+    ) => {
+        $crate::ConfigFeature::new($id, $name, $toml)
+    };
+    (
+        name = $name:expr,
+        toml = $toml:expr $(,)?
+    ) => {
+        $crate::ConfigFeature::new($name, $name, $toml)
+    };
+}
+
+#[macro_export]
+macro_rules! rdb_patch_feature {
+    (
+        id = $id:expr,
+        patch_read = $patch_read:path $(,)?
+    ) => {
+        $crate::RdbPatchCallbackFeature::new($id, $patch_read)
     };
 }
