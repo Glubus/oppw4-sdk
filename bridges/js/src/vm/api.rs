@@ -73,6 +73,13 @@ const BOOTSTRAP_JS: &str = r#"
 
     const registryFunctionStub = (qualifiedName) => {
         return Object.freeze(function registryFunctionStub(...args) {
+            args.push(Object.freeze({
+                __oppw4Caller: true,
+                modId: mod.id,
+                root: mod.root,
+                zipRoot: mod.zipRoot,
+                isZip: mod.isZip,
+            }));
             const resultJson = globalThis.__oppw4_registry_invoke(
                 qualifiedName,
                 JSON.stringify(args),

@@ -7,5 +7,8 @@ entry = "moveset_patcher.dll"
 plugins = ["sdk_linkdata"]
 
 [capabilities]
-requires = ["files.virtualize", "linkdata.patch"]
+requires = ["files.virtualize", "linkdata.patch", "registry.module"]
 provides = ["linkdata.moveset"]
+
+[registry]
+modules = ["moveset.patch"]
