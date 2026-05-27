@@ -1,0 +1,16 @@
+[plugin]
+id = "sdk_rdb"
+version = "0.1.0"
+entry = "rdb.dll"
+
+[capabilities]
+requires = [
+  "plugin.host",
+  "files.virtualize",
+  "rdb.patch",
+]
+provides = [
+  "rdb.read",
+  "rdb.patch",
+  "rdb.skin",
+]

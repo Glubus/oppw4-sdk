@@ -7,15 +7,15 @@ The SDK owns the modding platform:
 
 - SDK core orchestration;
 - plugin ABI/API crates;
-- Lua runtime and standard modules;
-- character/data APIs backed by the `oppw4-data` submodule;
+- Lua runtime and generic standard modules;
+- OPPW4 character/data APIs backed by the `oppw4-data` submodule;
 - RDB and LinkData helpers;
 - official plugins;
 - examples and modder documentation.
 
-This is a v0 split. Some Rust package names still use the prototype names such
-as `plugin-sdk`, `plugin-host`, `lua-api`, and `struct-api`. The folder layout
-already follows the target SDK shape so later renames can happen deliberately.
+This is a v0 split. Some Rust package names still use prototype names such as
+`plugin-sdk`, `plugin-host`, and `lua-api`. The folder layout already follows
+the target SDK shape so later renames can happen deliberately.
 
 ## Layout
 
@@ -25,13 +25,13 @@ crates/
   sdk-api/         # current package: plugin-sdk
   sdk-core/        # current package: plugin-host
   lua-runtime/     # current package: lua-api
-  character-bank/  # current package: struct-api
   hooks/
   asm/
   rdb/
 official_plugins/
   sdk/
     core/         # builds sdk.dll
+    data/         # builds data.dll; owns OPPW4 data bootstrap and API crate
     runtime/      # builds runtime.dll; owns sdk.runtime.fx APIs
     debug/        # builds debug.dll
     overlay/      # builds overlay.dll
@@ -105,5 +105,6 @@ repository.
 - [Roadmap](docs/ROADMAP.md)
 - [Architecture rules](docs/RULES.md)
 - [API surfaces](docs/API-SURFACES.md)
+- [Plugin API design](docs/PLUGIN-API.md)
 - [Plugin development](docs/PLUGIN-DEVELOPMENT.md)
 - [SDK data dumper concept](docs/DATA-DUMPER.md)

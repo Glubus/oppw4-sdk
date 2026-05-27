@@ -1,0 +1,10 @@
+[mod]
+id = "oden_moveset"
+name = "Oden Moveset"
+creator = "ManKor"
+
+[uses]
+plugins = ["sdk_data", "moveset_patcher"]
+
+[entry]
+file = "main.js"

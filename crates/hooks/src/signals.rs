@@ -62,13 +62,6 @@ impl SignalBus {
             names.insert(signal.id(), Arc::as_ptr(signal) as usize);
         }
     }
-
-    pub fn contains(&self, id: SignalId) -> bool {
-        self.names
-            .lock()
-            .map(|names| names.contains_key(&id))
-            .unwrap_or(false)
-    }
 }
 
 pub struct SignalHook<T> {

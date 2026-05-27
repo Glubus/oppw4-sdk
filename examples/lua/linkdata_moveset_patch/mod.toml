@@ -1,9 +1,0 @@
-[mod]
-id = "linkdata_moveset_patch_example"
-name = "LinkData Moveset Patch Example"
-
-[uses]
-plugins = ["moveset_patcher"]
-
-[entry]
-lua = "mod.lua"

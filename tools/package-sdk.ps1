@@ -24,6 +24,7 @@ $dataRoot = Join-Path $root "oppw4-data"
 
 $sdkPackages = @(
     "oppw4-sdk-core-plugin",
+    "oppw4-sdk-data-plugin",
     "oppw4-sdk-runtime-plugin",
     "oppw4-sdk-debug-plugin",
     "oppw4-sdk-overlay-plugin",
@@ -36,6 +37,7 @@ $officialPackages = @(
 
 $sdkDlls = @(
     @{ Name = "sdk"; File = "sdk.dll" },
+    @{ Name = "data"; File = "data.dll" },
     @{ Name = "runtime"; File = "runtime.dll" },
     @{ Name = "debug"; File = "debug.dll" },
     @{ Name = "overlay"; File = "overlay.dll" },
@@ -43,7 +45,7 @@ $sdkDlls = @(
     @{ Name = "rdb"; File = "rdb.dll" }
 )
 $officialPlugins = @(
-    @{ Id = "moveset_patcher"; File = "moveset_patcher.dll"; Source = "official_plugins/moveset_patcher" }
+    @{ Id = "moveset_patcher"; File = "moveset_patcher.dll"; Source = "plugins/moveset_patcher" }
 )
 
 function Copy-RequiredFile($source, $destination) {
@@ -102,7 +104,7 @@ if (!$NoLoader) {
 foreach ($dll in $sdkDlls) {
     Copy-RequiredFile (Join-Path $targetDir $dll.File) (Join-Path $sdkRoot $dll.File)
 }
-Copy-RequiredFile (Join-Path $root "official_plugins/sdk/core/plugin.toml") (Join-Path $sdkRoot "plugin.toml")
+Copy-RequiredFile (Join-Path $root "sdk/plugins/core/plugin.toml") (Join-Path $sdkRoot "plugin.toml")
 
 foreach ($plugin in $officialPlugins) {
     $pluginRoot = Join-Path $pluginsRoot $plugin.Id
@@ -119,5 +121,8 @@ Copy-RequiredDirectory (Join-Path $dataRoot "missions") (Join-Path $packageDataR
 Copy-RequiredDirectory (Join-Path $dataRoot "generated") (Join-Path $packageDataRoot "generated")
 Copy-RequiredDirectory (Join-Path $dataRoot "schemas") (Join-Path $packageDataRoot "schemas")
 New-Item -ItemType Directory -Force -Path (Join-Path $outRoot "mods") | Out-Null
+Copy-RequiredDirectory (Join-Path $root "examples/js") (Join-Path $outRoot "examples/js")
+Copy-RequiredDirectory (Join-Path $root "examples/rust/log_plugin") (Join-Path $outRoot "examples/rust/log_plugin")
+Copy-RequiredDirectory (Join-Path $root "examples/rust/native_mod") (Join-Path $outRoot "examples/rust/native_mod")
 
 Write-Host "SDK package written to $outRoot"

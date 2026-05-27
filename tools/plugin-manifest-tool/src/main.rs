@@ -18,7 +18,12 @@ fn main() {
                 descriptor.id, descriptor.version, descriptor.entry
             );
             print_list("dependencies", &descriptor.dependencies);
-            print_list("lua_modules", &descriptor.lua_modules);
+            let registry_modules = descriptor
+                .registry_modules
+                .iter()
+                .map(|module| module.module.clone())
+                .collect::<Vec<_>>();
+            print_list("registry_modules", &registry_modules);
             print_list("requires", &descriptor.capabilities_required);
             print_list("provides", &descriptor.capabilities_provided);
         }

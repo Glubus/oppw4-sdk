@@ -1,0 +1,10 @@
+[mod]
+id = "big_mom_temperamented_form_moveset"
+name = "Big Mom Temperamented Form Moveset"
+creator = "ManKor"
+
+[uses]
+plugins = ["sdk_data", "moveset_patcher"]
+
+[entry]
+file = "main.js"

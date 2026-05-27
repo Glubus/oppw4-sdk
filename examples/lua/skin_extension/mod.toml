@@ -1,9 +1,0 @@
-[mod]
-id = "skin_extension_example"
-name = "Skin Extension Example"
-
-[uses]
-plugins = ["sdk_rdb"]
-
-[entry]
-lua = "mod.lua"

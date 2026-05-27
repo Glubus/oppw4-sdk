@@ -1,26 +1,29 @@
 [workspace]
 members = [
-    "crates/character-bank",
     "crates/asm",
     "crates/hooks",
-    "crates/lua-runtime",
-    "crates/sdk-abi",
-    "crates/sdk-core",
-    "crates/sdk-api",
+    "crates/host/abi",
+    "crates/host/core",
+    "crates/sdk/api",
     "crates/rdb",
+    "bridges/core",
+    "bridges/js",
     "examples/rust/log_plugin",
+    "examples/rust/native_mod",
     "tools/moveset-tool",
     "tools/mod-manifest-tool",
     "tools/plugin-manifest-tool",
     "tools/rdb-tool",
-    "official_plugins/sdk/core",
-    "official_plugins/sdk/runtime",
-    "official_plugins/sdk/debug",
-    "official_plugins/sdk/overlay",
-    "official_plugins/sdk/linkdata",
-    "official_plugins/sdk/rdb",
-    "official_plugins/sdk/rdb/patcher",
-    "official_plugins/moveset_patcher",
+    "sdk/plugins/core",
+    "sdk/plugins/data",
+    "sdk/plugins/data/api",
+    "sdk/plugins/runtime",
+    "sdk/plugins/debug",
+    "sdk/plugins/overlay",
+    "sdk/plugins/linkdata",
+    "sdk/plugins/rdb",
+    "sdk/plugins/rdb/patcher",
+    "plugins/moveset_patcher",
 ]
 resolver = "2"
 
@@ -31,14 +34,15 @@ license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
 rdb = { path = "crates/rdb" }
-struct-api = { path = "crates/character-bank" }
+struct-api = { path = "sdk/plugins/data/api", package = "oppw4-data" }
 asm = { path = "crates/asm" }
 hooks = { path = "crates/hooks" }
-lua-api = { path = "crates/lua-runtime" }
-plugin-abi = { path = "crates/sdk-abi" }
-plugin-host = { path = "crates/sdk-core" }
-plugin-sdk = { path = "crates/sdk-api" }
-mlua = { version = "0.10", features = ["lua54", "vendored"] }
+plugin-abi = { path = "crates/host/abi" }
+sdk-bridge = { path = "bridges/core" }
+sdk-js-bridge = { path = "bridges/js" }
+plugin-host = { path = "crates/host/core" }
+plugin-sdk = { path = "crates/sdk/api" }
+rquickjs = { version = "0.11", features = ["loader", "parallel"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tracing = "0.1"

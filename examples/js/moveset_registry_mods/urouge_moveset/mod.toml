@@ -1,0 +1,10 @@
+[mod]
+id = "urouge_moveset"
+name = "Urouge Moveset"
+creator = "Natsu-Ken"
+
+[uses]
+plugins = ["sdk_data", "moveset_patcher"]
+
+[entry]
+file = "main.js"

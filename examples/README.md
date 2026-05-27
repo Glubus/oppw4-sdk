@@ -2,23 +2,21 @@
 
 Examples are split by what a modder is building.
 
-## Lua Mods
+## JavaScript Mods
 
-Use `examples/lua/` when the mod only needs SDK Lua modules and plugin-provided
-Lua APIs.
+Use `examples/js/` for the recommended mod path. JavaScript mods run through
+`bridges/js`, receive registry events, and call registry modules exposed by
+official plugins.
 
-- `character_logger`: reads `std.character`, `std.mod`, and `std.log`.
-- `skin_extension`: consumes `sdk.rdb.patcher` methods added to `std.character`
-  by the `sdk_rdb` service.
-- `linkdata_moveset_patch`: consumes `moveset_patcher` to register a LinkData
-  moveset payload.
-- `asset_replacement`: consumes `sdk.rdb.patcher` for model and portrait
-  replacement through the `sdk_rdb` service.
+- `player_event`: registers an event callback and reads available registry
+  context from the callback payload.
+- `character_registry_probe`: imports `character` from the `sdk` registry
+  projection and logs known character rows.
 
-Validate Lua mod manifests with:
+Validate JS mod manifests with:
 
 ```sh
-cargo run -p mod-manifest-tool -- examples/lua/character_logger/mod.toml
+cargo run -p mod-manifest-tool -- examples/js/player_event/mod.toml
 ```
 
 ## Rust Plugins
@@ -39,4 +37,16 @@ Build Rust plugins for the game with the default Windows MSVC toolchain:
 
 ```sh
 cargo build -p oppw4-log-example-plugin
+```
+
+## Experimental Rust Native Mods
+
+Use `examples/rust/native_mod` only when a mod needs native Rust and the author
+accepts the ABI/toolchain risk. This path uses the same registry-first SDK
+surface as plugins, but is intentionally documented as advanced.
+
+Validate source manifests before the DLL exists with:
+
+```sh
+cargo run -p mod-manifest-tool -- --manifest-only examples/rust/native_mod/mod.toml
 ```

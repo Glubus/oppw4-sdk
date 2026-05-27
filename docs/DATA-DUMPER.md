@@ -44,7 +44,7 @@ character indexes are generated today.
 The runtime plugin should live under:
 
 ```text
-official_plugins/
+sdk/plugins/
   data_dumper/
 ```
 

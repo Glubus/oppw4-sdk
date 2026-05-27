@@ -9,4 +9,4 @@ name = "mod-manifest"
 path = "src/main.rs"
 
 [dependencies]
-lua-api.workspace = true
+plugin-sdk.workspace = true

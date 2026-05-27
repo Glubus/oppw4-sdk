@@ -1,0 +1,10 @@
+[mod]
+id = "native_mod_example"
+name = "Native Rust Mod Example"
+runtime = "rust-native"
+
+[uses]
+plugins = ["sdk_runtime"]
+
+[entry]
+file = "native_mod_example.dll"

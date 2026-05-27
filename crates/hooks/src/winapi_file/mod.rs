@@ -512,30 +512,6 @@ fn with_provider_for_handle<T>(
     })?
 }
 
-#[allow(dead_code)]
-fn old_open_virtual_fake_handle(path: &str) -> Option<Handle> {
-    let path = std::ffi::CString::new(path.as_bytes()).ok()?;
-    let mut raw_handle = 0u64;
-    let opened = with_first_provider(|provider| unsafe {
-        (provider.open_path)(
-            provider.provider_context as *mut c_void,
-            path.as_ptr(),
-            &mut raw_handle,
-        )
-    })?;
-    if opened <= 0 || raw_handle == 0 {
-        return None;
-    }
-    let virtual_handle = VirtualHandle::from_raw(raw_handle);
-    let handle = returned_virtual_handle(virtual_handle);
-    log_open_virtual(
-        path.as_c_str().to_string_lossy().as_ref(),
-        handle,
-        virtual_handle,
-    );
-    Some(handle)
-}
-
 unsafe fn read_virtual_file(
     handle: VirtualHandle,
     buffer: Lpvoid,
@@ -738,10 +714,6 @@ fn with_providers<T>(action: impl FnOnce(&[FileProvider]) -> T) -> Option<T> {
     let providers = FILE_PROVIDERS.get()?;
     let guard = providers.lock().ok()?;
     Some(action(&guard))
-}
-
-fn with_first_provider<T>(action: impl FnOnce(&FileProvider) -> T) -> Option<T> {
-    with_providers(|providers| providers.first().map(action)).flatten()
 }
 
 fn with_open_files<T>(action: impl FnOnce(&mut OpenFileTracker) -> T) -> Option<T> {

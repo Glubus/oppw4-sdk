@@ -1,0 +1,10 @@
+[mod]
+id = "luffy_new_world_moveset"
+name = "Luffy (New World) Moveset"
+creator = "ManKor"
+
+[uses]
+plugins = ["sdk_data", "moveset_patcher"]
+
+[entry]
+file = "main.js"

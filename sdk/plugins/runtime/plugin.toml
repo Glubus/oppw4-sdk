@@ -1,0 +1,25 @@
+[plugin]
+id = "sdk_runtime"
+version = "0.1.0"
+entry = "runtime.dll"
+
+[capabilities]
+requires = [
+  "plugin.host",
+  "config.schema",
+  "hooks.install",
+  "memory.read",
+  "memory.scan",
+  "memory.write",
+  "signals.subscribe",
+  "signals.emit",
+]
+provides = [
+  "game.runtime",
+  "game.active_character",
+  "game.status",
+  "game.mission.difficulty",
+  "game.mission.ranks",
+  "game.mission.rewards",
+  "runtime.fx",
+]

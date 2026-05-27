@@ -29,18 +29,7 @@ fn run() -> Result<(), String> {
     let output = match args.format {
         Format::Bin => Output::Bytes(payload),
         Format::Hex => Output::Text(to_hex_text(&payload)),
-        Format::Json => Output::Text(to_structured_text(
-            &payload,
-            args.entry,
-            Syntax::Json,
-            !args.typed_words,
-        )?),
-        Format::Lua => Output::Text(to_structured_text(
-            &payload,
-            args.entry,
-            Syntax::Lua,
-            !args.typed_words,
-        )?),
+        Format::Json => Output::Text(to_structured_text(&payload, args.entry, !args.typed_words)?),
     };
     write_output(output, args.out_path)
 }
@@ -59,7 +48,6 @@ enum Format {
     Bin,
     Hex,
     Json,
-    Lua,
 }
 
 enum Output {
@@ -114,13 +102,12 @@ fn parse_format(raw: &str) -> Result<Format, String> {
         "bin" | "raw" => Ok(Format::Bin),
         "hex" => Ok(Format::Hex),
         "json" => Ok(Format::Json),
-        "lua" => Ok(Format::Lua),
         _ => Err(usage()),
     }
 }
 
 fn usage() -> String {
-    "usage: moveset-dump <LINKDATA_A.BIN> <entry-id> [--format bin|hex|json|lua] [--out file] [--typed-words]".to_string()
+    "usage: moveset-dump <LINKDATA_A.BIN> <entry-id> [--format bin|hex|json] [--out file] [--typed-words]".to_string()
 }
 
 #[derive(Clone, Debug)]
@@ -189,38 +176,15 @@ fn inflate_entry(bytes: &[u8], entry: &LinkDataEntry) -> Result<Vec<u8>, String>
     Ok(output)
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Syntax {
-    Json,
-    Lua,
-}
-
-fn to_structured_text(
-    payload: &[u8],
-    entry: usize,
-    syntax: Syntax,
-    hex_words: bool,
-) -> Result<String, String> {
+fn to_structured_text(payload: &[u8], entry: usize, hex_words: bool) -> Result<String, String> {
     let sections = parse_sections(payload)?;
     let mut out = String::new();
-    match syntax {
-        Syntax::Json => {
-            out.push_str("{\n");
-            out.push_str(&format!("  \"entry\": {entry},\n"));
-            out.push_str(&format!("  \"section_count\": {},\n", sections.len()));
-            out.push_str("  \"sections\": [\n");
-            write_sections(&mut out, payload, &sections, syntax, hex_words);
-            out.push_str("  ]\n}\n");
-        }
-        Syntax::Lua => {
-            out.push_str("return {\n");
-            out.push_str(&format!("  entry = {entry},\n"));
-            out.push_str(&format!("  section_count = {},\n", sections.len()));
-            out.push_str("  sections = {\n");
-            write_sections(&mut out, payload, &sections, syntax, hex_words);
-            out.push_str("  },\n}\n");
-        }
-    }
+    out.push_str("{\n");
+    out.push_str(&format!("  \"entry\": {entry},\n"));
+    out.push_str(&format!("  \"section_count\": {},\n", sections.len()));
+    out.push_str("  \"sections\": [\n");
+    write_sections(&mut out, payload, &sections, hex_words);
+    out.push_str("  ]\n}\n");
     Ok(out)
 }
 
@@ -280,60 +244,28 @@ fn parse_sections(payload: &[u8]) -> Result<Vec<Section>, String> {
     Ok(sections)
 }
 
-fn write_sections(
-    out: &mut String,
-    payload: &[u8],
-    sections: &[Section],
-    syntax: Syntax,
-    hex_words: bool,
-) {
+fn write_sections(out: &mut String, payload: &[u8], sections: &[Section], hex_words: bool) {
     for (position, section) in sections.iter().enumerate() {
         let last_section = position + 1 == sections.len();
-        match syntax {
-            Syntax::Json => {
-                out.push_str("    {\n");
-                out.push_str(&format!("      \"index\": {},\n", section.index));
-                if uses_records(payload, section) {
-                    out.push_str(&format!(
-                        "      \"record_size\": {},\n",
-                        section.record_size
-                    ));
-                    out.push_str("      \"records\": [\n");
-                } else {
-                    out.push_str("      \"words\": [\n");
-                }
-            }
-            Syntax::Lua => {
-                if uses_records(payload, section) {
-                    out.push_str(&format!(
-                        "    {{ index = {}, record_size = {}, records = {{\n",
-                        section.index, section.record_size
-                    ));
-                } else {
-                    out.push_str(&format!("    {{ index = {}, words = {{\n", section.index));
-                }
-            }
+        out.push_str("    {\n");
+        out.push_str(&format!("      \"index\": {},\n", section.index));
+        if uses_records(payload, section) {
+            out.push_str(&format!(
+                "      \"record_size\": {},\n",
+                section.record_size
+            ));
+            out.push_str("      \"records\": [\n");
+        } else {
+            out.push_str("      \"words\": [\n");
         }
         write_records(
             out,
             &payload[section.start..section.end],
             record_size_for_output(payload, section),
-            syntax,
             hex_words,
         );
-        match syntax {
-            Syntax::Json => {
-                out.push_str("      ]\n");
-                out.push_str(if last_section { "    }\n" } else { "    },\n" });
-            }
-            Syntax::Lua => {
-                out.push_str(if last_section {
-                    "    } }\n"
-                } else {
-                    "    } },\n"
-                });
-            }
-        }
+        out.push_str("      ]\n");
+        out.push_str(if last_section { "    }\n" } else { "    },\n" });
     }
 }
 
@@ -350,13 +282,7 @@ fn record_size_for_output(payload: &[u8], section: &Section) -> usize {
     }
 }
 
-fn write_records(
-    out: &mut String,
-    bytes: &[u8],
-    record_size: usize,
-    syntax: Syntax,
-    hex_words: bool,
-) {
+fn write_records(out: &mut String, bytes: &[u8], record_size: usize, hex_words: bool) {
     let size = if record_size > 0 && bytes.len().is_multiple_of(record_size) {
         record_size
     } else {
@@ -367,71 +293,43 @@ fn write_records(
         let words = record
             .chunks(4)
             .filter(|chunk| chunk.len() == 4)
-            .map(|chunk| {
-                format_word(
-                    u32::from_le_bytes(chunk.try_into().unwrap()),
-                    syntax,
-                    hex_words,
-                )
-            })
+            .map(|chunk| format_word(u32::from_le_bytes(chunk.try_into().unwrap()), hex_words))
             .collect::<Vec<_>>()
             .join(", ");
-        match syntax {
-            Syntax::Json => out.push_str(&format!(
-                "        [{}]{}\n",
-                words,
-                if last { "" } else { "," }
-            )),
-            Syntax::Lua => out.push_str(&format!(
-                "      {{ {} }}{}\n",
-                words,
-                if last { "" } else { "," }
-            )),
-        }
+        out.push_str(&format!(
+            "        [{}]{}\n",
+            words,
+            if last { "" } else { "," }
+        ));
     }
 }
 
-fn format_word(value: u32, syntax: Syntax, hex_words: bool) -> String {
+fn format_word(value: u32, hex_words: bool) -> String {
     if hex_words {
-        return match syntax {
-            Syntax::Json => format!("\"0x{value:08x}\""),
-            Syntax::Lua => format!("0x{value:08x}"),
-        };
+        return format!("\"0x{value:08x}\"");
     }
-    let object = match value {
+    match value {
         0 => return "0".to_string(),
-        0xffff_ffff => typed_word(syntax, "i32", "-1", None),
-        0xbf80_0000 => typed_word(syntax, "f32", "-1.0", None),
-        0x3f80_0000 => typed_word(syntax, "f32", "1.0", None),
-        0x42c8_0000 => typed_word(syntax, "f32", "100.0", None),
-        value if value < 1_000_000 => typed_word(syntax, "u32", &value.to_string(), None),
+        0xffff_ffff => typed_word("i32", "-1", None),
+        0xbf80_0000 => typed_word("f32", "-1.0", None),
+        0x3f80_0000 => typed_word("f32", "1.0", None),
+        0x42c8_0000 => typed_word("f32", "100.0", None),
+        value if value < 1_000_000 => typed_word("u32", &value.to_string(), None),
         value => {
             let float = f32::from_bits(value);
             if float.is_finite() && float.abs() >= 0.001 && float.abs() <= 100_000.0 {
-                typed_word(
-                    syntax,
-                    "f32",
-                    &format_float(float),
-                    Some(format!("0x{value:08x}")),
-                )
+                typed_word("f32", &format_float(float), Some(format!("0x{value:08x}")))
             } else {
-                typed_word(syntax, "hex", &format!("\"0x{value:08x}\""), None)
+                typed_word("hex", &format!("\"0x{value:08x}\""), None)
             }
         }
-    };
-    object
+    }
 }
 
-fn typed_word(syntax: Syntax, key: &str, value: &str, hex: Option<String>) -> String {
-    match syntax {
-        Syntax::Json => match hex {
-            Some(hex) => format!("{{\"{key}\":{value},\"hex\":\"{hex}\"}}"),
-            None => format!("{{\"{key}\":{value}}}"),
-        },
-        Syntax::Lua => match hex {
-            Some(hex) => format!("{{ {key} = {value}, hex = \"{hex}\" }}"),
-            None => format!("{{ {key} = {value} }}"),
-        },
+fn typed_word(key: &str, value: &str, hex: Option<String>) -> String {
+    match hex {
+        Some(hex) => format!("{{\"{key}\":{value},\"hex\":\"{hex}\"}}"),
+        None => format!("{{\"{key}\":{value}}}"),
     }
 }
 

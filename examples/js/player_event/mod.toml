@@ -1,0 +1,9 @@
+[mod]
+id = "player_event"
+name = "Player Event JS Example"
+
+[uses]
+plugins = ["sdk_runtime"]
+
+[entry]
+file = "main.js"
