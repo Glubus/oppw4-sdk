@@ -71,27 +71,9 @@ fn registry_invoke(
         let function_name = CString::new(function_name)
             .map_err(|_| "function name contains nul byte".to_string())?;
         let args = args_json.as_bytes();
-        let mut required_len = 0usize;
-        let first = unsafe {
-            callback(
-                module_context as *mut _,
-                function_name.as_ptr(),
-                args.as_ptr(),
-                args.len(),
-                std::ptr::null_mut(),
-                &mut required_len,
-            )
-        };
-        if first != 0 {
-            return Err(format!("size query failed with code {first}"));
-        }
-        if required_len == 0 {
-            return Ok(String::new());
-        }
-
-        let mut out = vec![0u8; required_len];
+        let mut out = vec![0u8; 64 * 1024];
         let mut written_len = out.len();
-        let second = unsafe {
+        let code = unsafe {
             callback(
                 module_context as *mut _,
                 function_name.as_ptr(),
@@ -101,8 +83,23 @@ fn registry_invoke(
                 &mut written_len,
             )
         };
-        if second != 0 {
-            return Err(format!("invoke failed with code {second}"));
+        if code == -46 && written_len > out.len() {
+            out.resize(written_len, 0);
+            let retry = unsafe {
+                callback(
+                    module_context as *mut _,
+                    function_name.as_ptr(),
+                    args.as_ptr(),
+                    args.len(),
+                    out.as_mut_ptr(),
+                    &mut written_len,
+                )
+            };
+            if retry != 0 {
+                return Err(format!("invoke retry failed with code {retry}"));
+            }
+        } else if code != 0 {
+            return Err(format!("invoke failed with code {code}"));
         }
         if written_len > out.len() {
             return Err("invoke wrote beyond output buffer".to_string());

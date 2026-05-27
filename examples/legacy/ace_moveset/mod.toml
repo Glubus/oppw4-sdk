@@ -1,0 +1,10 @@
+[mod]
+id = "ace_moveset"
+name = "Ace Moveset"
+creator = "ManKor"
+
+[uses]
+plugins = ["moveset_patcher"]
+
+[entry]
+lua = "mod.lua"
