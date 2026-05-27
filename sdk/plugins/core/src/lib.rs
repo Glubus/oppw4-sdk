@@ -51,8 +51,28 @@ pub unsafe extern "system" fn oppw4_sdk_core_initialize(init: *const Oppw4Loader
     };
     let session_stamp = optional_string_from_cstr(init.session_stamp_utf8);
 
-    plugin_host::initialize(&game_root, &plugin_root, session_stamp);
+    initialize_host(&game_root, &plugin_root, session_stamp);
     0
+}
+
+#[cfg(windows)]
+fn initialize_host(
+    game_root: &std::path::Path,
+    plugin_root: &std::path::Path,
+    session_stamp: Option<String>,
+) {
+    plugin_host::initialize_with_bridge_setup(game_root, plugin_root, session_stamp, |registry| {
+        sdk_js_bridge::register_js_bridge(registry, Vec::new());
+    });
+}
+
+#[cfg(not(windows))]
+fn initialize_host(
+    game_root: &std::path::Path,
+    plugin_root: &std::path::Path,
+    session_stamp: Option<String>,
+) {
+    plugin_host::initialize(game_root, plugin_root, session_stamp);
 }
 
 fn path_from_cstr(raw: *const std::ffi::c_char) -> Option<PathBuf> {

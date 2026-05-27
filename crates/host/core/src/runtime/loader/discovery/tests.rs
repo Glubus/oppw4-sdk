@@ -169,6 +169,7 @@ fn manifest_for_test(id: &str, root: PathBuf) -> PluginManifest {
         id: id.to_string(),
         version: "0.1.0".to_string(),
         dependencies: Vec::new(),
+        registry_modules: Vec::new(),
         capabilities_required: Vec::new(),
         capabilities_provided: Vec::new(),
         mods_root: root.join("mods"),

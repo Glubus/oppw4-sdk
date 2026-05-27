@@ -14,7 +14,7 @@ pub use plugin_abi::{
     Oppw4ActiveCharacter, Oppw4FileProvider, Oppw4GameStatus, Oppw4LinkDataEntryPatch,
     Oppw4LinkDataRowPatch, Oppw4PluginApi, Oppw4ProviderCloseFn, Oppw4ProviderFileTimeFn,
     Oppw4ProviderOpenPathFn, Oppw4ProviderPatchReadFn, Oppw4ProviderReadFn, Oppw4ProviderSeekFn,
-    Oppw4ProviderSizeFn, Oppw4RegistryModuleInstallFn, PluginModInfo,
+    Oppw4ProviderSizeFn, Oppw4RegistryModuleInstallFn, Oppw4RegistryModuleInvokeFn, PluginModInfo,
     OPPW4_GAME_FLAG_DLC_CHARACTER_SEEN, OPPW4_GAME_FLAG_VIRTUAL_RESOURCE_SEEN,
     OPPW4_LINKDATA_ROW_OP_INSERT, OPPW4_LINKDATA_ROW_OP_REMOVE, OPPW4_LINKDATA_ROW_OP_REPLACE,
     OPPW4_PLUGIN_API_STRUCT_SIZE, OPPW4_PLUGIN_API_VERSION,

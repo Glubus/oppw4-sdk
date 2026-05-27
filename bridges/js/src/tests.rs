@@ -559,9 +559,11 @@ fn character_schema() -> RegistryModuleSchema {
         .function(
             RegistryFunctionDescriptor::new(
                 "find",
-                RegistryTypeRef::Optional(Box::new(RegistryTypeRef::Named(
-                    "Character".to_string(),
-                ))),
+                RegistryTypeRef::Optional {
+                    inner: Box::new(RegistryTypeRef::Named {
+                        name: "Character".to_string(),
+                    }),
+                },
             )
             .param("id", RegistryTypeRef::String),
         )

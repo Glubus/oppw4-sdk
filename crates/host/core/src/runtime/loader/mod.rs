@@ -19,7 +19,19 @@ static LOADED: OnceLock<Mutex<Vec<LoadedPlugin>>> = OnceLock::new();
 static BRIDGES: OnceLock<Mutex<BridgeRegistry>> = OnceLock::new();
 
 pub fn initialize(game_root: &Path, plugin_root: &Path, session_stamp: Option<String>) {
+    initialize_with_bridge_setup(game_root, plugin_root, session_stamp, |_| {});
+}
+
+pub fn initialize_with_bridge_setup(
+    game_root: &Path,
+    plugin_root: &Path,
+    session_stamp: Option<String>,
+    setup: impl FnOnce(&mut BridgeRegistry),
+) {
     prepare_runtime(game_root, plugin_root, session_stamp);
+    if let Some(registry) = BRIDGES.get() {
+        setup(&mut registry.lock().expect("bridge registry lock"));
+    }
     let report = discovery::load_plugins(game_root, plugin_root);
     log::write_line(format!(
         "plugin host: scanned={} manifests={} loaded={}",

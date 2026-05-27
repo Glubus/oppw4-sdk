@@ -41,6 +41,7 @@ impl JsBridge {
                 RegistryModuleDescriptor::builder(&module.plugin_id, &module.module_name)
                     .context(module.context)
                     .install(module.register)
+                    .invoke_opt(module.invoke.clone())
                     .load(module.load)
                     .schema_opt(module.schema.clone())
                     .build()
@@ -66,7 +67,7 @@ impl RuntimeAdapter for JsBridge {
     }
 
     fn load_mod(&mut self, context: BridgeModContext) -> BridgeLoadReport {
-        let modules = modules_for_context(&self.modules, &context.modules);
+        let modules = modules_for_context(&context.modules);
         match vm::load(&context, &modules) {
             Ok(vm) => {
                 let handlers = vm.handler_descriptors().to_vec();
@@ -120,22 +121,19 @@ impl RuntimeAdapter for JsBridge {
     }
 }
 
-fn modules_for_context(
-    modules: &[JsModule],
-    descriptors: &[RegistryModuleDescriptor],
-) -> Vec<JsModule> {
+fn modules_for_context(descriptors: &[RegistryModuleDescriptor]) -> Vec<JsModule> {
     descriptors
         .iter()
         .filter_map(|descriptor| {
-            modules.iter().find(|module| {
-                module
-                    .plugin_id
-                    .eq_ignore_ascii_case(&descriptor.provider_id)
-                    && module
-                        .module_name
-                        .eq_ignore_ascii_case(&descriptor.module_name)
+            Some(JsModule {
+                plugin_id: descriptor.provider_id.clone(),
+                module_name: descriptor.module_name.clone(),
+                context: descriptor.module_context,
+                register: descriptor.install?,
+                load: descriptor.load,
+                schema: descriptor.schema.clone(),
+                invoke: descriptor.invoke.clone(),
             })
         })
-        .cloned()
         .collect()
 }

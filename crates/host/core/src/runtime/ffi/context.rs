@@ -25,8 +25,9 @@ impl ApiContext {
         plugin_id: String,
         mods_root: PathBuf,
         capabilities: impl IntoIterator<Item = String>,
+        registry_modules: impl IntoIterator<Item = String>,
     ) -> Self {
-        Self::with_registry_modules(plugin_id, mods_root, capabilities, Vec::<String>::new())
+        Self::with_registry_modules(plugin_id, mods_root, capabilities, registry_modules)
     }
 
     pub(crate) fn with_registry_modules(
@@ -118,6 +119,7 @@ mod tests {
             "skin_patcher".to_string(),
             "mods".into(),
             ["files.virtualize".to_string()],
+            Vec::<String>::new(),
         );
 
         assert_eq!(
@@ -131,6 +133,7 @@ mod tests {
         let context = ApiContext::new(
             "skin_patcher".to_string(),
             "mods".into(),
+            Vec::<String>::new(),
             Vec::<String>::new(),
         );
 
@@ -146,6 +149,7 @@ mod tests {
             "skin_patcher".to_string(),
             "mods".into(),
             ["files.virtualize".to_string()],
+            Vec::<String>::new(),
         );
 
         assert_eq!(
@@ -160,6 +164,7 @@ mod tests {
             "fx_director".to_string(),
             "mods".into(),
             ["HOOKS.INSTALL".to_string()],
+            Vec::<String>::new(),
         );
 
         assert_eq!(

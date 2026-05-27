@@ -15,6 +15,7 @@ fn load_mod_goes_through_registered_bridge() {
         module_name: "core.api".to_string(),
         module_context: 0,
         install: None,
+        invoke: None,
         load: RegistryModuleLoad::Always,
         schema: None,
     });

@@ -6,7 +6,10 @@ mod runtime;
 #[cfg(windows)]
 pub use log::set_logger;
 #[cfg(windows)]
-pub use runtime::{initialize, set_debug_enabled, set_file_provider_registrar, set_memory};
+pub use runtime::{
+    initialize, initialize_with_bridge_setup, set_debug_enabled, set_file_provider_registrar,
+    set_memory,
+};
 
 #[cfg(not(windows))]
 pub fn set_logger(_logger: fn(String)) {}
@@ -36,5 +39,14 @@ pub fn initialize(
     _game_root: &std::path::Path,
     _plugin_root: &std::path::Path,
     _session_stamp: Option<String>,
+) {
+}
+
+#[cfg(not(windows))]
+pub fn initialize_with_bridge_setup(
+    _game_root: &std::path::Path,
+    _plugin_root: &std::path::Path,
+    _session_stamp: Option<String>,
+    _setup: impl FnOnce(&mut ()),
 ) {
 }

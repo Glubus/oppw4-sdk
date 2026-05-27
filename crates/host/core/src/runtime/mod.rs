@@ -12,7 +12,7 @@ mod signals;
 mod time;
 mod win;
 
-pub use loader::initialize;
+pub use loader::{initialize, initialize_with_bridge_setup};
 pub use loader_services::{set_file_provider_registrar, set_memory};
 
 pub fn set_debug_enabled(enabled: bool) {

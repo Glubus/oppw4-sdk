@@ -1,5 +1,7 @@
-use plugin_abi::{optional_cstr, Oppw4RegistryModule};
-use sdk_bridge::{RegistryModuleDescriptor, RegistryModuleLoad};
+use std::{ffi::CString, sync::Arc};
+
+use plugin_abi::{optional_cstr, Oppw4RegistryModule, Oppw4RegistryModuleInvokeFn};
+use sdk_bridge::{RegistryModuleDescriptor, RegistryModuleLoad, RegistryModuleSchema};
 
 use super::{context_from_raw, CAP_REGISTRY_MODULE};
 
@@ -27,16 +29,85 @@ pub(crate) unsafe extern "system" fn host_register_registry_module(
     if let Err(code) = context.require_registry_module(&module_name) {
         return code;
     }
-    let Some(install) = module.install else {
-        return -23;
+    let schema = match registry_schema(module.schema_json) {
+        Ok(schema) => schema,
+        Err(code) => return code,
     };
+    let invoke = module
+        .invoke
+        .map(|callback| registry_invoke(module.module_context as usize, callback));
 
     crate::runtime::loader::register_registry_module(RegistryModuleDescriptor {
         provider_id: context.plugin_id().to_string(),
         module_name,
         module_context: module.module_context as usize,
-        install: Some(install),
+        install: module.install,
+        invoke,
         load: RegistryModuleLoad::WhenPluginRequested,
-        schema: None,
+        schema,
+    })
+}
+
+unsafe fn registry_schema(
+    schema_json: *const std::ffi::c_char,
+) -> Result<Option<RegistryModuleSchema>, i32> {
+    let Some(schema_json) = optional_cstr(schema_json) else {
+        return Ok(None);
+    };
+    let schema_json = schema_json.to_string_lossy();
+    if schema_json.trim().is_empty() {
+        return Ok(None);
+    }
+    serde_json::from_str::<RegistryModuleSchema>(&schema_json)
+        .map(Some)
+        .map_err(|_| -26)
+}
+
+fn registry_invoke(
+    module_context: usize,
+    callback: Oppw4RegistryModuleInvokeFn,
+) -> Arc<dyn Fn(&str, &str) -> Result<String, String> + Send + Sync + 'static> {
+    Arc::new(move |function_name, args_json| {
+        let function_name = CString::new(function_name)
+            .map_err(|_| "function name contains nul byte".to_string())?;
+        let args = args_json.as_bytes();
+        let mut required_len = 0usize;
+        let first = unsafe {
+            callback(
+                module_context as *mut _,
+                function_name.as_ptr(),
+                args.as_ptr(),
+                args.len(),
+                std::ptr::null_mut(),
+                &mut required_len,
+            )
+        };
+        if first != 0 {
+            return Err(format!("size query failed with code {first}"));
+        }
+        if required_len == 0 {
+            return Ok(String::new());
+        }
+
+        let mut out = vec![0u8; required_len];
+        let mut written_len = out.len();
+        let second = unsafe {
+            callback(
+                module_context as *mut _,
+                function_name.as_ptr(),
+                args.as_ptr(),
+                args.len(),
+                out.as_mut_ptr(),
+                &mut written_len,
+            )
+        };
+        if second != 0 {
+            return Err(format!("invoke failed with code {second}"));
+        }
+        if written_len > out.len() {
+            return Err("invoke wrote beyond output buffer".to_string());
+        }
+        out.truncate(written_len);
+        String::from_utf8(out).map_err(|error| format!("invoke returned invalid utf8: {error}"))
     })
 }

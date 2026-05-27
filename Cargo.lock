@@ -235,6 +235,7 @@ version = "0.1.0"
 dependencies = [
  "plugin-abi",
  "plugin-host",
+ "sdk-js-bridge",
 ]
 
 [[package]]
@@ -243,6 +244,7 @@ version = "0.1.0"
 dependencies = [
  "oppw4-data",
  "plugin-sdk",
+ "serde_json",
 ]
 
 [[package]]
@@ -312,6 +314,7 @@ dependencies = [
  "plugin-abi",
  "plugin-sdk",
  "sdk-bridge",
+ "serde_json",
  "tracing",
 ]
 
@@ -407,6 +410,7 @@ dependencies = [
 name = "sdk-bridge"
 version = "0.1.0"
 dependencies = [
+ "serde",
  "toml",
  "zip",
 ]

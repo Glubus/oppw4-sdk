@@ -1,24 +1,45 @@
-use std::ffi::c_void;
+use std::{ffi::c_void, fmt, sync::Arc};
+
+use serde::{Deserialize, Serialize};
 
 pub type RuntimeModuleInstallFn =
     unsafe extern "system" fn(module_context: *mut c_void, runtime_context: *mut c_void) -> i32;
+pub type RegistryModuleInvokeFn =
+    Arc<dyn Fn(&str, &str) -> Result<String, String> + Send + Sync + 'static>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct RegistryModuleDescriptor {
     pub provider_id: String,
     pub module_name: String,
     pub module_context: usize,
     pub install: Option<RuntimeModuleInstallFn>,
+    pub invoke: Option<RegistryModuleInvokeFn>,
     pub load: RegistryModuleLoad,
     pub schema: Option<RegistryModuleSchema>,
 }
 
-#[derive(Clone, Debug)]
+impl fmt::Debug for RegistryModuleDescriptor {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("RegistryModuleDescriptor")
+            .field("provider_id", &self.provider_id)
+            .field("module_name", &self.module_name)
+            .field("module_context", &self.module_context)
+            .field("has_install", &self.install.is_some())
+            .field("has_invoke", &self.invoke.is_some())
+            .field("load", &self.load)
+            .field("schema", &self.schema)
+            .finish()
+    }
+}
+
+#[derive(Clone)]
 pub struct RegistryModuleBuilder {
     provider_id: String,
     module_name: String,
     module_context: usize,
     install: Option<RuntimeModuleInstallFn>,
+    invoke: Option<RegistryModuleInvokeFn>,
     load: RegistryModuleLoad,
     schema: Option<RegistryModuleSchema>,
 }
@@ -33,6 +54,7 @@ impl RegistryModuleDescriptor {
             module_name: module_name.into(),
             module_context: 0,
             install: None,
+            invoke: None,
             load: RegistryModuleLoad::WhenPluginRequested,
             schema: None,
         }
@@ -47,6 +69,16 @@ impl RegistryModuleBuilder {
 
     pub fn install(mut self, install: RuntimeModuleInstallFn) -> Self {
         self.install = Some(install);
+        self
+    }
+
+    pub fn invoke(mut self, invoke: RegistryModuleInvokeFn) -> Self {
+        self.invoke = Some(invoke);
+        self
+    }
+
+    pub fn invoke_opt(mut self, invoke: Option<RegistryModuleInvokeFn>) -> Self {
+        self.invoke = invoke;
         self
     }
 
@@ -71,6 +103,7 @@ impl RegistryModuleBuilder {
             module_name: self.module_name,
             module_context: self.module_context,
             install: self.install,
+            invoke: self.invoke,
             load: self.load,
             schema: self.schema,
         }
@@ -84,7 +117,7 @@ pub enum RegistryModuleLoad {
     Always,
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RegistryModuleSchema {
     pub namespace: String,
     pub import_name: String,
@@ -93,37 +126,38 @@ pub struct RegistryModuleSchema {
     pub types: Vec<RegistryTypeDescriptor>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RegistryFunctionDescriptor {
     pub name: String,
     pub params: Vec<RegistryParamDescriptor>,
     pub returns: RegistryTypeRef,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RegistryParamDescriptor {
     pub name: String,
     pub type_ref: RegistryTypeRef,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RegistryTypeDescriptor {
     pub name: String,
     pub constructible: bool,
     pub fields: Vec<RegistryFieldDescriptor>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RegistryFieldDescriptor {
     pub name: String,
     pub type_ref: RegistryTypeRef,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
 pub enum RegistryTypeRef {
-    Named(String),
-    Optional(Box<RegistryTypeRef>),
-    Array(Box<RegistryTypeRef>),
+    Named { name: String },
+    Optional { inner: Box<RegistryTypeRef> },
+    Array { inner: Box<RegistryTypeRef> },
     Void,
     Bool,
     I64,

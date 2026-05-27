@@ -54,6 +54,14 @@ pub type HostRegisterRegistryModuleFn =
     unsafe extern "system" fn(host_context: *mut c_void, module: *const Oppw4RegistryModule) -> i32;
 pub type Oppw4RegistryModuleInstallFn =
     unsafe extern "system" fn(module_context: *mut c_void, runtime_context: *mut c_void) -> i32;
+pub type Oppw4RegistryModuleInvokeFn = unsafe extern "system" fn(
+    module_context: *mut c_void,
+    function_name_utf8: *const c_char,
+    args_json: *const u8,
+    args_json_len: usize,
+    out_json: *mut u8,
+    out_json_len: *mut usize,
+) -> i32;
 pub type HostActiveCharacterFn =
     unsafe extern "system" fn(host_context: *mut c_void, out: *mut Oppw4ActiveCharacter) -> i32;
 pub type HostRegisterActiveCharacterProviderFn = unsafe extern "system" fn(

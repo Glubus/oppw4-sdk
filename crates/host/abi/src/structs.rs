@@ -10,7 +10,7 @@ use super::ffi::{
     HostRequireCapabilityFn, HostScanMemoryFn, HostSubscribeSignalFn, HostWriteMemoryFn,
     Oppw4ProviderCloseFn, Oppw4ProviderFileTimeFn, Oppw4ProviderOpenPathFn,
     Oppw4ProviderPatchReadFn, Oppw4ProviderReadFn, Oppw4ProviderSeekFn, Oppw4ProviderSizeFn,
-    Oppw4RegistryModuleInstallFn,
+    Oppw4RegistryModuleInstallFn, Oppw4RegistryModuleInvokeFn,
 };
 
 #[repr(C)]
@@ -96,6 +96,8 @@ pub struct Oppw4RegistryModule {
     pub module_name: *const c_char,
     pub module_context: *mut c_void,
     pub install: Option<Oppw4RegistryModuleInstallFn>,
+    pub schema_json: *const c_char,
+    pub invoke: Option<Oppw4RegistryModuleInvokeFn>,
 }
 
 #[repr(C)]

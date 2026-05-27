@@ -11,3 +11,4 @@ name = "sdk"
 [dependencies]
 plugin-abi.workspace = true
 plugin-host.workspace = true
+sdk-js-bridge.workspace = true

@@ -93,6 +93,24 @@ impl<'api> PluginContext<'api> {
             install,
         )
     }
+
+    pub fn register_registry_module_with_schema(
+        self,
+        module_name: &str,
+        module_context: *mut std::ffi::c_void,
+        install: plugin_abi::Oppw4RegistryModuleInstallFn,
+        schema_json: &str,
+        invoke: plugin_abi::Oppw4RegistryModuleInvokeFn,
+    ) -> PluginResult<()> {
+        self.host.registry().register_module_descriptor_with_schema(
+            self.plugin_id,
+            module_name,
+            module_context,
+            install,
+            Some(schema_json),
+            Some(invoke),
+        )
+    }
 }
 
 #[cfg(test)]

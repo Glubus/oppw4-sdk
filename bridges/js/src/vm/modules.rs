@@ -204,11 +204,11 @@ fn schema_json(schema: &RegistryModuleSchema) -> serde_json::Value {
 
 fn type_ref_json(type_ref: &RegistryTypeRef) -> serde_json::Value {
     match type_ref {
-        RegistryTypeRef::Named(name) => serde_json::json!({ "kind": "named", "name": name }),
-        RegistryTypeRef::Optional(inner) => {
+        RegistryTypeRef::Named { name } => serde_json::json!({ "kind": "named", "name": name }),
+        RegistryTypeRef::Optional { inner } => {
             serde_json::json!({ "kind": "optional", "inner": type_ref_json(inner) })
         }
-        RegistryTypeRef::Array(inner) => {
+        RegistryTypeRef::Array { inner } => {
             serde_json::json!({ "kind": "array", "inner": type_ref_json(inner) })
         }
         RegistryTypeRef::Void => serde_json::json!({ "kind": "void" }),
