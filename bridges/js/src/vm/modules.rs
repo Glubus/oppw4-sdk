@@ -213,6 +213,18 @@ fn schema_json(schema: &RegistryModuleSchema) -> serde_json::Value {
                 }).collect::<Vec<_>>(),
             })
         }).collect::<Vec<_>>(),
+        "extensions": schema.extensions.iter().map(|extension| {
+            serde_json::json!({
+                "targetType": extension.target_type,
+                "methods": extension.methods.iter().map(|method| {
+                    serde_json::json!({
+                        "name": method.name,
+                        "function": method.function,
+                        "returns": type_ref_json(&method.returns),
+                    })
+                }).collect::<Vec<_>>(),
+            })
+        }).collect::<Vec<_>>(),
     })
 }
 

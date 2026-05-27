@@ -17,9 +17,10 @@ pub use handler::HandlerDescriptor;
 pub use id::{BridgeId, EventKey, HandlerRef, ModId, MutationKey};
 pub use manifest::{discover_mods, BridgeModManifest, BridgeModManifestError, DiscoveredBridgeMod};
 pub use module::{
-    RegistryFieldDescriptor, RegistryFunctionDescriptor, RegistryModuleBuilder,
-    RegistryModuleDescriptor, RegistryModuleLoad, RegistryModuleSchema, RegistryParamDescriptor,
-    RegistryTypeDescriptor, RegistryTypeRef,
+    RegistryFieldDescriptor, RegistryFunctionDescriptor, RegistryMethodDescriptor,
+    RegistryModuleBuilder, RegistryModuleDescriptor, RegistryModuleLoad, RegistryModuleSchema,
+    RegistryParamDescriptor, RegistryTypeDescriptor, RegistryTypeExtensionDescriptor,
+    RegistryTypeRef,
 };
 pub use record::{ModLifecycle, ModRecord};
 pub use registry::BridgeRegistry;

@@ -69,25 +69,99 @@ const BOOTSTRAP_JS: &str = r#"
         }));
     };
 
+    const modules = registryModules();
     const namespaceRoot = Object.create(null);
 
-    const registryFunctionStub = (qualifiedName) => {
-        return Object.freeze(function registryFunctionStub(...args) {
-            args.push(Object.freeze({
-                __oppw4Caller: true,
-                modId: mod.id,
-                root: mod.root,
-                zipRoot: mod.zipRoot,
-                isZip: mod.isZip,
-            }));
-            const resultJson = globalThis.__oppw4_registry_invoke(
-                qualifiedName,
-                JSON.stringify(args),
-            );
-            if (resultJson === "" || resultJson === undefined || resultJson === null) {
-                return undefined;
+    const namedType = (schema, name) => {
+        const raw = String(name);
+        return raw.includes(".") ? raw : `${String(schema.namespace)}.${raw}`;
+    };
+
+    const invokeRegistry = (qualifiedName, args) => {
+        args.push(Object.freeze({
+            __oppw4Caller: true,
+            modId: mod.id,
+            root: mod.root,
+            zipRoot: mod.zipRoot,
+            isZip: mod.isZip,
+        }));
+        const resultJson = globalThis.__oppw4_registry_invoke(
+            qualifiedName,
+            JSON.stringify(args),
+        );
+        if (resultJson === "" || resultJson === undefined || resultJson === null) {
+            return undefined;
+        }
+        return JSON.parse(String(resultJson));
+    };
+
+    const extensionMethodsFor = (targetType) => {
+        const methods = [];
+        for (const module of modules) {
+            const schema = module.schema;
+            if (!schema) {
+                continue;
             }
-            return JSON.parse(String(resultJson));
+            for (const extension of schema.extensions || []) {
+                if (String(extension.targetType) !== targetType) {
+                    continue;
+                }
+                for (const method of extension.methods || []) {
+                    methods.push({ schema, method });
+                }
+            }
+        }
+        return methods;
+    };
+
+    const wrapRegistryValue = (typeRef, value, schema) => {
+        if (value == null || !typeRef) {
+            return value;
+        }
+        const kind = String(typeRef.kind || "");
+        if (kind === "optional") {
+            return wrapRegistryValue(typeRef.inner, value, schema);
+        }
+        if (kind === "array") {
+            if (!Array.isArray(value)) {
+                return value;
+            }
+            return Object.freeze(value.map((item) => wrapRegistryValue(typeRef.inner, item, schema)));
+        }
+        if (kind !== "named" || typeof value !== "object") {
+            return value;
+        }
+        const targetType = namedType(schema, typeRef.name);
+        Object.defineProperty(value, "__oppw4Type", {
+            value: targetType,
+            configurable: false,
+            enumerable: false,
+            writable: false,
+        });
+        for (const { schema: extensionSchema, method } of extensionMethodsFor(targetType)) {
+            const methodName = String(method.name || "");
+            const functionName = String(method.function || "");
+            if (!methodName || !functionName || Object.prototype.hasOwnProperty.call(value, methodName)) {
+                continue;
+            }
+            Object.defineProperty(value, methodName, {
+                value: Object.freeze(function registryExtensionMethod(...args) {
+                    const qualifiedName = `${String(extensionSchema.namespace)}.${String(extensionSchema.importName)}.${functionName}`;
+                    const result = invokeRegistry(qualifiedName, [value, ...args]);
+                    return wrapRegistryValue(method.returns, result, extensionSchema);
+                }),
+                configurable: false,
+                enumerable: false,
+                writable: false,
+            });
+        }
+        return Object.freeze(value);
+    };
+
+    const registryFunctionStub = (qualifiedName, returnType, schema) => {
+        return Object.freeze(function registryFunctionStub(...args) {
+            const result = invokeRegistry(qualifiedName, args);
+            return wrapRegistryValue(returnType, result, schema);
         });
     };
 
@@ -110,7 +184,7 @@ const BOOTSTRAP_JS: &str = r#"
             if (!name) {
                 continue;
             }
-            moduleObject[name] = registryFunctionStub(`${namespace}.${importName}.${name}`);
+            moduleObject[name] = registryFunctionStub(`${namespace}.${importName}.${name}`, fn.returns, schema);
         }
         Object.defineProperty(moduleObject, "__schema", {
             value: schema,
@@ -121,7 +195,7 @@ const BOOTSTRAP_JS: &str = r#"
         namespaceObject[importName] = Object.freeze(moduleObject);
     };
 
-    for (const module of registryModules()) {
+    for (const module of modules) {
         installSchemaModule(module);
     }
     for (const [namespace, value] of Object.entries(namespaceRoot)) {

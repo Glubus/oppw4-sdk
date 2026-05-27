@@ -86,9 +86,34 @@ fn parse_replace_request(args_json: &str) -> Result<ReplaceRequest, i32> {
         .pop()
         .and_then(|value| serde_json::from_value::<CallerContext>(value).ok())
         .filter(|caller| caller.is_caller);
-    let value = args.into_iter().next().ok_or(-44)?;
-    let mut request = serde_json::from_value::<ReplaceRequest>(value).map_err(|_| -45)?;
-    request.caller = caller;
+    let request = if args.len() >= 2 {
+        let character = args.first().ok_or(-44)?;
+        let payload = args.get(1).ok_or(-44)?;
+        let entry = character
+            .get("movesetLinkdataEntry")
+            .and_then(serde_json::Value::as_u64)
+            .ok_or(-45)? as u32;
+        let payload_file = match payload {
+            serde_json::Value::String(value) => value.clone(),
+            serde_json::Value::Object(_) => payload
+                .get("payloadFile")
+                .or_else(|| payload.get("payload_file"))
+                .and_then(serde_json::Value::as_str)
+                .ok_or(-45)?
+                .to_string(),
+            _ => return Err(-45),
+        };
+        ReplaceRequest {
+            entry,
+            payload_file,
+            caller,
+        }
+    } else {
+        let value = args.into_iter().next().ok_or(-44)?;
+        let mut request = serde_json::from_value::<ReplaceRequest>(value).map_err(|_| -45)?;
+        request.caller = caller;
+        request
+    };
     if request.entry == 0 || request.payload_file.trim().is_empty() {
         return Err(-46);
     }

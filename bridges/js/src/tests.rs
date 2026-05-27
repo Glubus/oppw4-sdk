@@ -10,8 +10,8 @@ use std::{
 
 use sdk_bridge::{
     BridgeLoadRequest, BridgeModSource, BridgeRegistry, EventEnvelope, EventKey, ModId,
-    ModLifecycle, RegistryFunctionDescriptor, RegistryModuleLoad, RegistryModuleSchema,
-    RegistryTypeDescriptor, RegistryTypeRef,
+    ModLifecycle, RegistryFunctionDescriptor, RegistryMethodDescriptor, RegistryModuleLoad,
+    RegistryModuleSchema, RegistryTypeDescriptor, RegistryTypeExtensionDescriptor, RegistryTypeRef,
 };
 
 use crate::{register_js_bridge, JsModule};
@@ -404,6 +404,61 @@ fn typed_registry_schema_projects_sdk_namespace_modules() {
 }
 
 #[test]
+fn typed_registry_schema_projects_type_extensions() {
+    let root = temp_root("js-bridge-typed-registry-extensions");
+    fs::create_dir_all(&root).expect("temp dir");
+    fs::write(
+        root.join("mod.js"),
+        r#"
+        import { character } from "sdk";
+        const zoro = character.find("zoro");
+        if (!zoro || typeof zoro.replace_movesets !== "function") {
+            throw new Error("character extension method missing");
+        }
+        if (Object.keys(zoro).includes("replace_movesets")) {
+            throw new Error("extension methods should not be enumerable");
+        }
+        const result = zoro.replace_movesets("zoro_moveset.bin");
+        if (!result || result.entry !== 69 || result.payloadFile !== "zoro_moveset.bin") {
+            throw new Error("bad extension result: " + JSON.stringify(result));
+        }
+        "#,
+    )
+    .expect("script");
+
+    let mut registry = BridgeRegistry::new();
+    register_js_bridge(
+        &mut registry,
+        vec![
+            schema_module(
+                "sdk_data",
+                "sdk.character",
+                character_schema(),
+                RegistryModuleLoad::Always,
+            ),
+            schema_module_with_invoke(
+                "moveset_patcher",
+                "moveset.patch",
+                moveset_schema(),
+                RegistryModuleLoad::WhenPluginRequested,
+                moveset_invoke,
+            ),
+        ],
+    );
+    registry
+        .load_supported_mod(BridgeLoadRequest {
+            mod_id: ModId::new("typed_registry_extensions_mod").expect("mod id"),
+            name: "Typed Registry Extensions Mod".to_string(),
+            source: BridgeModSource::Directory(root.clone()),
+            entry_file: "mod.js".to_string(),
+            uses_plugins: vec!["moveset_patcher".to_string()],
+        })
+        .expect("load mod");
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn registry_dispatches_same_event_to_multiple_js_mods() {
     let first_root = temp_root("js-bridge-multi-dispatch-a");
     let second_root = temp_root("js-bridge-multi-dispatch-b");
@@ -553,6 +608,16 @@ fn schema_module(
     schema: RegistryModuleSchema,
     load: RegistryModuleLoad,
 ) -> JsModule {
+    schema_module_with_invoke(plugin_id, module_name, schema, load, character_invoke)
+}
+
+fn schema_module_with_invoke(
+    plugin_id: &str,
+    module_name: &str,
+    schema: RegistryModuleSchema,
+    load: RegistryModuleLoad,
+    invoke: fn(&str, &str) -> Result<String, String>,
+) -> JsModule {
     JsModule {
         plugin_id: plugin_id.to_string(),
         module_name: module_name.to_string(),
@@ -560,7 +625,7 @@ fn schema_module(
         register: noop_register,
         load,
         schema: Some(schema),
-        invoke: Some(Arc::new(character_invoke)),
+        invoke: Some(Arc::new(invoke)),
     }
 }
 
@@ -578,11 +643,37 @@ fn character_invoke(function_name: &str, args_json: &str) -> Result<String, Stri
         Ok(serde_json::json!({
             "id": "zoro",
             "name": "Roronoa Zoro",
+            "movesetLinkdataEntry": 69,
         })
         .to_string())
     } else {
         Ok("null".to_string())
     }
+}
+
+fn moveset_invoke(function_name: &str, args_json: &str) -> Result<String, String> {
+    if function_name != "replace" {
+        return Err(format!("unsupported function: {function_name}"));
+    }
+    let args = serde_json::from_str::<Vec<serde_json::Value>>(args_json)
+        .map_err(|error| format!("bad args json: {error}"))?;
+    let character = args
+        .first()
+        .and_then(serde_json::Value::as_object)
+        .ok_or_else(|| "moveset.replace expects character object".to_string())?;
+    let entry = character
+        .get("movesetLinkdataEntry")
+        .and_then(serde_json::Value::as_u64)
+        .ok_or_else(|| "missing movesetLinkdataEntry".to_string())?;
+    let payload_file = args
+        .get(1)
+        .and_then(serde_json::Value::as_str)
+        .ok_or_else(|| "missing payload file".to_string())?;
+    Ok(serde_json::json!({
+        "entry": entry,
+        "payloadFile": payload_file,
+    })
+    .to_string())
 }
 
 fn character_schema() -> RegistryModuleSchema {
@@ -601,7 +692,22 @@ fn character_schema() -> RegistryModuleSchema {
         .type_descriptor(
             RegistryTypeDescriptor::new("Character")
                 .field("id", RegistryTypeRef::String)
-                .field("name", RegistryTypeRef::String),
+                .field("name", RegistryTypeRef::String)
+                .field("movesetLinkdataEntry", RegistryTypeRef::Json),
+        )
+}
+
+fn moveset_schema() -> RegistryModuleSchema {
+    RegistryModuleSchema::new("moveset", "patch")
+        .function(
+            RegistryFunctionDescriptor::new("replace", RegistryTypeRef::Json)
+                .param("character", RegistryTypeRef::Json)
+                .param("payload", RegistryTypeRef::Json),
+        )
+        .extension(
+            RegistryTypeExtensionDescriptor::new("sdk.Character").method(
+                RegistryMethodDescriptor::new("replace_movesets", "replace", RegistryTypeRef::Json),
+            ),
         )
 }
 

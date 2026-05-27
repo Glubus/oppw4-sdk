@@ -49,11 +49,26 @@ const MOVESET_PATCH_SCHEMA_JSON: &str = r#"{
   "functions": [
     {
       "name": "replace",
-      "params": [{ "name": "request", "type_ref": { "kind": "json" } }],
+      "params": [
+        { "name": "character", "type_ref": { "kind": "json" } },
+        { "name": "payload", "type_ref": { "kind": "json" } }
+      ],
       "returns": { "kind": "json" }
     }
   ],
-  "types": []
+  "types": [],
+  "extensions": [
+    {
+      "target_type": "sdk.Character",
+      "methods": [
+        {
+          "name": "replace_movesets",
+          "function": "replace",
+          "returns": { "kind": "json" }
+        }
+      ]
+    }
+  ]
 }"#;
 
 unsafe extern "system" fn noop_module_install(

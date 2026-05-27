@@ -124,6 +124,8 @@ pub struct RegistryModuleSchema {
     pub constructible: bool,
     pub functions: Vec<RegistryFunctionDescriptor>,
     pub types: Vec<RegistryTypeDescriptor>,
+    #[serde(default)]
+    pub extensions: Vec<RegistryTypeExtensionDescriptor>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -153,6 +155,19 @@ pub struct RegistryFieldDescriptor {
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct RegistryTypeExtensionDescriptor {
+    pub target_type: String,
+    pub methods: Vec<RegistryMethodDescriptor>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct RegistryMethodDescriptor {
+    pub name: String,
+    pub function: String,
+    pub returns: RegistryTypeRef,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum RegistryTypeRef {
     Named { name: String },
@@ -174,6 +189,7 @@ impl RegistryModuleSchema {
             constructible: false,
             functions: Vec::new(),
             types: Vec::new(),
+            extensions: Vec::new(),
         }
     }
 
@@ -189,6 +205,11 @@ impl RegistryModuleSchema {
 
     pub fn type_descriptor(mut self, type_descriptor: RegistryTypeDescriptor) -> Self {
         self.types.push(type_descriptor);
+        self
+    }
+
+    pub fn extension(mut self, extension: RegistryTypeExtensionDescriptor) -> Self {
+        self.extensions.push(extension);
         self
     }
 }
@@ -231,5 +252,33 @@ impl RegistryTypeDescriptor {
             type_ref,
         });
         self
+    }
+}
+
+impl RegistryTypeExtensionDescriptor {
+    pub fn new(target_type: impl Into<String>) -> Self {
+        Self {
+            target_type: target_type.into(),
+            methods: Vec::new(),
+        }
+    }
+
+    pub fn method(mut self, method: RegistryMethodDescriptor) -> Self {
+        self.methods.push(method);
+        self
+    }
+}
+
+impl RegistryMethodDescriptor {
+    pub fn new(
+        name: impl Into<String>,
+        function: impl Into<String>,
+        returns: RegistryTypeRef,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            function: function.into(),
+            returns,
+        }
     }
 }
