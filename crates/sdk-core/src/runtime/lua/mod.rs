@@ -1,3 +1,4 @@
+mod bridge;
 mod hot_reload;
 mod logs;
 mod module;

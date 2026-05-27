@@ -11,6 +11,12 @@ use super::{
     module::RegisteredModule,
     runner::{run_initial_mods, run_mod, ModRunReason},
 };
+#[cfg(test)]
+use super::bridge::LuaBridge;
+#[cfg(test)]
+use crate::runtime::registry::{
+    BridgeId, BridgeModContext, BridgeModSource, LanguageBridge, ModId, SdkRegistry,
+};
 
 #[derive(Default)]
 pub(super) struct LuaHost {
@@ -108,6 +114,34 @@ impl LuaHost {
         }
     }
 
+    #[cfg(test)]
+    pub(super) fn load_ready_mods_into_registry(&self, registry: &mut SdkRegistry) -> Vec<String> {
+        let mut bridge = LuaBridge::new(self.modules.clone());
+        let bridge_id = BridgeId::new("lua").expect("static bridge id");
+        let mut loaded = Vec::new();
+        for mod_entry in lua_api::discover_mods(&self.mods_root) {
+            if !self.mod_dependencies_available(&mod_entry.manifest.uses_plugins) {
+                continue;
+            }
+            let mod_id = ModId::new(mod_entry.manifest.id.clone()).expect("mod id");
+            let report = bridge.load_mod(BridgeModContext {
+                mod_id: mod_id.clone(),
+                bridge_id: bridge_id.clone(),
+                name: mod_entry.manifest.name.clone(),
+                source: bridge_source_from_lua(&mod_entry.source),
+                entry_file: mod_entry.manifest.entry_lua.clone(),
+                uses_plugins: mod_entry.manifest.uses_plugins.clone(),
+            });
+            if registry
+                .register_loaded_mod(mod_id, bridge_id.clone(), report)
+                .is_ok()
+            {
+                loaded.push(mod_entry.manifest.id);
+            }
+        }
+        loaded
+    }
+
     pub(super) fn reload_changed_directory_mods(&mut self) {
         for mod_entry in lua_api::discover_mods(&self.mods_root) {
             if !matches!(mod_entry.source, lua_api::ModSource::Directory(_)) {
@@ -191,6 +225,17 @@ fn is_global_module(module: &RegisteredModule) -> bool {
 }
 
 #[cfg(test)]
+fn bridge_source_from_lua(source: &lua_api::ModSource) -> BridgeModSource {
+    match source {
+        lua_api::ModSource::Directory(path) => BridgeModSource::Directory(path.clone()),
+        lua_api::ModSource::Zip { path, root } => BridgeModSource::Zip {
+            path: path.clone(),
+            root: root.clone(),
+        },
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use std::ffi::c_void;
@@ -241,6 +286,57 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(names, ["std.character", "moveset_patcher"]);
+    }
+
+    #[test]
+    fn registry_loader_infers_boot_once_for_declarative_lua_mod() {
+        let root = temp_root("lua-host-registry");
+        let mod_root = root.join("ace_moveset");
+        std::fs::create_dir_all(&mod_root).expect("mod dir");
+        std::fs::write(
+            mod_root.join("mod.toml"),
+            r#"
+            [mod]
+            id = "ace_moveset"
+            name = "Ace Moveset"
+
+            [entry]
+            lua = "mod.lua"
+            "#,
+        )
+        .expect("manifest");
+        std::fs::write(
+            mod_root.join("mod.lua"),
+            r#"
+            local character = require("std.character")
+            local moveset_patcher = require("moveset_patcher")
+            local moveset = moveset_patcher.patch({ payload_file = "ace_moveset.bin" })
+            character.find("ace"):replace_movesets(moveset)
+            "#,
+        )
+        .expect("script");
+        std::fs::write(mod_root.join("ace_moveset.bin"), [1_u8, 2, 3]).expect("payload");
+
+        let mut host = LuaHost::default();
+        host.reset(&root);
+        let mut registry = SdkRegistry::new();
+
+        let loaded = host.load_ready_mods_into_registry(&mut registry);
+
+        assert_eq!(loaded, ["ace_moveset"]);
+        let boot_mutations = registry.drain_boot_mutations();
+        assert_eq!(boot_mutations.len(), 1);
+        assert_eq!(boot_mutations[0].source_mod.as_str(), "ace_moveset");
+        assert_eq!(boot_mutations[0].key.as_str(), "moveset.replace");
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    fn temp_root(label: &str) -> std::path::PathBuf {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("time")
+            .as_nanos();
+        std::env::temp_dir().join(format!("oppw4-{label}-{nanos}"))
     }
 
     fn module(plugin_id: &str, module_name: &str) -> RegisteredModule {

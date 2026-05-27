@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) struct ModId(String);
@@ -238,8 +239,16 @@ pub(crate) trait LanguageBridge: Send {
 pub(crate) struct BridgeModContext {
     pub(crate) mod_id: ModId,
     pub(crate) bridge_id: BridgeId,
-    pub(crate) source_path: String,
+    pub(crate) name: String,
+    pub(crate) source: BridgeModSource,
     pub(crate) entry_file: String,
+    pub(crate) uses_plugins: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum BridgeModSource {
+    Directory(PathBuf),
+    Zip { path: PathBuf, root: String },
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -272,6 +281,11 @@ pub(crate) enum RegistryError {
     },
     MismatchedModId { expected: String, actual: String },
     MismatchedBridgeId { expected: String, actual: String },
+    BridgeLoadError {
+        mod_id: String,
+        bridge_id: String,
+        message: String,
+    },
 }
 
 fn normalized_non_empty(value: String, field: &'static str) -> Result<String, RegistryError> {
