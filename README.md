@@ -1,48 +1,47 @@
 # OPPW4 SDK
 
-This workspace is the first physical split of the experimental OPPW4 patcher
-into a real SDK project.
+This workspace is the experimental OPPW4 SDK split from the original patcher
+into a registry-first modding platform.
 
 The SDK owns the modding platform:
 
-- SDK core orchestration;
-- plugin ABI/API crates;
-- Lua runtime and generic standard modules;
-- OPPW4 character/data APIs backed by the `oppw4-data` submodule;
+- SDK core orchestration and plugin loading;
+- host ABI/API crates;
+- language bridge infrastructure;
+- typed registry modules and type extensions;
+- OPPW4 character/data APIs backed by the `oppw4-data` snapshot;
 - RDB and LinkData helpers;
-- official plugins;
-- examples and modder documentation.
+- SDK service plugins, external plugins, examples, and modder documentation.
 
-This is a v0 split. Some Rust package names still use prototype names such as
-`plugin-sdk`, `plugin-host`, and `lua-api`. The folder layout already follows
-the target SDK shape so later renames can happen deliberately.
+This is still experimental and unpublished. Compatibility with older prototype
+Lua APIs is not a goal; the SDK should stay clean and registry-first while the
+public surface is still allowed to break.
 
 ## Layout
 
 ```text
 crates/
-  sdk-abi/         # current package: plugin-abi
-  sdk-api/         # current package: plugin-sdk
-  sdk-core/        # current package: plugin-host
-  lua-runtime/     # current package: lua-api
+  host/
+    abi/          # current package: plugin-abi
+    core/         # current package: plugin-host
+  sdk/
+    api/          # current package: plugin-sdk
   hooks/
   asm/
   rdb/
-official_plugins/
-  sdk/
-    core/         # builds sdk.dll
-    data/         # builds data.dll; owns OPPW4 data bootstrap and API crate
-    runtime/      # builds runtime.dll; owns sdk.runtime.fx APIs
-    debug/        # builds debug.dll
-    overlay/      # builds overlay.dll
-    linkdata/     # builds linkdata.dll
-    rdb/          # builds rdb.dll; owns sdk.rdb.patcher APIs
-  moveset_patcher/ # external plugin, packaged as moveset_patcher.dll
-oppw4-data/       # data-only submodule for community-editable character data
+bridges/
+  core/           # runtime registry, manifests, events, mutations
+  js/             # QuickJS bridge
+sdk/
+  plugins/        # SDK service plugins packaged under plugins/sdk/
+plugins/
+  moveset_patcher/ # external official plugin
+oppw4-data/       # local data snapshot consumed by sdk_data
+examples/
 docs/
 ```
 
-Clone or update the data submodule before building packages or working on
+Clone or update the data snapshot before building packages or working on
 character data:
 
 ```bash
@@ -55,17 +54,16 @@ git submodule update --init --recursive
 cargo test --workspace
 ```
 
-The `sdk.rdb.patcher` and `sdk.runtime.fx` Lua APIs are SDK services now: they
-are provided by `plugins/sdk/rdb.dll` and `plugins/sdk/runtime.dll`. The only
-external official plugin currently packaged on its own is `moveset_patcher`.
+The SDK services are packaged under `plugins/sdk/`. External official plugins
+such as `moveset_patcher` are packaged in their own plugin folders.
 
 Validate an external plugin manifest:
 
 ```powershell
-cargo run -p plugin-manifest-tool -- official_plugins/moveset_patcher/plugin.toml
+cargo run -p plugin-manifest-tool -- plugins/moveset_patcher/plugin.toml
 ```
 
-Validate a Lua mod manifest:
+Validate a runtime mod manifest:
 
 ```powershell
 cargo run -p mod-manifest-tool -- path/to/mod.toml
@@ -84,10 +82,10 @@ tools/package-sdk.sh
 ```
 
 The package is written under `dist/oppw4-sdk/` with the loader proxy as
-`dinput8.dll`, SDK services in `plugins/sdk/`, the external
-`moveset_patcher` plugin in its own plugin folder, and the mandatory data
-repository under `oppw4-data/`. Active mods are not copied into plugin folders;
-runtime mods belong under the game-level `mods/` directory.
+`dinput8.dll`, SDK services in `plugins/sdk/`, external official plugins in
+their own plugin folders, and the mandatory data repository under `oppw4-data/`.
+Active mods are not copied into plugin folders; runtime mods belong under the
+game-level `mods/` directory.
 
 By default the package script also builds the sibling loader workspace at
 `../oppw4-modloader`. Use `LOADER_ROOT=/path/to/oppw4-modloader` on shell or
@@ -95,6 +93,45 @@ By default the package script also builds the sibling loader workspace at
 is elsewhere.
 
 Examples are documented in [examples/README.md](examples/README.md).
+
+## Registry-First Runtime
+
+The runtime is built around typed registry modules instead of language-specific
+standard libraries. A plugin can expose a module such as `sdk.character` or add
+methods to another module's type through registry type extensions. Language
+bridges project those typed contracts into their own syntax, but the bridge does
+not own gameplay concepts.
+
+For example, `sdk_data` exposes `sdk.Character` values, and
+`moveset_patcher` extends `sdk.Character` with `replace_movesets(...)`. A JS mod
+can therefore stay small:
+
+```js
+import { character } from "sdk";
+
+const zoro = character.find("zoro");
+zoro.replace_movesets("zoro_new_world_moveset.bin");
+```
+
+The VM passes only the declarative request. Rust validates the mod-relative
+payload path, reads the `.bin`, and applies the LinkData replacement.
+
+## Data Direction
+
+`oppw4-data` is currently consumed as a local snapshot. The long-term direction
+is a collaborative, schema-validated data site that acts like a wiki for reverse
+engineering evidence and game data. The game runtime should never depend on the
+live site; it should consume a versioned exported snapshot.
+
+Expected flow:
+
+```text
+contributors -> wiki/API -> schema validation -> versioned JSON snapshot -> SDK package
+```
+
+Versioning should treat normal data additions and corrections as `1.x.y`
+changes. A major version bump is reserved for breaking snapshot contracts, which
+should be rare while the SDK remains experimental.
 
 ## Architecture Docs
 
