@@ -10,7 +10,5 @@ plugin-sdk.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 hooks.workspace = true
-lua-api.workspace = true
-mlua.workspace = true
 struct-api.workspace = true
 tracing.workspace = true

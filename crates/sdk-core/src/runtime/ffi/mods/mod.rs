@@ -32,10 +32,6 @@ fn invalid_visitor_error<T>(host_context: *mut std::ffi::c_void, visitor: Option
     }
 }
 
-fn is_mod_for_plugin(mod_entry: &lua_api::LuaMod, context: &ApiContext) -> bool {
-    mod_entry.uses_plugin(&context.plugin_id)
-}
-
 fn legacy_mod_paths(mods_root: &Path) -> Vec<CString> {
     mods::list_legacy_paths(mods_root)
         .into_iter()
@@ -44,27 +40,12 @@ fn legacy_mod_paths(mods_root: &Path) -> Vec<CString> {
 }
 
 fn plugin_mods_for_context(context: &ApiContext) -> Vec<PreparedPluginMod> {
-    lua_api::discover_mods(&context.mods_root)
-        .into_iter()
-        .filter(|mod_entry| is_mod_for_plugin(mod_entry, context))
-        .map(|mod_entry| PreparedPluginMod {
-            strings: mod_entry_cstrings(&mod_entry),
-            is_zip: mod_entry.is_zip(),
-        })
-        .collect()
+    let _ = context;
+    Vec::new()
 }
 
 fn plugin_mod_entry(prepared: &PreparedPluginMod) -> Oppw4PluginModEntry {
     plugin_mod_entry_from_parts(&prepared.strings, prepared.is_zip)
-}
-
-fn mod_entry_cstrings(mod_entry: &lua_api::LuaMod) -> ModEntryCStrings {
-    ModEntryCStrings {
-        id: cstring_lossy(&mod_entry.manifest.id),
-        name: cstring_lossy(&mod_entry.manifest.name),
-        source_path: cstring_lossy(&mod_entry.source_path().to_string_lossy()),
-        entry_lua: cstring_lossy(&mod_entry.manifest.entry_lua),
-    }
 }
 
 fn plugin_mod_entry_from_parts(strings: &ModEntryCStrings, is_zip: bool) -> Oppw4PluginModEntry {

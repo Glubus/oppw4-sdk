@@ -27,7 +27,6 @@ impl PluginApiState {
                 manifest.id.clone(),
                 mods_root.to_path_buf(),
                 capabilities,
-                manifest.lua_modules.clone(),
             ),
         }
     }

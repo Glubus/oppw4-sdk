@@ -5,6 +5,8 @@ members = [
     "crates/lua-runtime",
     "crates/sdk-abi",
     "crates/sdk-core",
+    "crates/sdk-bridge",
+    "crates/sdk-lua-bridge",
     "crates/sdk-api",
     "crates/rdb",
     "examples/rust/log_plugin",
@@ -37,6 +39,8 @@ asm = { path = "crates/asm" }
 hooks = { path = "crates/hooks" }
 lua-api = { path = "crates/lua-runtime" }
 plugin-abi = { path = "crates/sdk-abi" }
+sdk-bridge = { path = "crates/sdk-bridge" }
+sdk-lua-bridge = { path = "crates/sdk-lua-bridge" }
 plugin-host = { path = "crates/sdk-core" }
 plugin-sdk = { path = "crates/sdk-api" }
 mlua = { version = "0.10", features = ["lua54", "vendored", "send"] }

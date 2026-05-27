@@ -2,7 +2,6 @@ mod api;
 mod context;
 mod linkdata;
 mod log;
-mod lua;
 mod memory;
 mod mods;
 mod providers;
