@@ -29,12 +29,16 @@ impl PluginManifest {
         sdk_root: &Path,
         capabilities_required: &[&str],
         capabilities_provided: &[&str],
+        registry_modules: &[&str],
     ) -> Self {
         Self {
             id: id.to_string(),
             version: "0.1.0".to_string(),
             dependencies: Vec::new(),
-            registry_modules: Vec::new(),
+            registry_modules: registry_modules
+                .iter()
+                .map(|module| (*module).to_string())
+                .collect(),
             capabilities_required: capabilities_required
                 .iter()
                 .map(|capability| (*capability).to_string())

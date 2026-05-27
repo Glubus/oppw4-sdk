@@ -2,7 +2,8 @@ use std::{collections::HashSet, path::Path};
 
 use plugin_sdk::{
     CAP_CONFIG_SCHEMA, CAP_FILES_VIRTUALIZE, CAP_HOOKS_INSTALL, CAP_MEMORY_READ, CAP_MEMORY_SCAN,
-    CAP_MEMORY_WRITE, CAP_MOD_DISCOVERY, CAP_PLUGIN_HOST, CAP_SIGNALS_EMIT, CAP_SIGNALS_SUBSCRIBE,
+    CAP_MEMORY_WRITE, CAP_MOD_DISCOVERY, CAP_PLUGIN_HOST, CAP_REGISTRY_MODULE, CAP_SIGNALS_EMIT,
+    CAP_SIGNALS_SUBSCRIBE,
 };
 
 use crate::{log, runtime::manifest::PluginManifest};
@@ -17,6 +18,7 @@ struct SdkService {
     dll: &'static str,
     requires: &'static [&'static str],
     provides: &'static [&'static str],
+    registry_modules: &'static [&'static str],
 }
 
 const PUBLIC_CORE_CAPABILITIES: &[&str] = &[
@@ -26,6 +28,7 @@ const PUBLIC_CORE_CAPABILITIES: &[&str] = &[
     CAP_FILES_VIRTUALIZE,
     CAP_MEMORY_READ,
     CAP_MEMORY_SCAN,
+    CAP_REGISTRY_MODULE,
     CAP_SIGNALS_SUBSCRIBE,
 ];
 
@@ -38,6 +41,7 @@ const SDK_INTERNAL_CORE_CAPABILITIES: &[&str] = &[
     CAP_MEMORY_READ,
     CAP_MEMORY_SCAN,
     CAP_MEMORY_WRITE,
+    CAP_REGISTRY_MODULE,
     CAP_SIGNALS_EMIT,
     CAP_SIGNALS_SUBSCRIBE,
 ];
@@ -46,8 +50,9 @@ const SDK_SERVICES: &[SdkService] = &[
     SdkService {
         id: "sdk_data",
         dll: "data.dll",
-        requires: &[CAP_PLUGIN_HOST],
+        requires: &[CAP_PLUGIN_HOST, CAP_REGISTRY_MODULE],
         provides: &["game.data", "game.characters", "game.missions"],
+        registry_modules: &["sdk.character"],
     },
     SdkService {
         id: "sdk_runtime",
@@ -72,6 +77,7 @@ const SDK_SERVICES: &[SdkService] = &[
             "game.mission.rewards",
             "runtime.fx",
         ],
+        registry_modules: &[],
     },
     SdkService {
         id: "sdk_debug",
@@ -83,24 +89,28 @@ const SDK_SERVICES: &[SdkService] = &[
             CAP_SIGNALS_EMIT,
         ],
         provides: &["debug.memory"],
+        registry_modules: &[],
     },
     SdkService {
         id: "sdk_overlay",
         dll: "overlay.dll",
         requires: &[CAP_PLUGIN_HOST, CAP_CONFIG_SCHEMA, CAP_SIGNALS_SUBSCRIBE],
         provides: &["ui.overlay"],
+        registry_modules: &[],
     },
     SdkService {
         id: "sdk_linkdata",
         dll: "linkdata.dll",
         requires: &[CAP_PLUGIN_HOST, CAP_FILES_VIRTUALIZE],
         provides: &["linkdata.read", "linkdata.patch"],
+        registry_modules: &[],
     },
     SdkService {
         id: "sdk_rdb",
         dll: "rdb.dll",
         requires: &[CAP_PLUGIN_HOST, CAP_FILES_VIRTUALIZE],
         provides: &["rdb.read", "rdb.patch", "rdb.skin"],
+        registry_modules: &[],
     },
 ];
 
@@ -156,6 +166,7 @@ fn sdk_service_manifest(sdk_root: &Path, service: SdkService) -> Option<PluginMa
         sdk_root,
         service.requires,
         service.provides,
+        service.registry_modules,
     ))
 }
 

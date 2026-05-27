@@ -67,6 +67,10 @@ fn public_core_capabilities_are_available_before_services() {
         &["files.virtualize".to_string()],
         &available
     ));
+    assert!(capabilities_available(
+        &["registry.module".to_string()],
+        &available
+    ));
     assert!(!capabilities_available(
         &["hooks.install".to_string()],
         &available
@@ -129,6 +133,11 @@ fn sdk_service_manifests_use_sdk_folder_dlls() {
         ]
     );
     assert_eq!(manifests[0].entry_path, sdk_root.join("data.dll"));
+    assert!(manifests[0]
+        .capabilities_required
+        .iter()
+        .any(|capability| capability == "registry.module"));
+    assert_eq!(manifests[0].registry_modules, ["sdk.character"]);
     assert_eq!(manifests[1].entry_path, sdk_root.join("runtime.dll"));
     assert!(manifests[1]
         .capabilities_required
