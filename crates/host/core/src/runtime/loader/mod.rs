@@ -63,6 +63,10 @@ fn load_mods(game_root: &Path) {
     let mods_root = paths::mods_root(game_root);
     let mods = sdk_bridge::discover_mods(&mods_root);
     if mods.is_empty() {
+        logs::write_mod(
+            "plugin_host",
+            &format!("mods scanned=0 root={}", mods_root.display()),
+        );
         return;
     }
     let Some(registry) = BRIDGES.get() else {
@@ -74,28 +78,40 @@ fn load_mods(game_root: &Path) {
     let mut loaded = 0usize;
     for mod_entry in mods {
         let mod_id = mod_entry.manifest.id.as_str().to_string();
+        logs::write_mod(
+            "plugin_host",
+            &format!(
+                "mod discovered id={} entry={} uses={:?}",
+                mod_id, mod_entry.manifest.entry_file, mod_entry.manifest.uses_plugins
+            ),
+        );
         match registry.load_supported_mod(mod_entry.into_load_request()) {
             Ok(lifecycle) => {
                 loaded += 1;
                 for line in registry.drain_load_logs() {
                     log::write_line(format!("plugin host: mod log id={mod_id} {line}"));
+                    logs::write_mod(&mod_id, &line);
                 }
-                log::write_line(format!(
-                    "plugin host: mod loaded id={} lifecycle={lifecycle:?}",
-                    mod_id
-                ));
+                let line = format!("mod loaded id={mod_id} lifecycle={lifecycle:?}");
+                log::write_line(format!("plugin host: {line}"));
+                logs::write_mod("plugin_host", &line);
             }
             Err(error) => {
                 for line in registry.drain_load_logs() {
                     log::write_line(format!("plugin host: mod log id={mod_id} {line}"));
+                    logs::write_mod(&mod_id, &line);
                 }
-                log::write_line(format!(
-                    "plugin host: mod load failed id={mod_id} error={error:?}"
-                ));
+                let line = format!("mod load failed id={mod_id} error={error:?}");
+                log::write_line(format!("plugin host: {line}"));
+                logs::write_mod("plugin_host", &line);
             }
         }
     }
     log::write_line(format!("plugin host: mods scanned={total} loaded={loaded}"));
+    logs::write_mod(
+        "plugin_host",
+        &format!("mods scanned={total} loaded={loaded}"),
+    );
 }
 
 pub(crate) fn register_registry_module(module: RegistryModuleDescriptor) -> i32 {
