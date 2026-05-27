@@ -1,0 +1,20 @@
+pub const OPPW4_PLUGIN_API_VERSION: u32 = 23;
+pub const OPPW4_PLUGIN_API_STRUCT_SIZE: u32 =
+    std::mem::size_of::<super::super::structs::Oppw4PluginApi>() as u32;
+pub const OPPW4_PLUGIN_INIT_SYMBOL: &[u8] = b"oppw4_plugin_init\0";
+
+pub const OPPW4_GAME_PHASE_UNKNOWN: u32 = 0;
+pub const OPPW4_GAME_PHASE_BOOTING: u32 = 1;
+pub const OPPW4_GAME_PHASE_RDB_LOADING: u32 = 2;
+pub const OPPW4_GAME_PHASE_RDB_BIN_LOADING: u32 = 3;
+pub const OPPW4_GAME_PHASE_DLC_CHARACTER_LOADING: u32 = 4;
+pub const OPPW4_GAME_PHASE_VIRTUAL_RESOURCE_LOADING: u32 = 5;
+
+pub const OPPW4_GAME_FLAG_DLC_CHARACTER_SEEN: u32 = 1 << 0;
+pub const OPPW4_GAME_FLAG_VIRTUAL_RESOURCE_SEEN: u32 = 1 << 1;
+
+pub const OPPW4_PLUGIN_MOD_FLAG_ZIP: u32 = 1 << 0;
+
+pub const OPPW4_LINKDATA_ROW_OP_REPLACE: u32 = 1;
+pub const OPPW4_LINKDATA_ROW_OP_INSERT: u32 = 2;
+pub const OPPW4_LINKDATA_ROW_OP_REMOVE: u32 = 3;

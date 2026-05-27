@@ -1,0 +1,12 @@
+[package]
+name = "oppw4-native-mod-example"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+name = "native_mod_example"
+
+[dependencies]
+plugin-sdk.workspace = true

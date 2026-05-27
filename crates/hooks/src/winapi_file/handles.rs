@@ -13,7 +13,6 @@ impl VirtualHandle {
     }
 }
 
-#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn handle_to_fake(handle: VirtualHandle) -> Handle {
     (FAKE_HANDLE_BITS | handle.as_raw() as usize) as Handle
 }

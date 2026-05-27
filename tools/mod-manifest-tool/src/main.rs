@@ -1,23 +1,21 @@
 use std::{env, fs, path::Path, process};
 
-use lua_api::{parse_mod_manifest, LuaModManifest};
-
-const MOD_MANIFEST_FILE: &str = "mod.toml";
+use plugin_sdk::{parse_mod_manifest, ModManifest, MOD_MANIFEST_FILE};
 
 fn main() {
-    let path = match parse_args(env::args().skip(1)) {
-        Ok(path) => path,
+    let args = match parse_args(env::args().skip(1)) {
+        Ok(args) => args,
         Err(message) => {
             eprintln!("{message}");
             process::exit(2);
         }
     };
 
-    match validate_manifest(&path) {
+    match validate_manifest(&args.path, args.check_entry) {
         Ok(manifest) => {
             println!(
-                "ok id={} name={} entry_lua={}",
-                manifest.id, manifest.name, manifest.entry_lua
+                "ok id={} name={} entry={}",
+                manifest.id, manifest.name, manifest.entry.path
             );
             print_list("uses_plugins", &manifest.uses_plugins);
         }
@@ -28,35 +26,53 @@ fn main() {
     }
 }
 
-fn parse_args(mut args: impl Iterator<Item = String>) -> Result<String, String> {
-    let Some(path) = args.next() else {
-        return Err(format!("usage: mod-manifest <path-to-{MOD_MANIFEST_FILE}>"));
-    };
-    if args.next().is_some() {
-        return Err(format!("usage: mod-manifest <path-to-{MOD_MANIFEST_FILE}>"));
-    }
-    Ok(path)
+#[derive(Debug, Eq, PartialEq)]
+struct Args {
+    path: String,
+    check_entry: bool,
 }
 
-fn validate_manifest(path: &str) -> Result<LuaModManifest, String> {
+fn parse_args(args: impl Iterator<Item = String>) -> Result<Args, String> {
+    let mut path = None;
+    let mut check_entry = true;
+    for arg in args {
+        if arg == "--manifest-only" {
+            check_entry = false;
+        } else if path.replace(arg).is_some() {
+            return Err(usage());
+        }
+    }
+    let Some(path) = path else {
+        return Err(usage());
+    };
+    Ok(Args { path, check_entry })
+}
+
+fn usage() -> String {
+    format!("usage: mod-manifest [--manifest-only] <path-to-{MOD_MANIFEST_FILE}>")
+}
+
+fn validate_manifest(path: &str, check_entry: bool) -> Result<ModManifest, String> {
     let path = Path::new(path);
     let text = fs::read_to_string(path)
         .map_err(|error| format!("failed to read {}: {error}", path.display()))?;
     let manifest = parse_mod_manifest(&text)
         .map_err(|error| format!("invalid {}: {error:?}", path.display()))?;
-    validate_directory_entry(path, &manifest)?;
+    if check_entry {
+        validate_directory_entry(path, &manifest)?;
+    }
     Ok(manifest)
 }
 
-fn validate_directory_entry(path: &Path, manifest: &LuaModManifest) -> Result<(), String> {
+fn validate_directory_entry(path: &Path, manifest: &ModManifest) -> Result<(), String> {
     let Some(parent) = path.parent() else {
         return Ok(());
     };
-    let entry = parent.join(&manifest.entry_lua);
+    let entry = parent.join(&manifest.entry.path);
     if entry.is_file() {
         Ok(())
     } else {
-        Err(format!("entry lua file is missing: {}", entry.display()))
+        Err(format!("entry file is missing: {}", entry.display()))
     }
 }
 
@@ -76,7 +92,22 @@ mod tests {
     fn parses_single_manifest_path() {
         assert_eq!(
             parse_args(["mod.toml".to_string()].into_iter()).expect("args"),
-            "mod.toml"
+            Args {
+                path: "mod.toml".to_string(),
+                check_entry: true,
+            }
+        );
+    }
+
+    #[test]
+    fn parses_manifest_only_flag() {
+        assert_eq!(
+            parse_args(["--manifest-only".to_string(), "mod.toml".to_string()].into_iter())
+                .expect("args"),
+            Args {
+                path: "mod.toml".to_string(),
+                check_entry: false,
+            }
         );
     }
 
@@ -84,7 +115,7 @@ mod tests {
     fn rejects_missing_manifest_path() {
         assert_eq!(
             parse_args(Vec::<String>::new().into_iter()).expect_err("usage"),
-            "usage: mod-manifest <path-to-mod.toml>"
+            "usage: mod-manifest [--manifest-only] <path-to-mod.toml>"
         );
     }
 
@@ -94,12 +125,14 @@ mod tests {
             std::env::temp_dir().join(format!("oppw4-mod-manifest-tool-{}", std::process::id()));
         let _ = fs::remove_dir_all(&root);
         fs::create_dir_all(&root).expect("temp dir");
-        fs::write(root.join("mod.lua"), "return true").expect("entry lua");
-        let manifest = LuaModManifest {
+        fs::write(root.join("main.mod"), "").expect("entry file");
+        let manifest = ModManifest {
             id: "test_mod".to_string(),
             name: "Test Mod".to_string(),
             uses_plugins: Vec::new(),
-            entry_lua: "mod.lua".to_string(),
+            entry: plugin_sdk::ModEntry {
+                path: "main.mod".to_string(),
+            },
         };
 
         assert_eq!(

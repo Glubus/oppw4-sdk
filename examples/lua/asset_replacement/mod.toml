@@ -1,9 +1,0 @@
-[mod]
-id = "asset_replacement_example"
-name = "Asset Replacement Example"
-
-[uses]
-plugins = ["sdk_rdb"]
-
-[entry]
-lua = "mod.lua"

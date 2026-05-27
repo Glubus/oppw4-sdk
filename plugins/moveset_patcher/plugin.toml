@@ -1,0 +1,11 @@
+[plugin]
+id = "moveset_patcher"
+version = "0.1.0"
+entry = "moveset_patcher.dll"
+
+[dependencies]
+plugins = ["sdk_linkdata"]
+
+[capabilities]
+requires = ["files.virtualize", "linkdata.patch"]
+provides = ["linkdata.moveset"]

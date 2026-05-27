@@ -1,0 +1,17 @@
+[package]
+name = "plugin-sdk"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+flate2.workspace = true
+plugin-abi.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+zip.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+hooks.workspace = true
+tracing.workspace = true

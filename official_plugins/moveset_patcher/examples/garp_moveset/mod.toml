@@ -1,9 +1,0 @@
-[mod]
-id = "garp_moveset_example"
-name = "Garp Moveset Example"
-
-[uses]
-plugins = ["moveset_patcher"]
-
-[entry]
-lua = "mod.lua"

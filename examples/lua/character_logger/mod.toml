@@ -1,6 +1,0 @@
-[mod]
-id = "character_logger"
-name = "Character Logger"
-
-[entry]
-lua = "mod.lua"

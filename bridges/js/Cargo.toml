@@ -1,0 +1,14 @@
+[package]
+name = "sdk-js-bridge"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[dependencies]
+rquickjs.workspace = true
+sdk-bridge.workspace = true
+serde_json.workspace = true
+zip.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
