@@ -8,6 +8,7 @@ mod logs;
 mod lua;
 mod manifest;
 mod mods;
+mod registry;
 mod rdb;
 mod signals;
 mod time;
