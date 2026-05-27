@@ -77,12 +77,18 @@ fn load_mods(game_root: &Path) {
         match registry.load_supported_mod(mod_entry.into_load_request()) {
             Ok(lifecycle) => {
                 loaded += 1;
+                for line in registry.drain_load_logs() {
+                    log::write_line(format!("plugin host: mod log id={mod_id} {line}"));
+                }
                 log::write_line(format!(
                     "plugin host: mod loaded id={} lifecycle={lifecycle:?}",
                     mod_id
                 ));
             }
             Err(error) => {
+                for line in registry.drain_load_logs() {
+                    log::write_line(format!("plugin host: mod log id={mod_id} {line}"));
+                }
                 log::write_line(format!(
                     "plugin host: mod load failed id={mod_id} error={error:?}"
                 ));

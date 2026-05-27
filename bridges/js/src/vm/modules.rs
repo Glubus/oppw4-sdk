@@ -1,12 +1,20 @@
-use std::{ffi::c_void, sync::Arc};
+use std::{
+    ffi::c_void,
+    sync::{Arc, Mutex},
+};
 
 use rquickjs::{prelude::Func, Ctx};
 use sdk_bridge::{ModId, RegistryModuleLoad, RegistryModuleSchema, RegistryTypeRef};
 
 use crate::module::JsModule;
 
-pub(super) fn install(ctx: Ctx<'_>, mod_id: &ModId, modules: &[JsModule]) -> rquickjs::Result<()> {
-    install_trace(ctx.clone(), mod_id)?;
+pub(super) fn install(
+    ctx: Ctx<'_>,
+    mod_id: &ModId,
+    modules: &[JsModule],
+    logs: Arc<Mutex<Vec<String>>>,
+) -> rquickjs::Result<()> {
+    install_trace(ctx.clone(), mod_id, logs)?;
     install_registry_metadata(ctx.clone(), modules)?;
     install_registry_invoker(ctx.clone(), modules)?;
     for module in modules {
@@ -141,12 +149,18 @@ fn is_js_identifier(value: &str) -> bool {
         && chars.all(|char| char == '_' || char == '$' || char.is_ascii_alphanumeric())
 }
 
-fn install_trace(ctx: Ctx<'_>, mod_id: &ModId) -> rquickjs::Result<()> {
+pub(super) fn install_trace(
+    ctx: Ctx<'_>,
+    mod_id: &ModId,
+    logs: Arc<Mutex<Vec<String>>>,
+) -> rquickjs::Result<()> {
     let mod_id = mod_id.as_str().to_string();
     ctx.globals().set(
         "__oppw4_trace",
         Func::from(move |message: String| {
-            eprintln!("js_bridge trace mod={mod_id} {message}");
+            if let Ok(mut logs) = logs.lock() {
+                logs.push(format!("js trace mod={mod_id} {message}"));
+            }
         }),
     )
 }

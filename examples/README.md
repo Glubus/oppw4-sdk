@@ -10,6 +10,8 @@ official plugins.
 
 - `player_event`: registers an event callback and reads available registry
   context from the callback payload.
+- `character_registry_probe`: imports `character` from the `sdk` registry
+  projection and logs known character rows.
 
 Validate JS mod manifests with:
 

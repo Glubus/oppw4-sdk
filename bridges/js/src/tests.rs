@@ -296,6 +296,37 @@ fn registry_api_exposes_selected_module_metadata() {
 }
 
 #[test]
+fn trace_messages_are_returned_as_load_logs() {
+    let root = temp_root("js-bridge-trace-logs");
+    fs::create_dir_all(&root).expect("temp dir");
+    fs::write(
+        root.join("mod.js"),
+        r#"
+        oppw4.trace("registry probe ok");
+        "#,
+    )
+    .expect("script");
+
+    let mut registry = BridgeRegistry::new();
+    register_js_bridge(&mut registry, Vec::new());
+    registry
+        .load_supported_mod(BridgeLoadRequest {
+            mod_id: ModId::new("trace_mod").expect("mod id"),
+            name: "Trace Mod".to_string(),
+            source: BridgeModSource::Directory(root.clone()),
+            entry_file: "mod.js".to_string(),
+            uses_plugins: Vec::new(),
+        })
+        .expect("load mod");
+
+    assert_eq!(
+        registry.drain_load_logs(),
+        ["js trace mod=trace_mod registry probe ok"]
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn typed_registry_schema_projects_sdk_namespace_modules() {
     let root = temp_root("js-bridge-typed-registry-schema");
     fs::create_dir_all(&root).expect("temp dir");

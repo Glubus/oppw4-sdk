@@ -1,0 +1,9 @@
+[mod]
+id = "character_registry_probe"
+name = "Character Registry Probe"
+
+[uses]
+plugins = ["sdk_data"]
+
+[entry]
+file = "main.js"

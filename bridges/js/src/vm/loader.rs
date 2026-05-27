@@ -3,6 +3,7 @@ use rquickjs::{
     CatchResultExt, Context, Module, Runtime,
 };
 use sdk_bridge::BridgeModContext;
+use std::sync::{Arc, Mutex};
 
 use crate::{module::JsModule, vm};
 
@@ -11,13 +12,14 @@ pub fn load(context: &BridgeModContext, modules: &[JsModule]) -> Result<vm::JsVm
     install_builtin_namespace_modules(&runtime, modules);
     let js_context =
         Context::full(&runtime).map_err(|error| format!("js context create failed: {error}"))?;
+    let logs = Arc::new(Mutex::new(Vec::new()));
 
     let handlers = js_context.with(|ctx| {
         vm::runtime::install_mod_globals(ctx.clone(), context)
             .map_err(|error| format!("js globals failed: {error}"))?;
         let handlers = vm::handlers::install(ctx.clone(), context)
             .map_err(|error| format!("js handler registry install failed: {error}"))?;
-        vm::modules::install(ctx.clone(), &context.mod_id, modules)
+        vm::modules::install(ctx.clone(), &context.mod_id, modules, logs.clone())
             .map_err(|error| format!("js module install failed: {error}"))?;
         vm::api::install(ctx.clone()).map_err(|error| format!("js api install failed: {error}"))?;
         vm::runtime::hide_unsafe_globals(ctx.clone())
@@ -34,7 +36,7 @@ pub fn load(context: &BridgeModContext, modules: &[JsModule]) -> Result<vm::JsVm
         handlers.descriptors()
     })?;
 
-    Ok(vm::JsVm::new(runtime, js_context, handlers))
+    Ok(vm::JsVm::new(runtime, js_context, handlers, logs))
 }
 
 fn install_builtin_namespace_modules(runtime: &Runtime, modules: &[JsModule]) {

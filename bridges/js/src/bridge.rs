@@ -71,9 +71,11 @@ impl RuntimeAdapter for JsBridge {
         match vm::load(&context, &modules) {
             Ok(vm) => {
                 let handlers = vm.handler_descriptors().to_vec();
+                let logs = vm.drain_logs();
                 self.vms.insert(context.mod_id.clone(), vm);
                 BridgeLoadReport {
                     handlers,
+                    logs,
                     ..BridgeLoadReport::default()
                 }
             }
@@ -104,7 +106,10 @@ impl RuntimeAdapter for JsBridge {
             };
         };
         match vm.dispatch(handler, event) {
-            Ok(()) => BridgeDispatchReport::default(),
+            Ok(()) => BridgeDispatchReport {
+                logs: vm.drain_logs(),
+                ..BridgeDispatchReport::default()
+            },
             Err(error) => BridgeDispatchReport {
                 errors: vec![BridgeDispatchError {
                     mod_id: handler.mod_id.clone(),
