@@ -1,0 +1,10 @@
+[mod]
+id = "shanks_moveset"
+name = "Shanks Moveset"
+creator = "flag24"
+
+[uses]
+plugins = ["sdk_data", "moveset_patcher"]
+
+[entry]
+file = "main.js"
