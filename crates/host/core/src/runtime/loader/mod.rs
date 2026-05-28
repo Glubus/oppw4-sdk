@@ -10,7 +10,7 @@ use std::{
 };
 
 use crate::log;
-use sdk_bridge::{BridgeRegistry, RegistryModuleDescriptor};
+use sdk_bridge::{BridgeRegistry, EventEnvelope, RegistryModuleDescriptor};
 
 use super::logs;
 use plugin::LoadedPlugin;
@@ -122,5 +122,42 @@ pub(crate) fn register_registry_module(module: RegistryModuleDescriptor) -> i32 
         .lock()
         .expect("bridge registry lock")
         .register_module(module);
+    0
+}
+
+pub(crate) fn dispatch_event(event: EventEnvelope) -> i32 {
+    let Some(registry) = BRIDGES.get() else {
+        return 0;
+    };
+    let mut registry = registry.lock().expect("bridge registry lock");
+    let report = registry.dispatch_event(&event);
+    for line in report.logs {
+        log::write_line(format!(
+            "plugin host: event log key={} {line}",
+            event.key.as_str()
+        ));
+        logs::write_mod(
+            "plugin_host",
+            &format!("event log key={} {line}", event.key.as_str()),
+        );
+    }
+    for error in report.errors {
+        let line = format!(
+            "event dispatch failed key={} mod={} bridge={} error={}",
+            event.key.as_str(),
+            error.mod_id.as_str(),
+            error.bridge_id.as_str(),
+            error.message
+        );
+        log::write_line(format!("plugin host: {line}"));
+        logs::write_mod(error.mod_id.as_str(), &line);
+    }
+    if !report.mutations.is_empty() {
+        log::write_line(format!(
+            "plugin host: event mutations pending key={} count={}",
+            event.key.as_str(),
+            report.mutations.len()
+        ));
+    }
     0
 }

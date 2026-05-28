@@ -33,6 +33,7 @@ impl Runtime {
         GameRuntime::register(host)?;
         let config = config::load(host);
         let owned_host = host.owned();
+        core::player::initialize_events(owned_host.clone());
 
         GameRuntime::start();
         install_exposures(owned_host, config);

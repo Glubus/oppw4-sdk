@@ -5,8 +5,12 @@ use std::{
 };
 
 use plugin_abi::{optional_cstr, HostSignalCallbackFn};
+use sdk_bridge::{EventEnvelope, EventKey};
 
-use crate::runtime::ffi::{context_from_raw, CAP_SIGNALS_EMIT, CAP_SIGNALS_SUBSCRIBE};
+use crate::runtime::{
+    ffi::{context_from_raw, CAP_SIGNALS_EMIT, CAP_SIGNALS_SUBSCRIBE},
+    loader,
+};
 
 static SIGNALS: OnceLock<Mutex<HashMap<String, Vec<SignalSubscriber>>>> = OnceLock::new();
 
@@ -83,6 +87,7 @@ pub(crate) unsafe extern "system" fn host_emit_signal(
             return code;
         }
     }
+    dispatch_runtime_event(&signal, payload, payload_len);
     0
 }
 
@@ -96,6 +101,22 @@ unsafe fn signal_name(raw: *const c_char) -> Option<String> {
         .trim()
         .to_string();
     (!signal.is_empty()).then_some(signal.to_ascii_lowercase())
+}
+
+fn dispatch_runtime_event(signal: &str, payload: *const u8, payload_len: usize) {
+    let Ok(key) = EventKey::new(signal) else {
+        return;
+    };
+    let payload_json = if payload_len == 0 {
+        "{}".to_string()
+    } else {
+        let bytes = unsafe { std::slice::from_raw_parts(payload, payload_len) };
+        match std::str::from_utf8(bytes) {
+            Ok(value) => value.to_string(),
+            Err(_) => return,
+        }
+    };
+    let _ = loader::dispatch_event(EventEnvelope { key, payload_json });
 }
 
 #[cfg(test)]
