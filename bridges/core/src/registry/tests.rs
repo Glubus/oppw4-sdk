@@ -66,6 +66,9 @@ fn dispatch_event_calls_registered_bridge_handlers() {
 
     assert_eq!(report.errors, []);
     assert_eq!(report.logs, ["dispatch:on_tick"]);
+    assert_eq!(report.mod_logs.len(), 1);
+    assert_eq!(report.mod_logs[0].mod_id.as_str(), "events");
+    assert_eq!(report.mod_logs[0].message, "dispatch:on_tick");
 }
 
 struct FakeBridge {

@@ -25,7 +25,8 @@ pub use module::{
 pub use record::{ModLifecycle, ModRecord};
 pub use registry::BridgeRegistry;
 pub use report::{
-    BridgeDispatchError, BridgeDispatchReport, BridgeLoadReport, RegistryDispatchReport,
+    BridgeDispatchError, BridgeDispatchLog, BridgeDispatchReport, BridgeLoadReport,
+    RegistryDispatchReport,
 };
 pub use traits::RuntimeAdapter;
 

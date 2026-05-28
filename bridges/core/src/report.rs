@@ -19,7 +19,15 @@ pub struct BridgeDispatchReport {
 pub struct RegistryDispatchReport {
     pub mutations: Vec<MutationEnvelope>,
     pub logs: Vec<String>,
+    pub mod_logs: Vec<BridgeDispatchLog>,
     pub errors: Vec<BridgeDispatchError>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BridgeDispatchLog {
+    pub mod_id: ModId,
+    pub bridge_id: BridgeId,
+    pub message: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

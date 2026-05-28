@@ -131,15 +131,19 @@ pub(crate) fn dispatch_event(event: EventEnvelope) -> i32 {
     };
     let mut registry = registry.lock().expect("bridge registry lock");
     let report = registry.dispatch_event(&event);
+    for log_entry in report.mod_logs {
+        log::write_line(format!(
+            "plugin host: event log key={} {}",
+            event.key.as_str(),
+            log_entry.message
+        ));
+        logs::write_mod(log_entry.mod_id.as_str(), &log_entry.message);
+    }
     for line in report.logs {
         log::write_line(format!(
             "plugin host: event log key={} {line}",
             event.key.as_str()
         ));
-        logs::write_mod(
-            "plugin_host",
-            &format!("event log key={} {line}", event.key.as_str()),
-        );
     }
     for error in report.errors {
         let line = format!(

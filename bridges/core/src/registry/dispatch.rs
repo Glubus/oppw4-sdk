@@ -1,5 +1,6 @@
 use crate::{
-    BridgeDispatchError, EventEnvelope, EventKey, HandlerDescriptor, RegistryDispatchReport,
+    BridgeDispatchError, BridgeDispatchLog, EventEnvelope, EventKey, HandlerDescriptor,
+    RegistryDispatchReport,
 };
 
 use super::BridgeRegistry;
@@ -26,7 +27,14 @@ impl BridgeRegistry {
             };
             let bridge_report = bridge.dispatch(&handler, event);
             report.mutations.extend(bridge_report.mutations);
-            report.logs.extend(bridge_report.logs);
+            for message in bridge_report.logs {
+                report.logs.push(message.clone());
+                report.mod_logs.push(BridgeDispatchLog {
+                    mod_id: handler.mod_id.clone(),
+                    bridge_id: handler.bridge_id.clone(),
+                    message,
+                });
+            }
             report.errors.extend(bridge_report.errors);
         }
         report
