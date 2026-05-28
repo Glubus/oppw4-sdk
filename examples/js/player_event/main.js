@@ -1,6 +1,7 @@
-const modules = oppw4.registry.modules().map((module) => module.name).join(", ");
-oppw4.trace(`modules=[${modules}]`);
+import { player } from "sdk";
 
-oppw4.on("sdk.runtime.player.character_changed", (ctx) => {
-    oppw4.trace(`event=${ctx.eventKey} payload=${ctx.payloadJson}`);
+oppw4.trace(`player.on_character_changed=${typeof player.on_character_changed}`);
+
+player.on_character_changed((ctx) => {
+    oppw4.trace(`player changed payload=${ctx.payloadJson}`);
 });
