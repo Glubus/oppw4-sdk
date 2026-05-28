@@ -10,8 +10,9 @@ use std::{
 
 use sdk_bridge::{
     BridgeLoadRequest, BridgeModSource, BridgeRegistry, EventEnvelope, EventKey, ModId,
-    ModLifecycle, RegistryFunctionDescriptor, RegistryMethodDescriptor, RegistryModuleLoad,
-    RegistryModuleSchema, RegistryTypeDescriptor, RegistryTypeExtensionDescriptor, RegistryTypeRef,
+    ModLifecycle, RegistryEventDescriptor, RegistryFunctionDescriptor, RegistryMethodDescriptor,
+    RegistryModuleLoad, RegistryModuleSchema, RegistryTypeDescriptor,
+    RegistryTypeExtensionDescriptor, RegistryTypeRef,
 };
 
 use crate::{register_js_bridge, JsModule};
@@ -459,6 +460,64 @@ fn typed_registry_schema_projects_type_extensions() {
 }
 
 #[test]
+fn typed_registry_schema_projects_event_helpers() {
+    let root = temp_root("js-bridge-typed-registry-events");
+    fs::create_dir_all(&root).expect("temp dir");
+    fs::write(
+        root.join("mod.js"),
+        r#"
+        import { player } from "sdk";
+        if (typeof player.on_character_changed !== "function") {
+            throw new Error("player.on_character_changed projection missing");
+        }
+        player.on_character_changed((ctx) => {
+            if (ctx.eventKey !== "sdk.runtime.player.character_changed") {
+                throw new Error("bad event key: " + ctx.eventKey);
+            }
+            if (!ctx.payload || ctx.payload.characterId !== "whitebeard") {
+                throw new Error("bad payload: " + ctx.payloadJson);
+            }
+            oppw4.trace("typed player event " + ctx.payload.characterId);
+        });
+        "#,
+    )
+    .expect("script");
+
+    let mut registry = BridgeRegistry::new();
+    register_js_bridge(
+        &mut registry,
+        vec![schema_module(
+            "sdk_runtime",
+            "sdk.player",
+            player_schema(),
+            RegistryModuleLoad::Always,
+        )],
+    );
+    let lifecycle = registry
+        .load_supported_mod(BridgeLoadRequest {
+            mod_id: ModId::new("typed_registry_events_mod").expect("mod id"),
+            name: "Typed Registry Events Mod".to_string(),
+            source: BridgeModSource::Directory(root.clone()),
+            entry_file: "mod.js".to_string(),
+            uses_plugins: Vec::new(),
+        })
+        .expect("load mod");
+
+    assert_eq!(lifecycle, ModLifecycle::EventDriven);
+    let report = registry.dispatch_event(&EventEnvelope {
+        key: EventKey::new("sdk.runtime.player.character_changed").expect("event key"),
+        payload_json: serde_json::json!({ "characterId": "whitebeard" }).to_string(),
+    });
+
+    assert_eq!(report.errors, []);
+    assert_eq!(
+        report.logs,
+        ["js trace mod=typed_registry_events_mod typed player event whitebeard"]
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn registry_dispatches_same_event_to_multiple_js_mods() {
     let first_root = temp_root("js-bridge-multi-dispatch-a");
     let second_root = temp_root("js-bridge-multi-dispatch-b");
@@ -709,6 +768,14 @@ fn moveset_schema() -> RegistryModuleSchema {
                 RegistryMethodDescriptor::new("replace_movesets", "replace", RegistryTypeRef::Json),
             ),
         )
+}
+
+fn player_schema() -> RegistryModuleSchema {
+    RegistryModuleSchema::new("sdk", "player").event(RegistryEventDescriptor::new(
+        "character_changed",
+        "sdk.runtime.player.character_changed",
+        RegistryTypeRef::Json,
+    ))
 }
 
 fn load_js_mod(

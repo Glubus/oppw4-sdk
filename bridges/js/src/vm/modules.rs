@@ -225,6 +225,13 @@ fn schema_json(schema: &RegistryModuleSchema) -> serde_json::Value {
                 }).collect::<Vec<_>>(),
             })
         }).collect::<Vec<_>>(),
+        "events": schema.events.iter().map(|event| {
+            serde_json::json!({
+                "name": event.name,
+                "key": event.key,
+                "payload": type_ref_json(&event.payload),
+            })
+        }).collect::<Vec<_>>(),
     })
 }
 

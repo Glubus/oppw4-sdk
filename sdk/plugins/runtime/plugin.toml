@@ -11,6 +11,7 @@ requires = [
   "memory.read",
   "memory.scan",
   "memory.write",
+  "registry.module",
   "signals.subscribe",
   "signals.emit",
 ]
@@ -23,3 +24,6 @@ provides = [
   "game.mission.rewards",
   "runtime.fx",
 ]
+
+[registry]
+modules = ["sdk.player"]

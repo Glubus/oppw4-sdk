@@ -65,6 +65,7 @@ const SDK_SERVICES: &[SdkService] = &[
             CAP_MEMORY_READ,
             CAP_MEMORY_SCAN,
             CAP_MEMORY_WRITE,
+            CAP_REGISTRY_MODULE,
             CAP_SIGNALS_SUBSCRIBE,
             CAP_SIGNALS_EMIT,
         ],
@@ -77,7 +78,7 @@ const SDK_SERVICES: &[SdkService] = &[
             "game.mission.rewards",
             "runtime.fx",
         ],
-        registry_modules: &[],
+        registry_modules: &["sdk.player"],
     },
     SdkService {
         id: "sdk_debug",

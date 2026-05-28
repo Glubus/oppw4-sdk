@@ -165,6 +165,23 @@ const BOOTSTRAP_JS: &str = r#"
         });
     };
 
+    const registryEventStub = (eventKey, payloadType, schema) => {
+        return Object.freeze(function registryEventStub(callback) {
+            if (typeof callback !== "function") {
+                throw new TypeError("event handler must be a function");
+            }
+            return registerHandler(eventKey, (ctx) => {
+                const typedCtx = Object.freeze({
+                    eventKey: ctx.eventKey,
+                    payloadJson: ctx.payloadJson,
+                    payload: wrapRegistryValue(payloadType, ctx.payload, schema),
+                    mod: ctx.mod,
+                });
+                return callback(typedCtx);
+            });
+        });
+    };
+
     const installSchemaModule = (module) => {
         const schema = module.schema;
         if (!schema) {
@@ -185,6 +202,14 @@ const BOOTSTRAP_JS: &str = r#"
                 continue;
             }
             moduleObject[name] = registryFunctionStub(`${namespace}.${importName}.${name}`, fn.returns, schema);
+        }
+        for (const event of schema.events || []) {
+            const name = String(event.name || "");
+            const key = String(event.key || "");
+            if (!name || !key) {
+                continue;
+            }
+            moduleObject[`on_${name}`] = registryEventStub(key, event.payload, schema);
         }
         Object.defineProperty(moduleObject, "__schema", {
             value: schema,

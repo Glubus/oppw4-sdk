@@ -126,6 +126,8 @@ pub struct RegistryModuleSchema {
     pub types: Vec<RegistryTypeDescriptor>,
     #[serde(default)]
     pub extensions: Vec<RegistryTypeExtensionDescriptor>,
+    #[serde(default)]
+    pub events: Vec<RegistryEventDescriptor>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -161,6 +163,13 @@ pub struct RegistryTypeExtensionDescriptor {
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct RegistryEventDescriptor {
+    pub name: String,
+    pub key: String,
+    pub payload: RegistryTypeRef,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RegistryMethodDescriptor {
     pub name: String,
     pub function: String,
@@ -190,6 +199,7 @@ impl RegistryModuleSchema {
             functions: Vec::new(),
             types: Vec::new(),
             extensions: Vec::new(),
+            events: Vec::new(),
         }
     }
 
@@ -210,6 +220,11 @@ impl RegistryModuleSchema {
 
     pub fn extension(mut self, extension: RegistryTypeExtensionDescriptor) -> Self {
         self.extensions.push(extension);
+        self
+    }
+
+    pub fn event(mut self, event: RegistryEventDescriptor) -> Self {
+        self.events.push(event);
         self
     }
 }
@@ -266,6 +281,16 @@ impl RegistryTypeExtensionDescriptor {
     pub fn method(mut self, method: RegistryMethodDescriptor) -> Self {
         self.methods.push(method);
         self
+    }
+}
+
+impl RegistryEventDescriptor {
+    pub fn new(name: impl Into<String>, key: impl Into<String>, payload: RegistryTypeRef) -> Self {
+        Self {
+            name: name.into(),
+            key: key.into(),
+            payload,
+        }
     }
 }
 
