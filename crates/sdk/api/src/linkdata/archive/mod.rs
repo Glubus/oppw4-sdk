@@ -4,7 +4,7 @@ mod inflate;
 mod rebuild;
 mod table;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use super::types::LinkDataEntryId;
 
@@ -15,13 +15,23 @@ pub use error::LinkDataError;
 pub struct LinkDataArchive {
     bytes: Vec<u8>,
     entries: Vec<LinkDataEntry>,
+    entry_indexes: HashMap<LinkDataEntryId, usize>,
 }
 
 impl LinkDataArchive {
     pub fn parse(bytes: impl Into<Vec<u8>>) -> Result<Self, LinkDataError> {
         let bytes = bytes.into();
         let entries = table::parse_entries(&bytes)?;
-        Ok(Self { bytes, entries })
+        let entry_indexes = entries
+            .iter()
+            .enumerate()
+            .map(|(index, entry)| (entry.id, index))
+            .collect();
+        Ok(Self {
+            bytes,
+            entries,
+            entry_indexes,
+        })
     }
 
     pub fn entries(&self) -> &[LinkDataEntry] {
@@ -29,7 +39,11 @@ impl LinkDataArchive {
     }
 
     pub fn entry_payload(&self, id: LinkDataEntryId) -> Result<Vec<u8>, LinkDataError> {
-        let Some(entry) = self.entries.iter().find(|entry| entry.id == id) else {
+        let Some(entry) = self
+            .entry_indexes
+            .get(&id)
+            .and_then(|index| self.entries.get(*index))
+        else {
             return Err(LinkDataError::OutOfBounds { entry: id.get() });
         };
         inflate::inflate_entry(&self.bytes, entry)

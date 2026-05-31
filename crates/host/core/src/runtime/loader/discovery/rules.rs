@@ -1,11 +1,9 @@
 use std::collections::HashSet;
 
 pub(super) fn dependencies_loaded(dependencies: &[String], loaded: &HashSet<String>) -> bool {
-    dependencies.iter().all(|dependency| {
-        loaded
-            .iter()
-            .any(|loaded_id| loaded_id.eq_ignore_ascii_case(dependency))
-    })
+    dependencies
+        .iter()
+        .all(|dependency| loaded.contains(&dependency.to_ascii_lowercase()))
 }
 
 pub(super) fn capabilities_available(required: &[String], available: &HashSet<String>) -> bool {
@@ -15,7 +13,5 @@ pub(super) fn capabilities_available(required: &[String], available: &HashSet<St
 }
 
 pub(super) fn has_capability(required: &str, available: &HashSet<String>) -> bool {
-    available
-        .iter()
-        .any(|capability| capability.eq_ignore_ascii_case(required))
+    available.contains(&required.to_ascii_lowercase())
 }

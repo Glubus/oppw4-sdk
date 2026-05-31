@@ -58,12 +58,12 @@ impl JsVm {
         handler: &HandlerDescriptor,
         event: &EventEnvelope,
     ) -> Result<(), String> {
-        self.dispatch_many(std::slice::from_ref(handler), event)
+        self.dispatch_many(&[handler], event)
     }
 
     pub fn dispatch_many(
         &self,
-        handlers: &[HandlerDescriptor],
+        handlers: &[&HandlerDescriptor],
         event: &EventEnvelope,
     ) -> Result<(), String> {
         let _keep_runtime_alive = &self.runtime;

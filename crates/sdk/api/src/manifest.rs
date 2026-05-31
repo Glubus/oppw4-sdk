@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+};
 
 pub const PLUGIN_MANIFEST_FILE: &str = "plugin.toml";
 pub const MOD_MANIFEST_FILE: &str = "mod.toml";
@@ -280,11 +283,10 @@ fn registry_module_descriptors(
 }
 
 fn unique_registry_modules(values: Vec<RegistryModuleDescriptor>) -> Vec<RegistryModuleDescriptor> {
+    let mut seen = HashSet::with_capacity(values.len());
     let mut unique = Vec::with_capacity(values.len());
     for value in values {
-        if !unique.iter().any(|known: &RegistryModuleDescriptor| {
-            known.module.eq_ignore_ascii_case(&value.module)
-        }) {
+        if seen.insert(value.module.to_ascii_lowercase()) {
             unique.push(value);
         }
     }
@@ -292,12 +294,10 @@ fn unique_registry_modules(values: Vec<RegistryModuleDescriptor>) -> Vec<Registr
 }
 
 fn unique_strings(values: Vec<String>) -> Vec<String> {
+    let mut seen = HashSet::with_capacity(values.len());
     let mut unique = Vec::with_capacity(values.len());
     for value in values {
-        if !unique
-            .iter()
-            .any(|known: &String| known.eq_ignore_ascii_case(&value))
-        {
+        if seen.insert(value.to_ascii_lowercase()) {
             unique.push(value);
         }
     }

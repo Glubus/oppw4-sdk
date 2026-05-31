@@ -15,15 +15,17 @@ pub struct RdbAddressSuffix {
 }
 
 pub fn parse_payload_tail(payload: &[u8]) -> Option<RdbPayloadTail> {
-    for start in 0..payload.len() {
-        let tail = &payload[start..];
-        let Some(end) = tail.iter().position(|&byte| byte == 0) else {
-            continue;
-        };
-        let Ok(candidate) = std::str::from_utf8(&tail[..end]) else {
-            continue;
-        };
-        if let Some(tail) = parse_tail_candidate(candidate) {
+    let mut offset = 0;
+    while offset < payload.len() {
+        while payload.get(offset) == Some(&0) {
+            offset += 1;
+        }
+        let segment_start = offset;
+        while payload.get(offset).is_some_and(|byte| *byte != 0) {
+            offset += 1;
+        }
+        let segment = &payload[segment_start..offset];
+        if let Some(tail) = parse_payload_tail_segment(segment) {
             return Some(tail);
         }
     }
@@ -61,6 +63,32 @@ fn parse_tail_candidate(candidate: &str) -> Option<RdbPayloadTail> {
         part_b: u32::from_str_radix(part_b, 16).ok()?,
         suffix,
     })
+}
+
+fn parse_payload_tail_segment(segment: &[u8]) -> Option<RdbPayloadTail> {
+    if segment.is_empty() {
+        return None;
+    }
+    for marker in segment
+        .iter()
+        .enumerate()
+        .filter_map(|(index, byte)| (*byte == b'@').then_some(index))
+    {
+        let mut start = marker;
+        while start > 0 && segment[start - 1].is_ascii_hexdigit() {
+            start -= 1;
+        }
+        if start == marker {
+            continue;
+        }
+        let Ok(candidate) = std::str::from_utf8(&segment[start..]) else {
+            continue;
+        };
+        if let Some(tail) = parse_tail_candidate(candidate) {
+            return Some(tail);
+        }
+    }
+    None
 }
 
 fn split_address_suffix(rest: &str) -> Option<(&str, Option<RdbAddressSuffix>)> {

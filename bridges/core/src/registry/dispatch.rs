@@ -1,6 +1,8 @@
+use std::collections::BTreeMap;
+
 use crate::{
-    BridgeDispatchError, EffectConflict, EventEnvelope, EventKey, HandlerDescriptor,
-    RegistryDispatchReport,
+    BridgeDispatchError, BridgeId, BridgeModEffect, EffectConflict, EventEnvelope, EventKey,
+    HandlerDescriptor, ModId, RegistryDispatchReport,
 };
 
 use super::BridgeRegistry;
@@ -32,44 +34,46 @@ impl BridgeRegistry {
     }
 
     pub fn effect_conflicts(&self) -> Vec<EffectConflict> {
-        let mut conflicts = Vec::new();
-        let mut grouped: Vec<(String, crate::BridgeModEffect, Vec<crate::ModId>)> = Vec::new();
+        let mut grouped: BTreeMap<String, (BridgeModEffect, Vec<ModId>)> = BTreeMap::new();
         for (mod_id, effects) in &self.effects_by_mod {
             for effect in effects {
                 let key = effect.conflict_key();
-                if let Some((_, _, mods)) = grouped
-                    .iter_mut()
-                    .find(|(known_key, _, _)| known_key == &key)
-                {
-                    if !mods.iter().any(|known| known == mod_id) {
-                        mods.push(mod_id.clone());
-                    }
-                } else {
-                    grouped.push((key, effect.clone(), vec![mod_id.clone()]));
-                }
+                grouped
+                    .entry(key)
+                    .and_modify(|(_, mods)| {
+                        if !mods.iter().any(|known| known == mod_id) {
+                            mods.push(mod_id.clone());
+                        }
+                    })
+                    .or_insert_with(|| (effect.clone(), vec![mod_id.clone()]));
             }
         }
-        for (_, effect, mod_ids) in grouped {
-            if mod_ids.len() > 1 {
-                conflicts.push(EffectConflict { effect, mod_ids });
-            }
-        }
-        conflicts
+        grouped
+            .into_values()
+            .filter_map(|(effect, mod_ids)| {
+                (mod_ids.len() > 1).then_some(EffectConflict { effect, mod_ids })
+            })
+            .collect()
     }
 
     pub fn dispatch_event(&mut self, event: &EventEnvelope) -> RegistryDispatchReport {
         let started = std::time::Instant::now();
-        let handlers = self.handlers_for(&event.key).to_vec();
+        let handlers = self
+            .handlers_by_event
+            .get(&event.key)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        let grouped_handlers = handlers_by_bridge(handlers);
         let mut report = RegistryDispatchReport::default();
         report.metrics.payload_bytes = event.payload_json.len();
         report.metrics.handler_count = handlers.len();
 
-        for (bridge_id, bridge_handlers) in handlers_by_bridge(handlers) {
+        for (bridge_id, bridge_handlers) in grouped_handlers {
             let Some(bridge) = self.bridges.get_mut(&bridge_id) else {
                 for handler in bridge_handlers {
                     report.errors.push(BridgeDispatchError {
-                        mod_id: handler.mod_id,
-                        bridge_id: handler.bridge_id,
+                        mod_id: handler.mod_id.clone(),
+                        bridge_id: handler.bridge_id.clone(),
                         message: "runtime adapter is not registered".to_string(),
                     });
                 }
@@ -91,13 +95,14 @@ impl BridgeRegistry {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HandlerConflict {
     pub event_key: EventKey,
-    pub mod_ids: Vec<crate::ModId>,
+    pub mod_ids: Vec<ModId>,
 }
 
-fn unique_handler_mods(handlers: &[HandlerDescriptor]) -> Vec<crate::ModId> {
+fn unique_handler_mods(handlers: &[HandlerDescriptor]) -> Vec<ModId> {
+    let mut seen = BTreeMap::<&ModId, ()>::new();
     let mut mods = Vec::new();
     for handler in handlers {
-        if !mods.iter().any(|known| known == &handler.mod_id) {
+        if seen.insert(&handler.mod_id, ()).is_none() {
             mods.push(handler.mod_id.clone());
         }
     }
@@ -105,18 +110,14 @@ fn unique_handler_mods(handlers: &[HandlerDescriptor]) -> Vec<crate::ModId> {
 }
 
 fn handlers_by_bridge(
-    handlers: Vec<HandlerDescriptor>,
-) -> Vec<(crate::BridgeId, Vec<HandlerDescriptor>)> {
-    let mut grouped: Vec<(crate::BridgeId, Vec<HandlerDescriptor>)> = Vec::new();
+    handlers: &[HandlerDescriptor],
+) -> BTreeMap<BridgeId, Vec<&HandlerDescriptor>> {
+    let mut grouped: BTreeMap<BridgeId, Vec<&HandlerDescriptor>> = BTreeMap::new();
     for handler in handlers {
-        if let Some((_, existing)) = grouped
-            .iter_mut()
-            .find(|(bridge_id, _)| *bridge_id == handler.bridge_id)
-        {
-            existing.push(handler);
-        } else {
-            grouped.push((handler.bridge_id.clone(), vec![handler]));
-        }
+        grouped
+            .entry(handler.bridge_id.clone())
+            .or_default()
+            .push(handler);
     }
     grouped
 }

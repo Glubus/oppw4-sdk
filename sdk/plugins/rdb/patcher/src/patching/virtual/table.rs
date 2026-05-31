@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::patching::{ModAsset, ReplacementSource};
 use rdb::{parse_block_tail, ArchiveScan};
 
@@ -54,12 +56,15 @@ pub fn build_virtualization_table_from_assets(
     scan: &ArchiveScan<'_>,
     assets: &[ModAsset],
 ) -> Vec<VirtualReplacement> {
+    let assets_by_name = assets
+        .iter()
+        .map(|asset| (asset.file_name.to_ascii_lowercase(), asset))
+        .collect::<HashMap<_, _>>();
     scan.files
         .iter()
         .filter_map(|file| {
-            let source = assets
-                .iter()
-                .find(|asset| asset.file_name.eq_ignore_ascii_case(&file.file_name))?
+            let source = assets_by_name
+                .get(&file.file_name.to_ascii_lowercase())?
                 .source
                 .clone();
             build_replacement(scan, file, source)

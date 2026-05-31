@@ -67,13 +67,18 @@ pub(crate) fn latest_snapshot() -> PlayerSnapshot {
 }
 
 pub(crate) fn update_snapshot(snapshot: PlayerSnapshot) {
-    let previous = latest_snapshot();
-    if let Ok(mut latest) = latest_snapshot_store().write() {
-        *latest = snapshot.clone();
-    }
-    if previous != snapshot {
-        publish_character_changed(&snapshot);
-    }
+    let changed_snapshot = {
+        let Ok(mut latest) = latest_snapshot_store().write() else {
+            return;
+        };
+        if *latest == snapshot {
+            return;
+        }
+        let changed_snapshot = snapshot.clone();
+        *latest = snapshot;
+        changed_snapshot
+    };
+    publish_character_changed(&changed_snapshot);
 }
 
 fn latest_snapshot_store() -> &'static RwLock<PlayerSnapshot> {

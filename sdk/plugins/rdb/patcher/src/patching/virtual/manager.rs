@@ -1,17 +1,38 @@
-use std::io::SeekFrom;
+use std::{collections::BTreeMap, io::SeekFrom};
 
 use crate::patching::{VirtualHandle, VirtualHandleTable, VirtualReplacement};
 
 #[derive(Debug)]
 pub struct VirtualManager {
     replacements: Vec<VirtualReplacement>,
+    archive_replacements: BTreeMap<String, Vec<usize>>,
+    lookup: Vec<ReplacementLookup>,
     handles: VirtualHandleTable,
+}
+
+#[derive(Debug)]
+struct ReplacementLookup {
+    index: usize,
+    file_name: String,
+    hash_tag: String,
 }
 
 impl VirtualManager {
     pub fn new(replacements: Vec<VirtualReplacement>) -> Self {
+        let archive_replacements = index_replacements_by_archive(&replacements);
+        let lookup = replacements
+            .iter()
+            .enumerate()
+            .map(|(index, replacement)| ReplacementLookup {
+                index,
+                file_name: replacement.file_name.to_ascii_lowercase(),
+                hash_tag: format!("0x{:08x}", replacement.hash),
+            })
+            .collect();
         Self {
             replacements,
+            archive_replacements,
+            lookup,
             handles: VirtualHandleTable::new(),
         }
     }
@@ -50,11 +71,7 @@ impl VirtualManager {
         buffer: &mut [u8],
     ) -> usize {
         let mut patched = 0;
-        for replacement in self
-            .replacements
-            .iter()
-            .filter(|replacement| replacement.archive_name.eq_ignore_ascii_case(archive_name))
-        {
+        for replacement in self.replacements_for_archive(archive_name) {
             if patch_replacement_external_size(replacement, read_offset, buffer) {
                 patched += 1;
             }
@@ -72,9 +89,7 @@ impl VirtualManager {
         read_len: usize,
     ) -> Vec<&VirtualReplacement> {
         let read_end = read_offset + read_len as u64;
-        self.replacements
-            .iter()
-            .filter(|replacement| replacement.archive_name.eq_ignore_ascii_case(archive_name))
+        self.replacements_for_archive(archive_name)
             .filter(|replacement| {
                 let Some(start) = replacement.original_bin_offset.map(u64::from) else {
                     return false;
@@ -90,11 +105,37 @@ impl VirtualManager {
 
     fn find_replacement_by_path_fragment(&self, path: &str) -> Option<&VirtualReplacement> {
         let path = path.to_ascii_lowercase();
-        self.replacements.iter().find(|replacement| {
-            path.contains(&replacement.file_name.to_ascii_lowercase())
-                || path.contains(&format!("0x{:08x}", replacement.hash))
-        })
+        let lookup = self
+            .lookup
+            .iter()
+            .find(|lookup| path.contains(&lookup.file_name) || path.contains(&lookup.hash_tag))?;
+        self.replacements.get(lookup.index)
     }
+
+    fn replacements_for_archive(
+        &self,
+        archive_name: &str,
+    ) -> impl Iterator<Item = &VirtualReplacement> {
+        let archive_name = archive_name.to_ascii_lowercase();
+        self.archive_replacements
+            .get(&archive_name)
+            .into_iter()
+            .flat_map(|indexes| indexes.iter())
+            .filter_map(|index| self.replacements.get(*index))
+    }
+}
+
+fn index_replacements_by_archive(
+    replacements: &[VirtualReplacement],
+) -> BTreeMap<String, Vec<usize>> {
+    let mut by_archive = BTreeMap::new();
+    for (index, replacement) in replacements.iter().enumerate() {
+        by_archive
+            .entry(replacement.archive_name.to_ascii_lowercase())
+            .or_insert_with(Vec::new)
+            .push(index);
+    }
+    by_archive
 }
 
 fn patch_replacement_external_size(

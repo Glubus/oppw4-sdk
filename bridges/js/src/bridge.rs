@@ -126,7 +126,7 @@ impl RuntimeAdapter for JsBridge {
 
     fn dispatch_many(
         &mut self,
-        handlers: &[HandlerDescriptor],
+        handlers: &[&HandlerDescriptor],
         event: &EventEnvelope,
     ) -> BridgeDispatchReport {
         let mut report = BridgeDispatchReport::default();
@@ -173,17 +173,15 @@ impl RuntimeAdapter for JsBridge {
     }
 }
 
-fn handlers_by_mod(handlers: &[HandlerDescriptor]) -> Vec<(ModId, Vec<HandlerDescriptor>)> {
-    let mut grouped: Vec<(ModId, Vec<HandlerDescriptor>)> = Vec::new();
+fn handlers_by_mod<'a>(
+    handlers: &[&'a HandlerDescriptor],
+) -> BTreeMap<ModId, Vec<&'a HandlerDescriptor>> {
+    let mut grouped: BTreeMap<ModId, Vec<&HandlerDescriptor>> = BTreeMap::new();
     for handler in handlers {
-        if let Some((_, existing)) = grouped
-            .iter_mut()
-            .find(|(mod_id, _)| *mod_id == handler.mod_id)
-        {
-            existing.push(handler.clone());
-        } else {
-            grouped.push((handler.mod_id.clone(), vec![handler.clone()]));
-        }
+        grouped
+            .entry(handler.mod_id.clone())
+            .or_default()
+            .push(handler);
     }
     grouped
 }

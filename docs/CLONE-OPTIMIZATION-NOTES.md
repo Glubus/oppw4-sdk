@@ -15,54 +15,17 @@ The goal is to reduce avoidable cloning across the SDK without introducing `Arc<
 
 ## High Priority
 
-### Bridge dispatch clones handlers per event
-
-Files:
-
-- `bridges/core/src/registry/dispatch.rs`
-- `bridges/js/src/bridge.rs`
-
-Current shape:
-
-- `BridgeRegistry::dispatch_event` clones every handler with `self.handlers_for(&event.key).to_vec()`.
-- `handlers_by_bridge` then groups owned `HandlerDescriptor` values.
-- `JsBridge::dispatch_many` groups again with `handlers_by_mod`, cloning handler descriptors again.
-
-Why it matters:
-
-- This runs on every event dispatch.
-- Handler descriptors contain owned IDs/keys, so cloning scales with handler count.
-- The same event can batch by bridge and then by mod, multiplying allocation work.
-
-Preferred direction:
-
-- Group borrowed handlers: `Vec<(&BridgeId, Vec<&HandlerDescriptor>)>` or a small grouping helper over references.
-- Change bridge runtime dispatch API to accept borrowed handler slices or borrowed grouped batches.
-- If trait compatibility is painful, add an internal borrowed grouping layer first and keep the public trait stable until the next API cleanup.
-
-Do not:
-
-- Do not put handlers behind `Arc<Mutex<_>>`.
-- Do not cache mutable grouped state globally; grouping depends on current registry state and event key.
-
-Expected impact:
-
-- Fewer per-event allocations.
-- Less clone pressure in both core registry and JS bridge.
-
 ### JS bridge module descriptor conversion clones modules on load
 
 Files:
 
 - `bridges/core/src/registry/load.rs`
 - `bridges/js/src/bridge.rs`
-- `bridges/js/src/vm/modules/invoke.rs`
 
 Current shape:
 
 - `BridgeRegistry::modules_for` returns `Vec<RegistryModuleDescriptor>` by cloning registry descriptors.
 - `JsBridge::load_mod` converts descriptors back into `Vec<JsModule>`.
-- `invoke::install` then does `modules.to_vec()` into an `Arc`.
 
 Why it matters:
 
@@ -73,10 +36,6 @@ Preferred direction:
 
 - Let `BridgeModContext` borrow registry modules during load where possible.
 - Or add a lightweight `JsModuleRef<'a>` for VM install/load paths so schemas and invoke callbacks are borrowed until JS context setup is complete.
-- For `invoke::install`, store a compact lookup table built once:
-  - key: `(namespace, import_name, function_name)`
-  - value: invoke callback/reference
-- Avoid scanning all module schemas on every JS registry call.
 
 Do not:
 
@@ -100,7 +59,6 @@ Current shape:
 
 - `character_from_receiver` returns `Option<String>`.
 - `collect_costume_patch_effects` clones `character` and `costume` for model and every texture effect.
-- `declared_methods` clones method names into a `HashSet<String>`.
 
 Why it matters:
 
@@ -113,7 +71,6 @@ Preferred direction:
 - Split internal parsed effect representation from exported `BridgeModEffect`:
   - internal: borrowed `&str` where source-backed
   - final report: owned strings only at the boundary
-- For registry methods, use `HashSet<&str>` tied to `modules` lifetime instead of `HashSet<String>`.
 
 Do not:
 
@@ -122,40 +79,6 @@ Do not:
 Expected impact:
 
 - Lower analyzer allocation count, especially for repeated texture effects.
-
-### Runtime player snapshot clones previous and latest state
-
-File:
-
-- `sdk/plugins/runtime/src/runtime/core/player.rs`
-
-Current shape:
-
-- `latest_snapshot()` clones the full `PlayerSnapshot`.
-- `update_snapshot` clones previous state, writes a clone of the new snapshot, then compares.
-
-Why it matters:
-
-- Runtime hooks can call snapshot updates frequently.
-- Current snapshot is small today, but the pattern will become expensive if more player context fields are added.
-
-Preferred direction:
-
-- Compare under the write lock before assignment:
-  - acquire write lock
-  - if `*latest == snapshot`, return
-  - assign `snapshot`
-  - publish from the stored/latest value or from a borrowed temporary before move
-- If publishing needs data after assignment, build the payload from references before moving or clone only the small changed fields.
-
-Do not:
-
-- Do not change the store to `Arc<Mutex<PlayerSnapshot>>`; the existing `RwLock` already expresses the state ownership.
-- Do not hold the lock while emitting host events.
-
-Expected impact:
-
-- Removes one full snapshot clone per update and keeps event emission outside the lock.
 
 ### Bridge load inserts clone mod IDs during registration
 
@@ -405,66 +328,6 @@ This is more work than clone cleanup, but it would remove the reason many curren
 
 This section tracks places where the algorithm itself can become too expensive as mods, plugins, handlers, assets, or scanned memory ranges grow.
 
-### Bridge grouping and conflicts use linear grouped vectors
-
-Files:
-
-- `bridges/core/src/registry/dispatch.rs`
-- `bridges/js/src/bridge.rs`
-
-Current shape:
-
-- `handlers_by_bridge` groups handlers into `Vec<(BridgeId, Vec<HandlerDescriptor>)>` and uses `iter_mut().find(...)` for every handler.
-- `handlers_by_mod` repeats the same pattern inside `JsBridge`.
-- `unique_handler_mods` uses `mods.iter().any(...)`.
-- `effect_conflicts` groups effects with a `Vec` and scans it for every effect key.
-
-Complexity:
-
-- Grouping is O(n * groups), worst-case O(n²).
-- Conflict detection is O(effects * unique_effects), worst-case O(n²).
-
-Preferred direction:
-
-- Use `BTreeMap`/`HashMap` for grouping by bridge, mod, and effect conflict key.
-- If deterministic output matters, use `BTreeMap` or collect from `HashMap` then sort keys before reporting.
-- Combine this with borrowed handler grouping so the optimization removes both clones and O(n²) scans.
-
-Expected impact:
-
-- High if many mods listen to common events.
-- Medium even with fewer mods because this is on dispatch/conflict paths.
-
-### JS registry invocation scans all modules and functions per call
-
-File:
-
-- `bridges/js/src/vm/modules/invoke.rs`
-
-Current shape:
-
-- Every JS registry call parses the qualified function name.
-- It then scans every module to find matching namespace/import.
-- It scans functions inside the schema to check declaration.
-
-Complexity:
-
-- O(module_count + function_count_per_module) per JS call.
-
-Preferred direction:
-
-- Build a lookup table once during `invoke::install`.
-- Key candidates:
-  - full string: `namespace.import.function`
-  - or tuple: `(namespace, import_name, function_name)`
-- Value should point to the invoke callback plus any metadata needed for validation.
-- If schema validation has already happened while building the table, invocation can become one hash/map lookup plus callback call.
-
-Expected impact:
-
-- High for mods that call registry functions often.
-- Also reduces repeated string comparisons.
-
 ### JS module resolver sorts builtin module names but loader also stores a map
 
 File:
@@ -489,142 +352,6 @@ Preferred direction:
 Expected impact:
 
 - Low to medium. Mostly cleanup unless builtin module count grows.
-
-### RDB virtual replacement lookup is linear and recomputes lowercase strings
-
-Files:
-
-- `sdk/plugins/rdb/patcher/src/patching/virtual/manager.rs`
-- `sdk/plugins/rdb/patcher/src/patching/virtual/table.rs`
-
-Current shape:
-
-- `find_replacement_by_path_fragment` lowercases the input path.
-- For every replacement, it lowercases `replacement.file_name` and formats `0x{hash}` during lookup.
-- `build_virtualization_table_from_assets` scans `assets.iter().find(...)` for every RDB file.
-- `patch_archive_index_external_flags` and `data_read_hits` scan all replacements and filter by archive name on each read.
-
-Complexity:
-
-- Open path lookup is O(replacement_count * string_work).
-- Table build is O(rdb_files * asset_count).
-- Read patching is O(replacement_count) per relevant read.
-
-Preferred direction:
-
-- Add precomputed normalized fields to replacement/index state:
-  - lowercase file name
-  - hash tag string or hash lookup map
-  - archive-name buckets
-- Build `HashMap<lower_file_name, ModAsset>` before `build_virtualization_table_from_assets`.
-- Store replacements grouped by lowercase archive name for read-time patching.
-- For range overlap reads, consider sorted intervals per archive if replacement count grows.
-
-Expected impact:
-
-- High if generated moveset/RDB mods create many replacements.
-- Very likely more valuable than micro-optimizing string clones here.
-
-### LinkData archive entry lookup is linear
-
-File:
-
-- `crates/sdk/api/src/linkdata/archive/mod.rs`
-
-Current shape:
-
-- `entry_payload(id)` does `self.entries.iter().find(...)`.
-
-Complexity:
-
-- O(entry_count) per entry lookup.
-
-Preferred direction:
-
-- If callers request many entries from the same archive, add an index:
-  - `BTreeMap<LinkDataEntryId, usize>` if deterministic/simple.
-  - `HashMap<LinkDataEntryId, usize>` if hot.
-- Avoid building the index for one-off parse/rebuild paths unless profiling shows it matters.
-
-Expected impact:
-
-- Medium for bulk patching/extraction.
-- Low for single-entry reads.
-
-### Plugin dependency/capability resolution uses case-insensitive linear scans
-
-Files:
-
-- `crates/host/core/src/runtime/loader/discovery/rules.rs`
-- `crates/host/core/src/runtime/loader/discovery/manifests.rs`
-
-Current shape:
-
-- `loaded` and `capabilities` are `HashSet<String>`, but checks iterate the whole set and use `eq_ignore_ascii_case`.
-- Unresolved manifest logging repeats the same pattern.
-
-Complexity:
-
-- O(required * loaded) and O(required * capabilities).
-
-Preferred direction:
-
-- Normalize IDs/capabilities to lowercase at insertion and compare with direct `HashSet::contains`.
-- Wrap normalized IDs in a small newtype if we want to prevent accidental mixed-case inserts.
-
-Expected impact:
-
-- Medium if plugin count grows.
-- Low today, but easy and clean.
-
-### Manifest uniqueness uses vector scans
-
-File:
-
-- `crates/sdk/api/src/manifest.rs`
-
-Current shape:
-
-- `unique_strings` and `unique_registry_modules` use `Vec` plus `iter().any(eq_ignore_ascii_case)`.
-
-Complexity:
-
-- O(n²) in array length.
-
-Preferred direction:
-
-- Use a `HashSet`/`BTreeSet` of lowercase keys while preserving original output order.
-- Keep the `Vec` for ordered manifest output, use the set only for membership.
-
-Expected impact:
-
-- Low for normal manifests.
-- Good cleanup if manifests start carrying many capabilities/modules.
-
-### RDB address tail parsing scans every byte
-
-File:
-
-- `crates/rdb/src/address.rs`
-
-Current shape:
-
-- `parse_payload_tail` tries every byte offset, then searches for a NUL byte and UTF-8 parses the slice.
-
-Complexity:
-
-- Worst-case O(payload_len²) behavior due to repeated tail scans.
-
-Preferred direction:
-
-- Scan NUL-delimited candidate strings once.
-- Or search for likely address markers (`@`, `#`, `&`) and validate bounded windows around them.
-- Keep `parse_block_tail` as the preferred fast path when block metadata is available.
-
-Expected impact:
-
-- Medium to high if `parse_payload_tail` is used on large payloads.
-- Low if it is only a fallback/tooling path.
 
 ### Reverse probes scan memory ranges linearly
 
@@ -665,16 +392,11 @@ These are not good first targets:
 
 ## Suggested Implementation Order
 
-1. Convert bridge dispatch grouping to borrowed handlers.
-2. Remove the second handler clone pass inside `JsBridge::dispatch_many`.
-3. Replace O(n²) bridge conflict/grouping helpers with map-backed grouping.
-4. Build a compact JS registry invoke lookup table instead of scanning modules/functions per call.
-5. Audit JS `Arc<Mutex<_>>` logs/handler registration and replace with a narrower same-thread sink or messages if `rquickjs` supports it cleanly.
-6. Optimize JS analyzer internals with borrowed method names and delayed ownership for effects.
-7. Clean runtime player snapshot update to avoid clone-before-write.
-8. Add RDB replacement indexes if generated replacement counts are expected to grow.
-9. Consider a log worker queue if file IO under `LogRouter` lock shows up in runtime traces.
-10. Only then inspect lower-priority report/probe clones if profiling still points there.
+1. Audit JS `Arc<Mutex<_>>` logs/handler registration and replace with a narrower same-thread sink or messages if `rquickjs` supports it cleanly.
+2. Optimize JS analyzer internals with delayed ownership for character/costume effects.
+3. Revisit JS module load descriptors with borrowed module refs.
+4. Consider a log worker queue if file IO under `LogRouter` lock shows up in runtime traces.
+5. Only then inspect lower-priority report/probe clones if profiling still points there.
 
 ## Validation Plan
 

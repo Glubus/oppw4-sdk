@@ -1,16 +1,19 @@
-use std::sync::Arc;
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use rquickjs::{prelude::Func, Ctx};
 
-use crate::{module::JsModule, vm::error};
+use crate::{module::JsModule, module::JsModuleInvoke, vm::error};
 
 pub(super) fn install(ctx: Ctx<'_>, modules: &[JsModule]) -> rquickjs::Result<()> {
-    let modules = Arc::new(modules.to_vec());
+    let table = Arc::new(RegistryInvokeTable::new(modules));
     ctx.globals().set(
         "__oppw4_registry_invoke",
         Func::from(
             move |qualified_name: String, args_json: String| -> rquickjs::Result<String> {
-                invoke_registry_function(&modules, &qualified_name, &args_json).map_err(|err| {
+                table.invoke(&qualified_name, &args_json).map_err(|err| {
                     error::js("Registry", "Invoke", format!("{qualified_name}: {err}"))
                 })
             },
@@ -18,33 +21,69 @@ pub(super) fn install(ctx: Ctx<'_>, modules: &[JsModule]) -> rquickjs::Result<()
     )
 }
 
-fn invoke_registry_function(
-    modules: &[JsModule],
-    qualified_name: &str,
-    args_json: &str,
-) -> Result<String, String> {
-    let (namespace, import_name, function_name) = parse_qualified_function(qualified_name)?;
-    let Some(module) = modules.iter().find(|module| {
-        module.schema.as_ref().is_some_and(|schema| {
-            schema.namespace == namespace && schema.import_name == import_name
-        })
-    }) else {
-        return Err("module is not available".to_string());
-    };
-    let Some(schema) = module.schema.as_ref() else {
-        return Err("module has no schema".to_string());
-    };
-    if !schema
-        .functions
-        .iter()
-        .any(|function| function.name == function_name)
-    {
-        return Err("function is not declared by schema".to_string());
+struct RegistryInvokeTable {
+    modules: HashSet<String>,
+    functions: HashSet<String>,
+    bound: HashMap<String, RegistryFunctionBinding>,
+}
+
+struct RegistryFunctionBinding {
+    function_name: String,
+    invoke: JsModuleInvoke,
+}
+
+impl RegistryInvokeTable {
+    fn new(modules: &[JsModule]) -> Self {
+        let mut table = Self {
+            modules: HashSet::new(),
+            functions: HashSet::new(),
+            bound: HashMap::new(),
+        };
+        for module in modules {
+            let Some(schema) = module.schema.as_ref() else {
+                continue;
+            };
+            let module_key = module_key(&schema.namespace, &schema.import_name);
+            table.modules.insert(module_key);
+            for function in &schema.functions {
+                let qualified_name =
+                    qualified_function_name(&schema.namespace, &schema.import_name, &function.name);
+                table.functions.insert(qualified_name.clone());
+                if let Some(invoke) = module.invoke.as_ref() {
+                    table.bound.insert(
+                        qualified_name,
+                        RegistryFunctionBinding {
+                            function_name: function.name.clone(),
+                            invoke: invoke.clone(),
+                        },
+                    );
+                }
+            }
+        }
+        table
     }
-    let Some(invoke) = module.invoke.as_ref() else {
-        return Err("function is not bound".to_string());
-    };
-    invoke(function_name, args_json)
+
+    fn invoke(&self, qualified_name: &str, args_json: &str) -> Result<String, String> {
+        let (namespace, import_name, _function_name) = parse_qualified_function(qualified_name)?;
+        if !self.modules.contains(&module_key(namespace, import_name)) {
+            return Err("module is not available".to_string());
+        }
+        if !self.functions.contains(qualified_name) {
+            return Err("function is not declared by schema".to_string());
+        }
+        let Some(binding) = self.bound.get(qualified_name) else {
+            return Err("function is not bound".to_string());
+        };
+        (binding.invoke)(&binding.function_name, args_json)
+    }
+}
+
+fn module_key(namespace: &str, import_name: &str) -> String {
+    format!("{namespace}.{import_name}")
+}
+
+fn qualified_function_name(namespace: &str, import_name: &str, function_name: &str) -> String {
+    format!("{namespace}.{import_name}.{function_name}")
 }
 
 fn parse_qualified_function(qualified_name: &str) -> Result<(&str, &str, &str), String> {

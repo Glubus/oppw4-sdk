@@ -58,8 +58,13 @@ pub(super) fn load_plugins(game_root: &Path, plugin_root: &Path) -> PluginLoadRe
                 continue;
             }
             if unsafe { load_plugin(game_root, &mods_root(game_root), &manifest) } {
-                loaded.insert(manifest.id.clone());
-                capabilities.extend(manifest.capabilities_provided.iter().cloned());
+                loaded.insert(manifest.id.to_ascii_lowercase());
+                capabilities.extend(
+                    manifest
+                        .capabilities_provided
+                        .iter()
+                        .map(|capability| capability.to_ascii_lowercase()),
+                );
                 report.loaded += 1;
             }
         }

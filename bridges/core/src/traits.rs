@@ -18,7 +18,7 @@ pub trait RuntimeAdapter: Send {
 
     fn dispatch_many(
         &mut self,
-        handlers: &[HandlerDescriptor],
+        handlers: &[&HandlerDescriptor],
         event: &EventEnvelope,
     ) -> BridgeDispatchReport {
         let mut report = BridgeDispatchReport::default();

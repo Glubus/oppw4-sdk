@@ -29,14 +29,14 @@ pub fn analyze(source: &str, modules: &[RegistryModuleDescriptor]) -> JsAnalysis
     analyzer.report
 }
 
-struct Analyzer<'a> {
-    source: &'a str,
-    declared_methods: HashSet<String>,
+struct Analyzer<'source, 'registry> {
+    source: &'source str,
+    declared_methods: HashSet<&'registry str>,
     character_vars: HashMap<String, String>,
     report: JsAnalysisReport,
 }
 
-impl Analyzer<'_> {
+impl Analyzer<'_, '_> {
     fn scan_character_bindings(&mut self) {
         for declaration in ["const ", "let ", "var "] {
             let mut offset = 0;
@@ -218,13 +218,13 @@ impl Analyzer<'_> {
     }
 }
 
-fn declared_methods(modules: &[RegistryModuleDescriptor]) -> HashSet<String> {
+fn declared_methods(modules: &[RegistryModuleDescriptor]) -> HashSet<&str> {
     modules
         .iter()
         .filter_map(|module| module.schema.as_ref())
         .flat_map(|schema| schema.extensions.iter())
         .flat_map(|extension| extension.methods.iter())
-        .map(|method| method.name.clone())
+        .map(|method| method.name.as_str())
         .collect()
 }
 
