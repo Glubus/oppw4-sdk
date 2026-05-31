@@ -7,8 +7,8 @@ use std::{
 };
 
 use sdk_bridge::{
-    parse_mod_manifest, RegistryMethodDescriptor, RegistryModuleDescriptor, RegistryModuleSchema,
-    RegistryTypeExtensionDescriptor, RegistryTypeRef,
+    parse_mod_manifest, BridgeModEffect, RegistryMethodDescriptor, RegistryModuleDescriptor,
+    RegistryModuleSchema, RegistryTypeExtensionDescriptor, RegistryTypeRef,
 };
 use serde::Serialize;
 
@@ -76,7 +76,11 @@ struct ReportSummary {
 
 fn main() {
     match run() {
-        Ok(()) => {}
+        Ok(code) => {
+            if code != 0 {
+                std::process::exit(code);
+            }
+        }
         Err(error) => {
             eprintln!("{error}");
             std::process::exit(1);
@@ -84,17 +88,17 @@ fn main() {
     }
 }
 
-fn run() -> Result<(), String> {
+fn run() -> Result<i32, String> {
     let args = parse_args(env::args().skip(1))?;
     match args.command {
         Command::Check if args.bridge != "bridge-js" => {
             Err(format!("unsupported analyzer bridge: {}", args.bridge))
         }
-        Command::Check if args.watch => watch(args),
+        Command::Check if args.watch => watch(args).map(|_| 0),
         Command::Check => {
             let report = analyze_roots(&args.roots, &method_modules(&args.methods))?;
             print_report(&report, args.output)?;
-            finish_check(&report)
+            Ok(check_exit_code(&report))
         }
     }
 }
@@ -117,12 +121,13 @@ fn analyze_roots(
     roots: &[PathBuf],
     modules: &[RegistryModuleDescriptor],
 ) -> Result<AppReport, String> {
-    let diagnostics = manifest_diagnostics(roots);
+    let mut diagnostics = manifest_diagnostics(roots);
     let mut files = Vec::new();
     for path in source_files(roots)? {
         let source = fs::read_to_string(&path)
             .map_err(|error| format!("failed to read {}: {error}", path.display()))?;
         let report = sdk_js_analyzer::analyze(&source, modules);
+        validate_effect_assets(roots, &path, &report.effects, &mut diagnostics);
         files.push(FileReport {
             path: path.display().to_string(),
             effects: report.effects,
@@ -158,14 +163,11 @@ fn print_report(report: &AppReport, output: OutputFormat) -> Result<(), String> 
     Ok(())
 }
 
-fn finish_check(report: &AppReport) -> Result<(), String> {
+fn check_exit_code(report: &AppReport) -> i32 {
     if report.summary.errors == 0 {
-        Ok(())
+        0
     } else {
-        Err(format!(
-            "sdk-analyzer found {} error(s)",
-            report.summary.errors
-        ))
+        1
     }
 }
 
@@ -383,6 +385,56 @@ fn validate_manifest(root: &Path, manifest: &Path, diagnostics: &mut Vec<Diagnos
     }
 }
 
+fn validate_effect_assets(
+    roots: &[PathBuf],
+    source_file: &Path,
+    effects: &[BridgeModEffect],
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    let mod_root = mod_root_for_source(roots, source_file);
+    for effect in effects {
+        match effect {
+            BridgeModEffect::ReplaceCostumeAsset { file, .. } => {
+                let asset_path = Path::new(file);
+                if asset_path.is_absolute()
+                    || asset_path
+                        .components()
+                        .any(|component| matches!(component, std::path::Component::ParentDir))
+                {
+                    diagnostics.push(Diagnostic::error(
+                        source_file,
+                        "asset_path_invalid",
+                        format!("asset path must stay inside the mod: {file}"),
+                    ));
+                } else if !mod_root.join(asset_path).is_file() {
+                    diagnostics.push(Diagnostic::error(
+                        source_file,
+                        "asset_missing",
+                        format!("referenced asset does not exist: {file}"),
+                    ));
+                }
+            }
+        }
+    }
+}
+
+fn mod_root_for_source(roots: &[PathBuf], source_file: &Path) -> PathBuf {
+    roots
+        .iter()
+        .map(|root| {
+            if root.is_file() {
+                root.parent().unwrap_or_else(|| Path::new("."))
+            } else {
+                root.as_path()
+            }
+        })
+        .filter(|root| source_file.starts_with(root))
+        .max_by_key(|root| root.components().count())
+        .map(Path::to_path_buf)
+        .or_else(|| source_file.parent().map(Path::to_path_buf))
+        .unwrap_or_else(|| PathBuf::from("."))
+}
+
 fn source_files(roots: &[PathBuf]) -> Result<Vec<PathBuf>, String> {
     let mut files = Vec::new();
     for root in roots {
@@ -512,6 +564,27 @@ mod tests {
         assert!(formatted.contains("  --> mod.toml"));
         assert!(formatted.contains("warning[dynamic_patch]"));
         assert!(formatted.contains("Finished sdk-analyzer"));
+    }
+
+    #[test]
+    fn reports_missing_assets_from_effects() {
+        let root = unique_temp_dir("missing-asset");
+        fs::create_dir_all(&root).expect("temp dir");
+        let source = root.join("main.js");
+        let effects = vec![BridgeModEffect::replace_costume_asset(
+            Some("luffy"),
+            "default",
+            "texture.body",
+            "missing.g1t",
+        )];
+        let mut diagnostics = Vec::new();
+
+        validate_effect_assets(&[root.clone()], &source, &effects, &mut diagnostics);
+
+        assert!(diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "asset_missing"));
+        let _ = fs::remove_dir_all(root);
     }
 
     #[test]

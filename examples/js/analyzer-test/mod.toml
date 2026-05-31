@@ -1,0 +1,9 @@
+[mod]
+id = "analyzer_test"
+name = "Analyzer Test JS Example"
+
+[uses]
+plugins = ["sdk_runtime", "costume_patcher"]
+
+[entry]
+file = "main.js"
