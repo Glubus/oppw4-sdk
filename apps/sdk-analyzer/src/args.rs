@@ -18,6 +18,8 @@ pub(crate) struct Args {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum Command {
     Check,
+    Init,
+    Install,
 }
 
 pub(crate) fn parse_args(args: impl IntoIterator<Item = String>) -> Result<Args, String> {
@@ -36,6 +38,8 @@ pub(crate) fn parse_args(args: impl IntoIterator<Item = String>) -> Result<Args,
         match arg.as_str() {
             "-h" | "--help" => return Err(usage()),
             "check" if command.is_none() => command = Some(Command::Check),
+            "init" if command.is_none() => command = Some(Command::Init),
+            "install" if command.is_none() => command = Some(Command::Install),
             "--json" => output = OutputFormat::Json,
             "--watch" => watch = true,
             "--bridge" => {
@@ -75,11 +79,14 @@ pub(crate) fn parse_args(args: impl IntoIterator<Item = String>) -> Result<Args,
             value if value.starts_with('-') => {
                 return Err(format!("unknown argument: {value}\n\n{}", usage()));
             }
+            value if matches!(command, Some(Command::Init | Command::Install)) => {
+                bridge = value.to_string();
+            }
             value => roots.push(PathBuf::from(value)),
         }
     }
     let command = command.unwrap_or(Command::Check);
-    if roots.is_empty() {
+    if command == Command::Check && roots.is_empty() {
         return Err(usage());
     }
     methods.sort();
@@ -96,7 +103,7 @@ pub(crate) fn parse_args(args: impl IntoIterator<Item = String>) -> Result<Args,
 }
 
 fn usage() -> String {
-    "usage: sdk-analyzer check [--bridge bridge-js] [--watch] [--interval-ms n] [--json|--format human|json] [--method name] [--no-default-methods] <file-or-dir>..."
+    "usage: sdk-analyzer check [--bridge bridge-js] [--watch] [--interval-ms n] [--json|--format human|json] [--method name] [--no-default-methods] <file-or-dir>...\n       sdk-analyzer init bridge-js\n       sdk-analyzer install bridge-js"
         .to_string()
 }
 
@@ -152,5 +159,14 @@ mod tests {
         .expect("args");
 
         assert_eq!(args.methods, ["custom"]);
+    }
+
+    #[test]
+    fn parses_init_bridge() {
+        let args = parse_args(["init".to_string(), "bridge-js".to_string()]).expect("args");
+
+        assert_eq!(args.command, Command::Init);
+        assert_eq!(args.bridge, "bridge-js");
+        assert!(args.roots.is_empty());
     }
 }

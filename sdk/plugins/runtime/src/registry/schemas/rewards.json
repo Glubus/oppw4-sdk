@@ -1,0 +1,70 @@
+{
+  "namespace": "sdk",
+  "import_name": "rewards",
+  "constructible": false,
+  "functions": [],
+  "types": [
+    {
+      "name": "RewardCommitSnapshot",
+      "constructible": false,
+      "fields": [
+        { "name": "call", "type_ref": { "kind": "i64" } },
+        { "name": "reward_out", "type_ref": { "kind": "i64" } },
+        { "name": "reward_param", "type_ref": { "kind": "i64" } },
+        { "name": "mission_or_reward", "type_ref": { "kind": "i64" } },
+        { "name": "rank_or_mode", "type_ref": { "kind": "i64" } },
+        { "name": "bonus_a", "type_ref": { "kind": "i64" } },
+        { "name": "bonus_b", "type_ref": { "kind": "i64" } },
+        { "name": "slots", "type_ref": { "kind": "array", "inner": { "kind": "i64" } } }
+      ]
+    },
+    {
+      "name": "RewardEvent",
+      "constructible": false,
+      "fields": [
+        { "name": "schema", "type_ref": { "kind": "string" } },
+        { "name": "rank", "type_ref": { "kind": "string" } },
+        { "name": "berry", "type_ref": { "kind": "optional", "inner": { "kind": "i64" } } }
+      ]
+    },
+    {
+      "name": "ItemRewardSnapshot",
+      "constructible": false,
+      "fields": [
+        { "name": "call", "type_ref": { "kind": "i64" } },
+        { "name": "out", "type_ref": { "kind": "i64" } },
+        { "name": "reward_context", "type_ref": { "kind": "i64" } },
+        { "name": "previous", "type_ref": { "kind": "i64" } },
+        { "name": "result", "type_ref": { "kind": "i64" } },
+        { "name": "entries", "type_ref": { "kind": "array", "inner": { "kind": "named", "name": "ItemRewardEntry" } } }
+      ]
+    },
+    {
+      "name": "ItemRewardEntry",
+      "constructible": false,
+      "fields": [
+        { "name": "index", "type_ref": { "kind": "i64" } },
+        { "name": "amount", "type_ref": { "kind": "i64" } },
+        { "name": "item_id", "type_ref": { "kind": "i64" } },
+        { "name": "is_new", "type_ref": { "kind": "i64" } }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "commit",
+      "key": "sdk.runtime.rewards.commit",
+      "payload": { "kind": "named", "name": "RewardCommitSnapshot" }
+    },
+    {
+      "name": "event",
+      "key": "sdk.runtime.rewards.event",
+      "payload": { "kind": "named", "name": "RewardEvent" }
+    },
+    {
+      "name": "items",
+      "key": "sdk.runtime.rewards.items",
+      "payload": { "kind": "named", "name": "ItemRewardSnapshot" }
+    }
+  ]
+}

@@ -88,10 +88,7 @@ fn format_human_report(report: &AppReport) -> String {
     }
     for file in &report.files {
         for warning in &file.warnings {
-            output.push_str(&format!(
-                "warning[{}]: {}\n  --> {}\n\n",
-                warning.code, warning.message, file.path
-            ));
+            output.push_str(&format_bridge_warning(file, warning));
         }
         for effect in &file.effects {
             output.push_str(&format!(
@@ -115,6 +112,22 @@ fn format_human_report(report: &AppReport) -> String {
         report.summary.errors,
     ));
     output
+}
+
+fn format_bridge_warning(file: &FileReport, warning: &sdk_bridge::BridgeAnalysisWarning) -> String {
+    let diagnostic = Diagnostic {
+        path: file.path.clone(),
+        severity: DiagnosticSeverity::Warning,
+        code: warning.code.clone(),
+        message: warning.message.clone(),
+        span: warning.span.as_ref().map(|span| DiagnosticSpan {
+            line: span.line,
+            column: span.column,
+            length: span.length,
+            source_line: span.source_line.clone(),
+        }),
+    };
+    format_diagnostic("warning", &diagnostic)
 }
 
 pub(crate) fn format_diagnostic(severity: &str, diagnostic: &Diagnostic) -> String {

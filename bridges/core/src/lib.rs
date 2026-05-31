@@ -12,8 +12,8 @@ mod report;
 mod traits;
 
 pub use analysis::{
-    analysis_warning, registry_declares_method, BridgeAnalysisReport, BridgeAnalysisWarning,
-    BridgeModEffect, EffectConflict,
+    analysis_warning, analysis_warning_at, registry_declares_method, BridgeAnalysisReport,
+    BridgeAnalysisWarning, BridgeModEffect, BridgeSourceSpan, EffectConflict,
 };
 pub use context::{BridgeLoadRequest, BridgeModContext, BridgeModSource};
 pub use envelope::{EventEnvelope, MutationEnvelope};

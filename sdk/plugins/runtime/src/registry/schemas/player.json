@@ -1,0 +1,32 @@
+{
+  "namespace": "sdk",
+  "import_name": "player",
+  "constructible": false,
+  "functions": [
+    {
+      "name": "active_characters",
+      "params": [],
+      "returns": {
+        "kind": "array",
+        "inner": { "kind": "string" }
+      }
+    }
+  ],
+  "types": [
+    {
+      "name": "CharacterChangedEvent",
+      "constructible": false,
+      "fields": [
+        { "name": "characterId", "type_ref": { "kind": "string" } },
+        { "name": "activeCharacterIds", "type_ref": { "kind": "array", "inner": { "kind": "string" } } }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "character_changed",
+      "key": "sdk.runtime.player.character_changed",
+      "payload": { "kind": "named", "name": "CharacterChangedEvent" }
+    }
+  ]
+}

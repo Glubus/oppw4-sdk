@@ -5,6 +5,16 @@ use serde::Serialize;
 pub struct BridgeAnalysisWarning {
     pub code: String,
     pub message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub span: Option<BridgeSourceSpan>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct BridgeSourceSpan {
+    pub line: usize,
+    pub column: usize,
+    pub length: usize,
+    pub source_line: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -83,6 +93,19 @@ pub fn analysis_warning(
     BridgeAnalysisWarning {
         code: code.into(),
         message: message.into(),
+        span: None,
+    }
+}
+
+pub fn analysis_warning_at(
+    code: impl Into<String>,
+    message: impl Into<String>,
+    span: BridgeSourceSpan,
+) -> BridgeAnalysisWarning {
+    BridgeAnalysisWarning {
+        code: code.into(),
+        message: message.into(),
+        span: Some(span),
     }
 }
 

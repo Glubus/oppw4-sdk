@@ -111,6 +111,13 @@ Machine-readable JSON is available for tools and future LSP integration:
 cargo run -q -p oppw4-sdk-analyzer -- check --json examples/js/player_event
 ```
 
+Initialize the analyzer config shape for future bridge/plugin discovery:
+
+```bash
+cargo run -q -p oppw4-sdk-analyzer -- init bridge-js
+cargo run -q -p oppw4-sdk-analyzer -- install bridge-js
+```
+
 Install the binary locally if you want `sdk-analyzer` directly in your shell:
 
 ```bash
@@ -333,6 +340,7 @@ Validate data files with the scripts under `oppw4-data/scripts/`.
 - [API surfaces](docs/API-SURFACES.md)
 - [Plugin API](docs/PLUGIN-DEVELOPMENT.md)
 - [Data dumper concept](docs/DATA-DUMPER.md)
+- [SDK analyzer architecture](docs/SDK-ANALYZER.md)
 
 The public mdBook documentation is expected to live in the sibling
 `docs-oppw4-prism` repository.
@@ -350,19 +358,13 @@ The public mdBook documentation is expected to live in the sibling
 
 These are intentionally not done yet, but should stay visible:
 
-- Add precise source spans for every warning emitted by `sdk-js-analyzer`, not
-  only app-level diagnostics such as missing assets/imports.
-- Split `bridges/js-analyzer/src/lib.rs` into scanner, lightweight JS parsing,
-  effect detection, registry checks and tests.
-- Split `bridges/js/src/vm/modules.rs` into registry projection, invoke bridge,
-  trace/logging and namespace module generation.
-- Replace runtime registry schema JSON strings with either typed Rust builders or
-  external JSON files included at compile time.
-- Design the larger standalone analyzer/LSP story:
-  - `sdk-analyzer` plugin installation;
-  - future analyzer bridge plugins, possibly drop-in `.dll` files;
-  - Zed/Vscode integration;
-  - possible SDK single-DLL bundling/package strategy.
+- Build the actual `sdk-analyzer lsp` server on top of the existing check
+  engine.
+- Define the stable analyzer plugin ABI for future drop-in `.dll` checks.
+- Add Zed/Vscode extension adapters.
+- Decide the SDK single-DLL bundling/package strategy.
+- Continue reducing large historical runtime/tool files that are outside the
+  current analyzer/bridge cleanup.
 
 ## Status
 

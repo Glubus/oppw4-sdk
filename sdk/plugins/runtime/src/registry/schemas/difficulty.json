@@ -1,0 +1,45 @@
+{
+  "namespace": "sdk",
+  "import_name": "difficulty",
+  "constructible": false,
+  "functions": [],
+  "types": [
+    {
+      "name": "DifficultySnapshot",
+      "constructible": false,
+      "fields": [
+        { "name": "module_base", "type_ref": { "kind": "i64" } },
+        { "name": "global", "type_ref": { "kind": "i64" } },
+        { "name": "mission_id", "type_ref": { "kind": "i64" } },
+        { "name": "mode_type", "type_ref": { "kind": "i64" } },
+        { "name": "reward_mode", "type_ref": { "kind": "i64" } },
+        { "name": "difficulty", "type_ref": { "kind": "i64" } },
+        { "name": "special_flag", "type_ref": { "kind": "i64" } },
+        { "name": "cached_mission", "type_ref": { "kind": "i64" } },
+        { "name": "cached_difficulty", "type_ref": { "kind": "i64" } }
+      ]
+    },
+    {
+      "name": "DifficultyAppliedEvent",
+      "constructible": false,
+      "fields": [
+        { "name": "schema", "type_ref": { "kind": "string" } },
+        { "name": "mission_id", "type_ref": { "kind": "optional", "inner": { "kind": "i64" } } },
+        { "name": "mode", "type_ref": { "kind": "string" } },
+        { "name": "difficulty", "type_ref": { "kind": "string" } }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "snapshot",
+      "key": "sdk.runtime.difficulty.snapshot",
+      "payload": { "kind": "named", "name": "DifficultySnapshot" }
+    },
+    {
+      "name": "applied",
+      "key": "sdk.runtime.difficulty.event",
+      "payload": { "kind": "named", "name": "DifficultyAppliedEvent" }
+    }
+  ]
+}

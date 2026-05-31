@@ -1,6 +1,7 @@
 mod args;
 mod assets;
 mod imports;
+mod install;
 mod manifest;
 mod report;
 mod sdk_contracts;
@@ -38,6 +39,8 @@ fn run() -> Result<i32, String> {
             print_report(&report, args.output)?;
             Ok(check_exit_code(&report))
         }
+        Command::Init => install::init_bridge(&args.bridge).map(|_| 0),
+        Command::Install => install::install_bridge(&args.bridge).map(|_| 0),
     }
 }
 
