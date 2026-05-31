@@ -4,7 +4,7 @@ use rquickjs::{
     CatchResultExt, Context, Ctx, Error, Module, Runtime,
 };
 use sdk_bridge::{BridgeAnalysisReport, BridgeModContext};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use crate::{
@@ -61,19 +61,16 @@ fn install_module_loader(runtime: &Runtime, context: &BridgeModContext, modules:
 
 #[derive(Debug)]
 struct ModResolver {
-    builtin_modules: Vec<String>,
+    builtin_modules: HashSet<String>,
 }
 
 impl ModResolver {
-    fn new(mut builtin_modules: Vec<String>) -> Self {
-        builtin_modules.sort();
+    fn new(builtin_modules: HashSet<String>) -> Self {
         Self { builtin_modules }
     }
 
     fn is_builtin(&self, name: &str) -> bool {
-        self.builtin_modules
-            .binary_search_by(|module| module.as_str().cmp(name))
-            .is_ok()
+        self.builtin_modules.contains(name)
     }
 }
 

@@ -66,9 +66,9 @@ impl RuntimeAdapter for JsBridge {
             .is_some_and(|(_, extension)| extension.eq_ignore_ascii_case("js"))
     }
 
-    fn load_mod(&mut self, context: BridgeModContext) -> BridgeLoadReport {
+    fn load_mod(&mut self, context: &BridgeModContext) -> BridgeLoadReport {
         let modules = modules_for_context(&context.modules);
-        match vm::load(&context, &modules) {
+        match vm::load(context, &modules) {
             Ok(vm) => {
                 let handlers = vm.handler_descriptors().to_vec();
                 let analysis = vm.analysis().clone();

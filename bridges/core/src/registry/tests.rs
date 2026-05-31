@@ -252,12 +252,12 @@ impl RuntimeAdapter for FakeBridge {
         request.entry_file.ends_with(".fake")
     }
 
-    fn load_mod(&mut self, context: BridgeModContext) -> BridgeLoadReport {
+    fn load_mod(&mut self, context: &BridgeModContext) -> BridgeLoadReport {
         assert_eq!(context.modules[0].module_name, "core.api");
         BridgeLoadReport {
             boot_mutations: vec![MutationEnvelope {
                 key: mutation_key("fake.boot"),
-                source_mod: context.mod_id,
+                source_mod: context.mod_id.clone(),
                 payload_json: "{}".to_string().into(),
             }],
             logs: vec!["loaded".to_string()],

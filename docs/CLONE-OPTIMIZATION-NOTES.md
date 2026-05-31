@@ -49,7 +49,7 @@ Expected impact:
 
 ## Medium Priority
 
-### JS analyzer clones character and costume strings per effect
+### JS analyzer still owns static character receiver values
 
 File:
 
@@ -58,19 +58,16 @@ File:
 Current shape:
 
 - `character_from_receiver` returns `Option<String>`.
-- `collect_costume_patch_effects` clones `character` and `costume` for model and every texture effect.
 
 Why it matters:
 
 - Analyzer can run often in watch/check mode.
-- Big JS mods with many costume effects will allocate repeatedly.
+- Variable-backed character IDs still clone from the analyzer map before final effect construction.
 
 Preferred direction:
 
-- Keep borrowed values inside the analyzer until the final `BridgeModEffect` construction.
-- Split internal parsed effect representation from exported `BridgeModEffect`:
-  - internal: borrowed `&str` where source-backed
-  - final report: owned strings only at the boundary
+- Return a small borrowed/owned internal value from `character_from_receiver`.
+- Keep `BridgeModEffect` owned at the public boundary.
 
 Do not:
 
@@ -78,39 +75,7 @@ Do not:
 
 Expected impact:
 
-- Lower analyzer allocation count, especially for repeated texture effects.
-
-### Bridge load inserts clone mod IDs during registration
-
-File:
-
-- `bridges/core/src/registry/load.rs`
-
-Current shape:
-
-- `load_mod` clones `mod_id` and `bridge_id` before calling bridge load.
-- `register_loaded_mod` clones `mod_id` to insert effects and mod records.
-
-Why it matters:
-
-- Not a hot loop, but it is central API code.
-- Cleanup here improves ownership clarity.
-
-Preferred direction:
-
-- Split validation from storage:
-  - validate handler IDs using borrowed `mod_id`/`bridge_id`
-  - move `mod_id` exactly once into `ModRecord`
-  - store effects under a cloned key only if the map key genuinely needs to outlive the record
-- Consider making `ModRecord` keyed by map only and removing duplicate `mod_id` field if redundant.
-
-Do not:
-
-- Do not obscure ownership by sharing IDs through reference-counted state.
-
-Expected impact:
-
-- Small performance gain, better API shape.
+- Small reduction in analyzer allocation count.
 
 ## Low Priority
 
@@ -328,31 +293,6 @@ This is more work than clone cleanup, but it would remove the reason many curren
 
 This section tracks places where the algorithm itself can become too expensive as mods, plugins, handlers, assets, or scanned memory ranges grow.
 
-### JS module resolver sorts builtin module names but loader also stores a map
-
-File:
-
-- `bridges/js/src/vm/loader.rs`
-
-Current shape:
-
-- Builtin modules are stored as `HashMap<String, String>` in `ModLoader`.
-- `ModResolver` separately stores sorted `Vec<String>` and does binary search.
-
-Complexity:
-
-- Resolver lookup is O(log n), already fine.
-- But it duplicates the builtin module key set and does extra allocation during load.
-
-Preferred direction:
-
-- If resolver can own the same map shape, use a `HashSet<String>` or share an immutable key set built once.
-- If module count stays tiny, leave it alone; this is not a first target.
-
-Expected impact:
-
-- Low to medium. Mostly cleanup unless builtin module count grows.
-
 ### Reverse probes scan memory ranges linearly
 
 Files:
@@ -393,10 +333,9 @@ These are not good first targets:
 ## Suggested Implementation Order
 
 1. Audit JS `Arc<Mutex<_>>` logs/handler registration and replace with a narrower same-thread sink or messages if `rquickjs` supports it cleanly.
-2. Optimize JS analyzer internals with delayed ownership for character/costume effects.
-3. Revisit JS module load descriptors with borrowed module refs.
-4. Consider a log worker queue if file IO under `LogRouter` lock shows up in runtime traces.
-5. Only then inspect lower-priority report/probe clones if profiling still points there.
+2. Revisit JS module load descriptors with borrowed module refs.
+3. Consider a log worker queue if file IO under `LogRouter` lock shows up in runtime traces.
+4. Only then inspect lower-priority report/probe clones if profiling still points there.
 
 ## Validation Plan
 

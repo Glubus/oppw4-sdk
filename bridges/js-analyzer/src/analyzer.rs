@@ -122,7 +122,7 @@ impl Analyzer<'_, '_> {
             return;
         };
         let patch = &args[patch_start + 1..patch_end];
-        self.collect_costume_patch_effects(character, costume, patch);
+        self.collect_costume_patch_effects(character.as_deref(), &costume, patch);
     }
 
     fn character_from_receiver(
@@ -157,18 +157,15 @@ impl Analyzer<'_, '_> {
 
     fn collect_costume_patch_effects(
         &mut self,
-        character: Option<String>,
-        costume: String,
+        character: Option<&str>,
+        costume: &str,
         patch: &str,
     ) {
         if let Some(model) = string_property(patch, "model") {
             self.report
                 .effects
                 .push(BridgeModEffect::replace_costume_asset(
-                    character.clone(),
-                    costume.clone(),
-                    "model",
-                    model,
+                    character, costume, "model", model,
                 ));
         }
         if let Some(textures) = object_property(patch, "textures") {
@@ -176,8 +173,8 @@ impl Analyzer<'_, '_> {
                 self.report
                     .effects
                     .push(BridgeModEffect::replace_costume_asset(
-                        character.clone(),
-                        costume.clone(),
+                        character,
+                        costume,
                         format!("texture.{name}"),
                         file,
                     ));

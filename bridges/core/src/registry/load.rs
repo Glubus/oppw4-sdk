@@ -18,14 +18,15 @@ impl BridgeRegistry {
     }
 
     pub fn load_mod(&mut self, context: BridgeModContext) -> Result<ModLifecycle, BridgeError> {
-        let mod_id = context.mod_id.clone();
-        let bridge_id = context.bridge_id.clone();
-        let Some(bridge) = self.bridges.get_mut(&bridge_id) else {
+        let Some(bridge) = self.bridges.get_mut(&context.bridge_id) else {
             return Err(BridgeError::MissingBridge {
-                bridge_id: bridge_id.as_str().to_string(),
+                bridge_id: context.bridge_id.as_str().to_string(),
             });
         };
-        let report = bridge.load_mod(context);
+        let report = bridge.load_mod(&context);
+        let BridgeModContext {
+            mod_id, bridge_id, ..
+        } = context;
         self.register_loaded_mod(mod_id, bridge_id, report)
     }
 

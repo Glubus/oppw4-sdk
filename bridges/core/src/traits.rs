@@ -8,7 +8,7 @@ pub trait RuntimeAdapter: Send {
 
     fn supports(&self, request: &BridgeLoadRequest) -> bool;
 
-    fn load_mod(&mut self, context: BridgeModContext) -> BridgeLoadReport;
+    fn load_mod(&mut self, context: &BridgeModContext) -> BridgeLoadReport;
 
     fn dispatch(
         &mut self,
