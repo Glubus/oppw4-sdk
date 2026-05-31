@@ -52,6 +52,15 @@ copy_required_dir() {
   cp -R "$source" "$destination"
 }
 
+validate_package() {
+  local stale
+  stale="$(find "$OUT_ROOT" \( -iname '*.lua' -o -iname '*.luac' \) -print -quit)"
+  if [[ -n "$stale" ]]; then
+    echo "stale language artifact in package: $stale" >&2
+    exit 1
+  fi
+}
+
 if [[ "$SKIP_BUILD" != "1" ]]; then
   release_args=()
   if [[ "$PROFILE" == "release" ]]; then
@@ -102,5 +111,7 @@ mkdir -p "$OUT_ROOT/mods"
 copy_required_dir "$ROOT/examples/js" "$OUT_ROOT/examples/js"
 copy_required_dir "$ROOT/examples/rust/log_plugin" "$OUT_ROOT/examples/rust/log_plugin"
 copy_required_dir "$ROOT/examples/rust/native_mod" "$OUT_ROOT/examples/rust/native_mod"
+
+validate_package
 
 echo "SDK package written to $OUT_ROOT"

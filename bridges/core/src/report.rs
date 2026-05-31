@@ -15,6 +15,7 @@ pub struct BridgeLoadReport {
 pub struct BridgeDispatchReport {
     pub mutations: Vec<MutationEnvelope>,
     pub logs: Vec<String>,
+    pub mod_logs: Vec<BridgeDispatchLog>,
     pub errors: Vec<BridgeDispatchError>,
     pub vm_batch_count: usize,
 }

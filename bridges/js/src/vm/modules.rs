@@ -6,8 +6,9 @@ use std::{
 use rquickjs::{prelude::Func, Ctx};
 use sdk_bridge::{
     ModId, RegistryEventDescriptor, RegistryFieldDescriptor, RegistryFunctionDescriptor,
-    RegistryMethodDescriptor, RegistryModuleLoad, RegistryModuleSchema, RegistryParamDescriptor,
-    RegistryTypeDescriptor, RegistryTypeExtensionDescriptor, RegistryTypeRef,
+    RegistryMethodDescriptor, RegistryModuleLoad, RegistryModuleSchema, RegistryMutationDescriptor,
+    RegistryParamDescriptor, RegistryTypeDescriptor, RegistryTypeExtensionDescriptor,
+    RegistryTypeRef,
 };
 
 use crate::{module::JsModule, vm::error};
@@ -131,12 +132,14 @@ pub(super) fn builtin_namespace_modules(modules: &[JsModule]) -> Vec<(String, St
 }
 
 fn namespace_module_source(namespace: &str, modules: &[JsModule]) -> String {
-    let imports = modules
+    let mut imports = modules
         .iter()
         .filter_map(|module| module.schema.as_ref())
         .filter(|schema| schema.namespace == namespace && is_js_identifier(&schema.import_name))
         .map(|schema| schema.import_name.as_str())
         .collect::<Vec<_>>();
+    imports.sort_unstable();
+    imports.dedup();
 
     let mut source = String::new();
     for import_name in &imports {
@@ -212,6 +215,7 @@ fn schema_json(schema: &RegistryModuleSchema) -> serde_json::Value {
         "types": schema.types.iter().map(type_descriptor_json).collect::<Vec<_>>(),
         "extensions": schema.extensions.iter().map(extension_json).collect::<Vec<_>>(),
         "events": schema.events.iter().map(event_json).collect::<Vec<_>>(),
+        "mutations": schema.mutations.iter().map(mutation_json).collect::<Vec<_>>(),
     })
 }
 
@@ -265,6 +269,14 @@ fn event_json(event: &RegistryEventDescriptor) -> serde_json::Value {
         "name": event.name,
         "key": event.key,
         "payload": type_ref_json(&event.payload),
+    })
+}
+
+fn mutation_json(mutation: &RegistryMutationDescriptor) -> serde_json::Value {
+    serde_json::json!({
+        "name": mutation.name,
+        "key": mutation.key,
+        "payload": type_ref_json(&mutation.payload),
     })
 }
 

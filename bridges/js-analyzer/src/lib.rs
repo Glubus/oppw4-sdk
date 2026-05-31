@@ -3,8 +3,9 @@ use std::collections::BTreeMap;
 use sdk_bridge::{
     analysis_warning, registry_declares_method, BridgeModEffect, RegistryModuleDescriptor,
 };
+use serde::Serialize;
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize)]
 pub struct JsAnalysisReport {
     pub effects: Vec<BridgeModEffect>,
     pub warnings: Vec<sdk_bridge::BridgeAnalysisWarning>,
@@ -484,5 +485,47 @@ mod tests {
             .warnings
             .iter()
             .any(|warning| warning.code == "dynamic_replace_costume"));
+    }
+
+    #[test]
+    fn warns_when_replace_costume_method_is_not_declared() {
+        let source = r#"sdk.character.get("zoro").replace_costume("oni", { model: "z.g1m" });"#;
+
+        let report = analyze(source, &[]);
+
+        assert!(report
+            .warnings
+            .iter()
+            .any(|warning| warning.code == "registry_method_missing"));
+    }
+
+    #[test]
+    fn declared_replace_costume_method_suppresses_registry_warning() {
+        let source = r#"sdk.character.get("zoro").replace_costume("oni", { model: "z.g1m" });"#;
+        let modules = vec![module_with_method("replace_costume")];
+
+        let report = analyze(source, &modules);
+
+        assert!(!report
+            .warnings
+            .iter()
+            .any(|warning| warning.code == "registry_method_missing"));
+        assert_eq!(report.effects.len(), 1);
+    }
+
+    fn module_with_method(method_name: &str) -> sdk_bridge::RegistryModuleDescriptor {
+        sdk_bridge::RegistryModuleDescriptor::builder("test", "sdk.character")
+            .schema(
+                sdk_bridge::RegistryModuleSchema::new("sdk", "character").extension(
+                    sdk_bridge::RegistryTypeExtensionDescriptor::new("sdk.Character").method(
+                        sdk_bridge::RegistryMethodDescriptor::new(
+                            method_name,
+                            method_name,
+                            sdk_bridge::RegistryTypeRef::Json,
+                        ),
+                    ),
+                ),
+            )
+            .build()
     }
 }

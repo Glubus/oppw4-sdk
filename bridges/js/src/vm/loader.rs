@@ -1,8 +1,10 @@
 use rquickjs::{
-    loader::{BuiltinLoader, BuiltinResolver},
-    CatchResultExt, Context, Module, Runtime,
+    loader::{Loader, Resolver},
+    module::Declared,
+    CatchResultExt, Context, Ctx, Error, Module, Runtime,
 };
 use sdk_bridge::{BridgeAnalysisReport, BridgeModContext};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use crate::{
@@ -12,7 +14,7 @@ use crate::{
 
 pub fn load(context: &BridgeModContext, modules: &[JsModule]) -> Result<vm::JsVm, String> {
     let runtime = Runtime::new().context("js runtime create failed")?;
-    install_builtin_namespace_modules(&runtime, modules);
+    install_module_loader(&runtime, context, modules);
     let js_context = Context::full(&runtime).context("js context create failed")?;
     let logs = Arc::new(Mutex::new(Vec::new()));
 
@@ -48,13 +50,120 @@ fn analyze_source(context: &BridgeModContext, source: &str) -> BridgeAnalysisRep
     }
 }
 
-fn install_builtin_namespace_modules(runtime: &Runtime, modules: &[JsModule]) {
-    let namespace_modules = vm::modules::builtin_namespace_modules(modules);
-    let mut resolver = BuiltinResolver::default();
-    let mut loader = BuiltinLoader::default();
-    for (name, source) in namespace_modules {
-        resolver.add_module(name.clone());
-        loader.add_module(name, source);
-    }
+fn install_module_loader(runtime: &Runtime, context: &BridgeModContext, modules: &[JsModule]) {
+    let namespace_modules = vm::modules::builtin_namespace_modules(modules)
+        .into_iter()
+        .collect::<HashMap<_, _>>();
+    let resolver = ModResolver::new(namespace_modules.keys().cloned().collect());
+    let loader = ModLoader::new(context.clone(), namespace_modules);
     runtime.set_loader(resolver, loader);
+}
+
+#[derive(Debug)]
+struct ModResolver {
+    builtin_modules: Vec<String>,
+}
+
+impl ModResolver {
+    fn new(mut builtin_modules: Vec<String>) -> Self {
+        builtin_modules.sort();
+        Self { builtin_modules }
+    }
+
+    fn is_builtin(&self, name: &str) -> bool {
+        self.builtin_modules
+            .binary_search_by(|module| module.as_str().cmp(name))
+            .is_ok()
+    }
+}
+
+impl Resolver for ModResolver {
+    fn resolve<'js>(
+        &mut self,
+        _ctx: &Ctx<'js>,
+        base: &str,
+        name: &str,
+    ) -> rquickjs::Result<String> {
+        if self.is_builtin(name) {
+            return Ok(name.to_string());
+        }
+        if !name.starts_with('.') {
+            return Err(Error::new_resolving(base, name));
+        }
+
+        normalize_relative_module(base, name)
+            .ok_or_else(|| Error::new_resolving_message(base, name, "module escapes mod root"))
+    }
+}
+
+#[derive(Debug)]
+struct ModLoader {
+    context: BridgeModContext,
+    builtin_modules: HashMap<String, String>,
+}
+
+impl ModLoader {
+    fn new(context: BridgeModContext, builtin_modules: HashMap<String, String>) -> Self {
+        Self {
+            context,
+            builtin_modules,
+        }
+    }
+}
+
+impl Loader for ModLoader {
+    fn load<'js>(&mut self, ctx: &Ctx<'js>, name: &str) -> rquickjs::Result<Module<'js, Declared>> {
+        if let Some(source) = self.builtin_modules.get(name) {
+            return Module::declare(ctx.clone(), name, source.as_bytes().to_vec());
+        }
+
+        let Some(path) = resolve_existing_script(&self.context, name) else {
+            return Err(Error::new_loading(name));
+        };
+        let source = vm::source::read_script(&self.context, &path)
+            .map_err(|error| Error::new_loading_message(name, error.to_string()))?;
+        Module::declare(ctx.clone(), name, source)
+    }
+}
+
+fn normalize_relative_module(base: &str, name: &str) -> Option<String> {
+    if name.starts_with('/') || base.starts_with('/') {
+        return None;
+    }
+
+    let mut parts = base
+        .rsplit_once('/')
+        .map(|(dir, _)| dir.split('/').collect::<Vec<_>>())
+        .unwrap_or_default();
+
+    for part in name.split('/') {
+        match part {
+            "" | "." => {}
+            ".." => {
+                parts.pop()?;
+            }
+            segment => parts.push(segment),
+        }
+    }
+
+    if parts.is_empty() {
+        None
+    } else {
+        Some(parts.join("/"))
+    }
+}
+
+fn resolve_existing_script(context: &BridgeModContext, name: &str) -> Option<String> {
+    candidate_script_paths(name)
+        .into_iter()
+        .find(|candidate| vm::source::script_exists(context, candidate))
+}
+
+fn candidate_script_paths(name: &str) -> Vec<String> {
+    let mut candidates = vec![name.to_string()];
+    if !name.ends_with(".js") {
+        candidates.push(format!("{name}.js"));
+        candidates.push(format!("{name}/index.js"));
+    }
+    candidates
 }

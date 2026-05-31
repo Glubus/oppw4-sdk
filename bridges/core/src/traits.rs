@@ -1,6 +1,6 @@
 use crate::{
-    BridgeDispatchReport, BridgeId, BridgeLoadReport, BridgeLoadRequest, BridgeModContext,
-    EventEnvelope, HandlerDescriptor, ModId,
+    BridgeDispatchLog, BridgeDispatchReport, BridgeId, BridgeLoadReport, BridgeLoadRequest,
+    BridgeModContext, EventEnvelope, HandlerDescriptor, ModId,
 };
 
 pub trait RuntimeAdapter: Send {
@@ -24,8 +24,16 @@ pub trait RuntimeAdapter: Send {
         let mut report = BridgeDispatchReport::default();
         for handler in handlers {
             let handler_report = self.dispatch(handler, event);
+            let handler_logs = handler_report.logs;
             report.mutations.extend(handler_report.mutations);
-            report.logs.extend(handler_report.logs);
+            report.logs.extend(handler_logs.iter().cloned());
+            report
+                .mod_logs
+                .extend(handler_logs.into_iter().map(|message| BridgeDispatchLog {
+                    mod_id: handler.mod_id.clone(),
+                    bridge_id: handler.bridge_id.clone(),
+                    message,
+                }));
             report.errors.extend(handler_report.errors);
             report.vm_batch_count += handler_report.vm_batch_count.max(1);
         }

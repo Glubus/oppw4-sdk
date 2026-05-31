@@ -9,6 +9,7 @@ members = [
     "bridges/core",
     "bridges/js-analyzer",
     "bridges/js",
+    "apps/sdk-analyzer",
     "examples/rust/log_plugin",
     "examples/rust/native_mod",
     "tools/moveset-tool",

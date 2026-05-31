@@ -20,12 +20,16 @@ pub use envelope::{EventEnvelope, MutationEnvelope};
 pub use error::BridgeError;
 pub use handler::HandlerDescriptor;
 pub use id::{BridgeId, EventKey, HandlerRef, ModId, MutationKey};
-pub use manifest::{discover_mods, BridgeModManifest, BridgeModManifestError, DiscoveredBridgeMod};
+pub use manifest::{
+    discover_mods, parse_mod_manifest, BridgeModManifest, BridgeModManifestError,
+    DiscoveredBridgeMod,
+};
 pub use module::{
     RegistryEventDescriptor, RegistryFieldDescriptor, RegistryFunctionDescriptor,
-    RegistryMethodDescriptor, RegistryModuleBuilder, RegistryModuleDescriptor, RegistryModuleLoad,
-    RegistryModuleSchema, RegistryParamDescriptor, RegistrySchemaError, RegistryTypeDescriptor,
-    RegistryTypeExtensionDescriptor, RegistryTypeRef,
+    RegistryMethodDescriptor, RegistryModuleBuilder, RegistryModuleDescriptor,
+    RegistryModuleInvokeFn, RegistryModuleLoad, RegistryModuleSchema, RegistryMutationDescriptor,
+    RegistryParamDescriptor, RegistrySchemaError, RegistryTypeDescriptor,
+    RegistryTypeExtensionDescriptor, RegistryTypeRef, RuntimeModuleInstallFn,
 };
 pub use record::{ModLifecycle, ModRecord};
 pub use registry::dispatch::HandlerConflict;

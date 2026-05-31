@@ -64,6 +64,13 @@ function Copy-RequiredDirectory($source, $destination) {
     Copy-Item -Recurse -Force $source $destination
 }
 
+function Validate-Package($root) {
+    $stale = Get-ChildItem -Path $root -Recurse -File -Include "*.lua", "*.luac" | Select-Object -First 1
+    if ($stale) {
+        throw "stale language artifact in package: $($stale.FullName)"
+    }
+}
+
 if (!$SkipBuild) {
     $releaseFlag = if ($Profile -eq "release") { "--release" } else { "" }
     if (!$NoLoader) {
@@ -124,5 +131,7 @@ New-Item -ItemType Directory -Force -Path (Join-Path $outRoot "mods") | Out-Null
 Copy-RequiredDirectory (Join-Path $root "examples/js") (Join-Path $outRoot "examples/js")
 Copy-RequiredDirectory (Join-Path $root "examples/rust/log_plugin") (Join-Path $outRoot "examples/rust/log_plugin")
 Copy-RequiredDirectory (Join-Path $root "examples/rust/native_mod") (Join-Path $outRoot "examples/rust/native_mod")
+
+Validate-Package $outRoot
 
 Write-Host "SDK package written to $outRoot"

@@ -1,12 +1,13 @@
 use crate::{ModId, RegistryModuleDescriptor};
+use serde::Serialize;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct BridgeAnalysisWarning {
     pub code: String,
     pub message: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub enum BridgeModEffect {
     ReplaceCostumeAsset {
         character: Option<String>,
@@ -16,7 +17,7 @@ pub enum BridgeModEffect {
     },
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize)]
 pub struct BridgeAnalysisReport {
     pub effects: Vec<BridgeModEffect>,
     pub warnings: Vec<BridgeAnalysisWarning>,
@@ -139,5 +140,45 @@ mod tests {
         };
 
         assert!(registry_declares_method(&[module], "replace_costume"));
+    }
+
+    #[test]
+    fn missing_registry_extension_method_is_not_declared() {
+        let module = RegistryModuleDescriptor {
+            provider_id: "sdk_data".to_string(),
+            module_name: "sdk.character".to_string(),
+            module_context: 0,
+            install: None,
+            invoke: None,
+            load: RegistryModuleLoad::Always,
+            schema: Some(RegistryModuleSchema::new("sdk", "character")),
+        };
+
+        assert!(!registry_declares_method(&[module], "replace_costume"));
+    }
+
+    #[test]
+    fn analysis_report_serializes_effects_and_warnings() {
+        let report = BridgeAnalysisReport {
+            effects: vec![BridgeModEffect::replace_costume_asset(
+                Some("zoro"),
+                "oni",
+                "Texture.Body",
+                "body.g1t",
+            )],
+            warnings: vec![analysis_warning("dynamic_character", "unknown receiver")],
+        };
+
+        let json = serde_json::to_value(report).expect("json");
+
+        assert_eq!(
+            json["effects"][0]["ReplaceCostumeAsset"]["character"],
+            "zoro"
+        );
+        assert_eq!(
+            json["effects"][0]["ReplaceCostumeAsset"]["slot"],
+            "texture.body"
+        );
+        assert_eq!(json["warnings"][0]["code"], "dynamic_character");
     }
 }

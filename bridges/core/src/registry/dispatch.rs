@@ -1,6 +1,6 @@
 use crate::{
-    BridgeDispatchError, BridgeDispatchLog, EffectConflict, EventEnvelope, EventKey,
-    HandlerDescriptor, RegistryDispatchReport,
+    BridgeDispatchError, EffectConflict, EventEnvelope, EventKey, HandlerDescriptor,
+    RegistryDispatchReport,
 };
 
 use super::BridgeRegistry;
@@ -79,14 +79,8 @@ impl BridgeRegistry {
             let bridge_report = bridge.dispatch_many(&bridge_handlers, event);
             report.metrics.vm_batch_count += bridge_report.vm_batch_count;
             report.mutations.extend(bridge_report.mutations);
-            for message in bridge_report.logs {
-                report.logs.push(message.clone());
-                report.mod_logs.push(BridgeDispatchLog {
-                    mod_id: bridge_handlers[0].mod_id.clone(),
-                    bridge_id: bridge_id.clone(),
-                    message,
-                });
-            }
+            report.logs.extend(bridge_report.logs);
+            report.mod_logs.extend(bridge_report.mod_logs);
             report.errors.extend(bridge_report.errors);
         }
         report.metrics.dispatch_us = started.elapsed().as_micros();

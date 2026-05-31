@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
 use sdk_bridge::{
-    BridgeDispatchError, BridgeDispatchReport, BridgeError, BridgeId, BridgeLoadReport,
-    BridgeLoadRequest, BridgeModContext, BridgeRegistry, EventEnvelope, HandlerDescriptor, ModId,
-    RegistryModuleDescriptor, RuntimeAdapter,
+    BridgeDispatchError, BridgeDispatchLog, BridgeDispatchReport, BridgeError, BridgeId,
+    BridgeLoadReport, BridgeLoadRequest, BridgeModContext, BridgeRegistry, EventEnvelope,
+    HandlerDescriptor, ModId, RegistryModuleDescriptor, RuntimeAdapter,
 };
 
 use crate::{module::JsModule, vm};
@@ -143,7 +143,17 @@ impl RuntimeAdapter for JsBridge {
             };
             report.vm_batch_count += 1;
             match vm.dispatch_many(&mod_handlers, event) {
-                Ok(()) => report.logs.extend(vm.drain_logs()),
+                Ok(()) => {
+                    let logs = vm.drain_logs();
+                    report.logs.extend(logs.iter().cloned());
+                    report
+                        .mod_logs
+                        .extend(logs.into_iter().map(|message| BridgeDispatchLog {
+                            mod_id: mod_id.clone(),
+                            bridge_id: self.id.clone(),
+                            message,
+                        }));
+                }
                 Err(error) => {
                     for handler in mod_handlers {
                         report.errors.push(BridgeDispatchError {

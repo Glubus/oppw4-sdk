@@ -1,10 +1,15 @@
 [package]
-name = "sdk-js-analyzer"
+name = "oppw4-sdk-analyzer"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
 
+[[bin]]
+name = "sdk-analyzer"
+path = "src/main.rs"
+
 [dependencies]
 sdk-bridge.workspace = true
+sdk-js-analyzer.workspace = true
 serde.workspace = true
 serde_json.workspace = true

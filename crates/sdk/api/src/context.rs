@@ -102,13 +102,46 @@ impl<'api> PluginContext<'api> {
         schema_json: &str,
         invoke: plugin_abi::Oppw4RegistryModuleInvokeFn,
     ) -> PluginResult<()> {
+        self.register_registry_module_with_schema_and_optional_invoke(
+            module_name,
+            module_context,
+            install,
+            schema_json,
+            Some(invoke),
+        )
+    }
+
+    pub fn register_registry_module_schema(
+        self,
+        module_name: &str,
+        module_context: *mut std::ffi::c_void,
+        install: plugin_abi::Oppw4RegistryModuleInstallFn,
+        schema_json: &str,
+    ) -> PluginResult<()> {
+        self.register_registry_module_with_schema_and_optional_invoke(
+            module_name,
+            module_context,
+            install,
+            schema_json,
+            None,
+        )
+    }
+
+    pub fn register_registry_module_with_schema_and_optional_invoke(
+        self,
+        module_name: &str,
+        module_context: *mut std::ffi::c_void,
+        install: plugin_abi::Oppw4RegistryModuleInstallFn,
+        schema_json: &str,
+        invoke: Option<plugin_abi::Oppw4RegistryModuleInvokeFn>,
+    ) -> PluginResult<()> {
         self.host.registry().register_module_descriptor_with_schema(
             self.plugin_id,
             module_name,
             module_context,
             install,
             Some(schema_json),
-            Some(invoke),
+            invoke,
         )
     }
 }

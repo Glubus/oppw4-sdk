@@ -239,6 +239,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "oppw4-sdk-analyzer"
+version = "0.1.0"
+dependencies = [
+ "sdk-bridge",
+ "sdk-js-analyzer",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "oppw4-sdk-core-plugin"
 version = "0.1.0"
 dependencies = [
@@ -421,6 +431,7 @@ name = "sdk-bridge"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "serde_json",
  "toml",
  "zip",
 ]
@@ -430,6 +441,8 @@ name = "sdk-js-analyzer"
 version = "0.1.0"
 dependencies = [
  "sdk-bridge",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

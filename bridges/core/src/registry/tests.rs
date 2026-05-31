@@ -79,6 +79,60 @@ fn dispatch_event_calls_registered_bridge_handlers() {
 }
 
 #[test]
+fn dispatch_event_preserves_mod_logs_for_each_handler() {
+    let mut registry = BridgeRegistry::new();
+    let bridge_id = bridge_id("fake");
+    let event_key = event_key("sdk.runtime.tick");
+    registry.register_runtime(FakeBridge::new("fake"));
+    registry
+        .register_loaded_mod(
+            mod_id("first"),
+            bridge_id.clone(),
+            BridgeLoadReport {
+                handlers: vec![HandlerDescriptor {
+                    mod_id: mod_id("first"),
+                    bridge_id: bridge_id.clone(),
+                    event_key: event_key.clone(),
+                    handler_ref: HandlerRef::new("first").expect("handler"),
+                }],
+                ..BridgeLoadReport::default()
+            },
+        )
+        .expect("first mod");
+    registry
+        .register_loaded_mod(
+            mod_id("second"),
+            bridge_id.clone(),
+            BridgeLoadReport {
+                handlers: vec![HandlerDescriptor {
+                    mod_id: mod_id("second"),
+                    bridge_id: bridge_id.clone(),
+                    event_key: event_key.clone(),
+                    handler_ref: HandlerRef::new("second").expect("handler"),
+                }],
+                ..BridgeLoadReport::default()
+            },
+        )
+        .expect("second mod");
+
+    let report = registry.dispatch_event(&EventEnvelope {
+        key: event_key,
+        payload_json: "{}".to_string().into(),
+    });
+
+    assert_eq!(report.errors, []);
+    assert_eq!(report.mod_logs.len(), 2);
+    assert!(report
+        .mod_logs
+        .iter()
+        .any(|entry| entry.mod_id.as_str() == "first" && entry.message == "dispatch:first"));
+    assert!(report
+        .mod_logs
+        .iter()
+        .any(|entry| entry.mod_id.as_str() == "second" && entry.message == "dispatch:second"));
+}
+
+#[test]
 fn has_handlers_is_false_for_unknown_events() {
     let registry = BridgeRegistry::new();
 
