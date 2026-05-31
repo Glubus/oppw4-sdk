@@ -122,9 +122,11 @@ The analyzer currently checks:
 
 - `mod.toml` parsing and entry file existence;
 - JS files under the provided root, including split/imported files;
+- unresolved relative JS imports such as `import "./missing.js"`;
 - registry method usage known by the analyzer;
 - statically detected replacement effects;
 - missing assets referenced by detected effects, with line/column output.
+- missing `.bin` payloads passed to `replace_movesets(...)`.
 
 Example failing check:
 
@@ -259,7 +261,8 @@ Main examples:
 - `examples/js/character_registry_probe`
   - probes registry character APIs.
 - `examples/js/ace_moveset_registry`
-  - demonstrates registry-based moveset replacement.
+  - demonstrates registry-based moveset replacement; provide `ace_moveset.bin`
+    next to `main.js` for an analyzer-clean run.
 - `examples/js/analyzer-test`
   - intentionally fails analyzer asset validation.
 - `examples/rust/log_plugin`
@@ -342,6 +345,24 @@ The public mdBook documentation is expected to live in the sibling
   patches.
 - Keep JS examples analyzer-clean unless the example is explicitly meant to fail.
 - Keep package output free of legacy Lua files.
+
+## Cleanup Backlog
+
+These are intentionally not done yet, but should stay visible:
+
+- Add precise source spans for every warning emitted by `sdk-js-analyzer`, not
+  only app-level diagnostics such as missing assets/imports.
+- Split `bridges/js-analyzer/src/lib.rs` into scanner, lightweight JS parsing,
+  effect detection, registry checks and tests.
+- Split `bridges/js/src/vm/modules.rs` into registry projection, invoke bridge,
+  trace/logging and namespace module generation.
+- Replace runtime registry schema JSON strings with either typed Rust builders or
+  external JSON files included at compile time.
+- Design the larger standalone analyzer/LSP story:
+  - `sdk-analyzer` plugin installation;
+  - future analyzer bridge plugins, possibly drop-in `.dll` files;
+  - Zed/Vscode integration;
+  - possible SDK single-DLL bundling/package strategy.
 
 ## Status
 
