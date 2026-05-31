@@ -22,11 +22,18 @@ struct Args {
     methods: Vec<String>,
     watch: bool,
     interval: Duration,
+    output: OutputFormat,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum Command {
     Check,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum OutputFormat {
+    Human,
+    Json,
 }
 
 #[derive(Debug, Serialize)]
@@ -44,7 +51,7 @@ struct Diagnostic {
     message: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Copy, Debug, Serialize)]
 #[serde(rename_all = "lowercase")]
 enum DiagnosticSeverity {
     Error,
@@ -86,7 +93,8 @@ fn run() -> Result<(), String> {
         Command::Check if args.watch => watch(args),
         Command::Check => {
             let report = analyze_roots(&args.roots, &method_modules(&args.methods))?;
-            print_report(&report)
+            print_report(&report, args.output)?;
+            finish_check(&report)
         }
     }
 }
@@ -99,7 +107,7 @@ fn watch(args: Args) -> Result<(), String> {
         if snapshot != last_snapshot {
             last_snapshot = snapshot;
             let report = analyze_roots(&args.roots, &modules)?;
-            print_report(&report)?;
+            print_report(&report, args.output)?;
         }
         thread::sleep(args.interval);
     }
@@ -138,11 +146,71 @@ fn analyze_roots(
     })
 }
 
-fn print_report(report: &AppReport) -> Result<(), String> {
-    let json = serde_json::to_string_pretty(report)
-        .map_err(|error| format!("failed to serialize analysis report: {error}"))?;
-    println!("{json}");
+fn print_report(report: &AppReport, output: OutputFormat) -> Result<(), String> {
+    match output {
+        OutputFormat::Human => print!("{}", format_human_report(report)),
+        OutputFormat::Json => {
+            let json = serde_json::to_string_pretty(report)
+                .map_err(|error| format!("failed to serialize analysis report: {error}"))?;
+            println!("{json}");
+        }
+    }
     Ok(())
+}
+
+fn finish_check(report: &AppReport) -> Result<(), String> {
+    if report.summary.errors == 0 {
+        Ok(())
+    } else {
+        Err(format!(
+            "sdk-analyzer found {} error(s)",
+            report.summary.errors
+        ))
+    }
+}
+
+fn format_human_report(report: &AppReport) -> String {
+    let mut output = String::new();
+    output.push_str("    Checking bridge-js mods\n");
+    for diagnostic in &report.diagnostics {
+        let severity = match diagnostic.severity {
+            DiagnosticSeverity::Error => "error",
+            DiagnosticSeverity::Warning => "warning",
+        };
+        output.push_str(&format!(
+            "{severity}[{}]: {}\n  --> {}\n\n",
+            diagnostic.code, diagnostic.message, diagnostic.path
+        ));
+    }
+    for file in &report.files {
+        for warning in &file.warnings {
+            output.push_str(&format!(
+                "warning[{}]: {}\n  --> {}\n\n",
+                warning.code, warning.message, file.path
+            ));
+        }
+        for effect in &file.effects {
+            output.push_str(&format!(
+                "note[effect]: {}\n  --> {}\n\n",
+                effect.describe(),
+                file.path
+            ));
+        }
+    }
+
+    let status = if report.summary.errors == 0 {
+        "Finished"
+    } else {
+        "Failed"
+    };
+    output.push_str(&format!(
+        "{status} sdk-analyzer: {} file(s), {} effect(s), {} warning(s), {} error(s)\n",
+        report.summary.files,
+        report.summary.effects,
+        report.summary.warnings + report.summary.diagnostics - report.summary.errors,
+        report.summary.errors,
+    ));
+    output
 }
 
 fn parse_args(args: impl IntoIterator<Item = String>) -> Result<Args, String> {
@@ -155,11 +223,13 @@ fn parse_args(args: impl IntoIterator<Item = String>) -> Result<Args, String> {
         .collect::<Vec<_>>();
     let mut watch = false;
     let mut interval = Duration::from_millis(750);
+    let mut output = OutputFormat::Human;
     let mut args = args.into_iter();
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "-h" | "--help" => return Err(usage()),
             "check" if command.is_none() => command = Some(Command::Check),
+            "--json" => output = OutputFormat::Json,
             "--watch" => watch = true,
             "--bridge" => {
                 bridge = args
@@ -183,6 +253,18 @@ fn parse_args(args: impl IntoIterator<Item = String>) -> Result<Args, String> {
                     .map_err(|_| "--interval-ms must be an integer".to_string())?;
                 interval = Duration::from_millis(millis.max(50));
             }
+            "--format" => {
+                output = match args
+                    .next()
+                    .filter(|value| !value.trim().is_empty())
+                    .ok_or_else(|| "--format requires human or json".to_string())?
+                    .as_str()
+                {
+                    "human" => OutputFormat::Human,
+                    "json" => OutputFormat::Json,
+                    value => return Err(format!("unsupported output format: {value}")),
+                };
+            }
             value if value.starts_with('-') => {
                 return Err(format!("unknown argument: {value}\n\n{}", usage()));
             }
@@ -202,6 +284,7 @@ fn parse_args(args: impl IntoIterator<Item = String>) -> Result<Args, String> {
         methods,
         watch,
         interval,
+        output,
     })
 }
 
@@ -353,7 +436,7 @@ impl Diagnostic {
 }
 
 fn usage() -> String {
-    "usage: sdk-analyzer check [--bridge bridge-js] [--watch] [--interval-ms n] [--method name] [--no-default-methods] <file-or-dir>..."
+    "usage: sdk-analyzer check [--bridge bridge-js] [--watch] [--interval-ms n] [--json|--format human|json] [--method name] [--no-default-methods] <file-or-dir>..."
         .to_string()
 }
 
@@ -378,10 +461,57 @@ mod tests {
         assert_eq!(args.command, Command::Check);
         assert_eq!(args.bridge, "bridge-js");
         assert!(args.watch);
+        assert_eq!(args.output, OutputFormat::Human);
         assert_eq!(args.interval, Duration::from_millis(100));
         assert_eq!(args.roots, [PathBuf::from("examples/js")]);
         assert!(args.methods.contains(&"replace_movesets".to_string()));
         assert!(args.methods.contains(&"replace_costume".to_string()));
+    }
+
+    #[test]
+    fn parses_json_output() {
+        let args = parse_args([
+            "check".to_string(),
+            "--json".to_string(),
+            "main.js".to_string(),
+        ])
+        .expect("args");
+
+        assert_eq!(args.output, OutputFormat::Json);
+    }
+
+    #[test]
+    fn formats_human_report_like_check_output() {
+        let report = AppReport {
+            diagnostics: vec![Diagnostic::warning(
+                Path::new("mod.toml"),
+                "uses_plugins_empty",
+                "mod.toml does not declare [uses].plugins",
+            )],
+            files: vec![FileReport {
+                path: "main.js".to_string(),
+                effects: Vec::new(),
+                warnings: vec![sdk_bridge::analysis_warning(
+                    "dynamic_patch",
+                    "dynamic patch shape cannot be fully analyzed",
+                )],
+            }],
+            summary: ReportSummary {
+                diagnostics: 1,
+                errors: 0,
+                files: 1,
+                effects: 0,
+                warnings: 1,
+            },
+        };
+
+        let formatted = format_human_report(&report);
+
+        assert!(formatted.contains("    Checking bridge-js mods"));
+        assert!(formatted.contains("warning[uses_plugins_empty]"));
+        assert!(formatted.contains("  --> mod.toml"));
+        assert!(formatted.contains("warning[dynamic_patch]"));
+        assert!(formatted.contains("Finished sdk-analyzer"));
     }
 
     #[test]
