@@ -1,75 +1,277 @@
 # OPPW4 SDK
 
-This workspace is the experimental OPPW4 SDK split from the original patcher
-into a registry-first modding platform.
+Experimental SDK and modding runtime for **One Piece Pirate Warriors 4**.
 
-The SDK owns the modding platform:
+This repository is moving away from language-specific prototype APIs toward a
+registry-first SDK. Gameplay features are exposed as typed registry modules;
+bridges such as JavaScript project those contracts into a language-friendly API.
 
-- SDK core orchestration and plugin loading;
-- host ABI/API crates;
-- language bridge infrastructure;
-- typed registry modules and type extensions;
-- OPPW4 character/data APIs backed by the `oppw4-data` snapshot;
-- RDB and LinkData helpers;
-- SDK service plugins, external plugins, examples, and modder documentation.
+The public surface is still allowed to break while the SDK is under active
+development.
 
-This is still experimental and unpublished. Compatibility with older prototype
-Lua APIs is not a goal; the SDK should stay clean and registry-first while the
-public surface is still allowed to break.
-
-## Layout
+## What Is In This Repo
 
 ```text
-crates/
-  host/
-    abi/          # current package: plugin-abi
-    core/         # current package: plugin-host
-  sdk/
-    api/          # current package: plugin-sdk
-  hooks/
-  asm/
-  rdb/
+apps/
+  sdk-analyzer/          # standalone analyzer CLI, future base for LSP support
 bridges/
-  core/           # runtime registry, manifests, events, mutations
-  js/             # QuickJS bridge
-sdk/
-  plugins/        # SDK service plugins packaged under plugins/sdk/
-plugins/
-  moveset_patcher/ # external official plugin
-oppw4-data/       # local data snapshot consumed by sdk_data
+  core/                  # mod manifests, registry contracts, events, reports
+  js/                    # QuickJS bridge for JS mods
+  js-analyzer/           # static JS analyzer library
+crates/
+  asm/                   # low-level patch/write helpers
+  hooks/                 # hook helpers
+  host/abi/              # plugin ABI
+  host/core/             # plugin host
+  rdb/                   # RDB helpers
+  sdk/api/               # public plugin SDK API
 examples/
-docs/
+  js/                    # recommended mod authoring path
+  rust/                  # native plugin/native mod examples
+plugins/
+  moveset_patcher/       # official external plugin
+sdk/
+  plugins/               # official SDK service plugins
+tools/                   # package, manifest, dump and data tools
+oppw4-data/              # versioned local data snapshot
+resources/               # reverse engineering resources and generated banks
+docs/                    # architecture notes and reverse notes
 ```
 
-Clone or update the data snapshot before building packages or working on
-character data:
+## Current Direction
+
+- Mods are loaded from `mod.toml` manifests, either as directories or zip files.
+- JS mods are the preferred mod authoring path for gameplay scripting.
+- JS can import SDK registry modules with `import { player } from "sdk"`.
+- JS can split code with relative imports such as `import "./events/player.js"`.
+- Runtime features are exposed by registry modules, not hardcoded in bridges.
+- `sdk-analyzer` checks JS mods before runtime, similar in spirit to
+  `cargo check`.
+- Native Rust plugins remain available for services, low-level patchers and
+  advanced integrations.
+
+## Requirements
+
+- Rust toolchain, currently developed with stable Rust.
+- Git submodules initialized for the data snapshot and generated resources.
+- Windows/MSVC target for producing game-loadable DLLs.
+- PowerShell on Windows for the packaging script, or shell on Linux/WSL.
+
+Initialize submodules:
 
 ```bash
 git submodule update --init --recursive
 ```
 
-## Build
+## Build And Test
 
-```powershell
-cargo test --workspace
+Run the normal workspace check:
+
+```bash
+cargo check --workspace
 ```
 
-The SDK services are packaged under `plugins/sdk/`. External official plugins
-such as `moveset_patcher` are packaged in their own plugin folders.
+Run focused tests for the active registry, JS bridge and analyzer work:
 
-Validate an external plugin manifest:
-
-```powershell
-cargo run -p plugin-manifest-tool -- plugins/moveset_patcher/plugin.toml
+```bash
+cargo test -p sdk-bridge -p sdk-js-bridge -p sdk-js-analyzer -p oppw4-sdk-analyzer
 ```
 
-Validate a runtime mod manifest:
+On Linux, full `cargo test --workspace` can hit Windows-only plugin linkage for
+some DLL plugins. Use the focused tests above when validating bridge/analyzer
+work on Linux.
 
-```powershell
-cargo run -p mod-manifest-tool -- path/to/mod.toml
+If your environment sets a read-only target dir or blocked `sccache`, use:
+
+```bash
+CARGO_TARGET_DIR=/tmp/oppw4-sdk-target env -u RUSTC_WRAPPER cargo check --workspace
 ```
 
-Build the SDK release layout:
+## SDK Analyzer
+
+The analyzer app lives in `apps/sdk-analyzer` and builds the `sdk-analyzer`
+binary.
+
+Run it through Cargo:
+
+```bash
+cargo run -q -p oppw4-sdk-analyzer -- check examples/js/player_event
+```
+
+Human output is the default:
+
+```text
+    Checking bridge-js mods
+Finished sdk-analyzer: 1 file(s), 0 effect(s), 0 warning(s), 0 error(s)
+```
+
+Machine-readable JSON is available for tools and future LSP integration:
+
+```bash
+cargo run -q -p oppw4-sdk-analyzer -- check --json examples/js/player_event
+```
+
+Install the binary locally if you want `sdk-analyzer` directly in your shell:
+
+```bash
+cargo install --path apps/sdk-analyzer
+sdk-analyzer check examples/js/player_event
+```
+
+The analyzer currently checks:
+
+- `mod.toml` parsing and entry file existence;
+- JS files under the provided root, including split/imported files;
+- registry method usage known by the analyzer;
+- statically detected replacement effects;
+- missing assets referenced by detected effects, with line/column output.
+
+Example failing check:
+
+```bash
+cargo run -q -p oppw4-sdk-analyzer -- check examples/js/analyzer-test
+```
+
+Expected style:
+
+```text
+    Checking bridge-js mods
+error[asset_missing]: referenced asset does not exist: analyzer-test-body.g1t
+  --> examples/js/analyzer-test/main.js:6:16
+  |
+6 |         body: "analyzer-test-body.g1t",
+  |                ^^^^^^^^^^^^^^^^^^^^^^
+
+note[effect]: luffy costume default texture.body with analyzer-test-body.g1t
+  --> examples/js/analyzer-test/main.js
+
+Failed sdk-analyzer: 2 file(s), 1 effect(s), 0 warning(s), 1 error(s)
+```
+
+Watch mode is available for continuous checks:
+
+```bash
+cargo run -q -p oppw4-sdk-analyzer -- check --watch examples/js/player_event
+```
+
+## JavaScript Mods
+
+A JS mod is a folder with a `mod.toml` and an entry file:
+
+```toml
+[mod]
+id = "player_event"
+name = "Player Event JS Example"
+
+[uses]
+plugins = ["sdk_runtime"]
+
+[entry]
+file = "main.js"
+```
+
+Simple event mod:
+
+```js
+import { player } from "sdk";
+
+player.on_character_changed((ctx) => {
+    oppw4.trace(`player changed payload=${ctx.payloadJson}`);
+});
+```
+
+Split code is supported by the bridge at runtime:
+
+```js
+// main.js
+import "./events/player.js";
+```
+
+```js
+// events/player.js
+import { player } from "sdk";
+
+player.on_character_changed((ctx) => {
+    oppw4.trace(`active=${ctx.payload.activeCharacterIds.join(",")}`);
+});
+```
+
+The JS bridge supports directory mods and zipped mods. Relative imports are
+resolved inside the mod root and cannot escape with `..`.
+
+## Registry Modules
+
+Registry modules are typed contracts registered by plugins. Bridges project
+those contracts into their own runtime.
+
+Current runtime modules registered by `sdk_runtime` include:
+
+- `sdk.player`
+  - `player.active_characters()`
+  - `player.on_character_changed(...)`
+- `sdk.difficulty`
+  - difficulty snapshot/applied events
+- `sdk.rank`
+  - rank related runtime events
+- `sdk.rewards`
+  - reward related runtime events
+
+Other service plugins can expose modules and type extensions. For example,
+data/moveset plugins can expose character data and extend `sdk.Character` with
+patcher methods.
+
+## Manifests
+
+Validate a JS/native mod manifest:
+
+```bash
+cargo run -q -p mod-manifest-tool -- examples/js/player_event/mod.toml
+```
+
+Validate a plugin manifest:
+
+```bash
+cargo run -q -p plugin-manifest-tool -- plugins/moveset_patcher/plugin.toml
+```
+
+Runtime mod manifests use:
+
+```toml
+[mod]
+id = "my_mod"
+name = "My Mod"
+
+[uses]
+plugins = ["sdk_runtime"]
+
+[entry]
+file = "main.js"
+```
+
+The entry path must be a safe relative file path.
+
+## Examples
+
+Main examples:
+
+- `examples/js/player_event`
+  - listens to runtime player events.
+- `examples/js/character_registry_probe`
+  - probes registry character APIs.
+- `examples/js/ace_moveset_registry`
+  - demonstrates registry-based moveset replacement.
+- `examples/js/analyzer-test`
+  - intentionally fails analyzer asset validation.
+- `examples/rust/log_plugin`
+  - native plugin example.
+- `examples/rust/native_mod`
+  - experimental native mod example.
+
+See [examples/README.md](examples/README.md) for more notes.
+
+## Packaging
+
+Build the SDK release layout on Windows:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools/package-sdk.ps1
@@ -81,67 +283,68 @@ On Linux or WSL:
 tools/package-sdk.sh
 ```
 
-The package is written under `dist/oppw4-sdk/` with the loader proxy as
-`dinput8.dll`, SDK services in `plugins/sdk/`, external official plugins in
-their own plugin folders, and the mandatory data repository under `oppw4-data/`.
-Active mods are not copied into plugin folders; runtime mods belong under the
-game-level `mods/` directory.
-
-By default the package script also builds the sibling loader workspace at
-`../oppw4-modloader`. Use `LOADER_ROOT=/path/to/oppw4-modloader` on shell or
-`-LoaderRoot path\to\oppw4-modloader` on PowerShell when the loader repository
-is elsewhere.
-
-Examples are documented in [examples/README.md](examples/README.md).
-
-## Registry-First Runtime
-
-The runtime is built around typed registry modules instead of language-specific
-standard libraries. A plugin can expose a module such as `sdk.character` or add
-methods to another module's type through registry type extensions. Language
-bridges project those typed contracts into their own syntax, but the bridge does
-not own gameplay concepts.
-
-For example, `sdk_data` exposes `sdk.Character` values, and
-`moveset_patcher` extends `sdk.Character` with `replace_movesets(...)`. A JS mod
-can therefore stay small:
-
-```js
-import { character } from "sdk";
-
-const zoro = character.find("zoro");
-zoro.replace_movesets("zoro_new_world_moveset.bin");
-```
-
-The VM passes only the declarative request. Rust validates the mod-relative
-payload path, reads the `.bin`, and applies the LinkData replacement.
-
-## Data Direction
-
-`oppw4-data` is currently consumed as a local snapshot. The long-term direction
-is a collaborative, schema-validated data site that acts like a wiki for reverse
-engineering evidence and game data. The game runtime should never depend on the
-live site; it should consume a versioned exported snapshot.
-
-Expected flow:
+The package is written to:
 
 ```text
-contributors -> wiki/API -> schema validation -> versioned JSON snapshot -> SDK package
+dist/oppw4-sdk/
 ```
 
-Versioning should treat normal data additions and corrections as `1.x.y`
-changes. A major version bump is reserved for breaking snapshot contracts, which
-should be rare while the SDK remains experimental.
+The layout includes:
 
-## Architecture Docs
+- loader proxy as `dinput8.dll`;
+- SDK service plugins under `plugins/sdk/`;
+- official external plugins in their plugin folders;
+- required data snapshot under `oppw4-data/`.
 
-The public mdBook documentation now lives in the sibling `docs-oppw4-prism`
-repository.
+The package scripts reject legacy Lua artifacts (`.lua`, `.luac`) in the output.
 
-- [SDK foundation RFC](docs/RFC-0001-sdk-foundation.md)
+By default the package script builds the sibling loader workspace at
+`../oppw4-modloader`. Override it when needed:
+
+```bash
+LOADER_ROOT=/path/to/oppw4-modloader tools/package-sdk.sh
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/package-sdk.ps1 -LoaderRoot path\to\oppw4-modloader
+```
+
+## Data Snapshot
+
+`oppw4-data` is consumed as a local, versioned data snapshot. Runtime should not
+depend on a live website or mutable remote data.
+
+Expected long-term flow:
+
+```text
+contributors -> wiki/API -> schema validation -> exported JSON snapshot -> SDK package
+```
+
+Validate data files with the scripts under `oppw4-data/scripts/`.
+
+## Architecture Notes
+
+- [Registry-first architecture](docs/architecture/registry-first.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Architecture rules](docs/RULES.md)
 - [API surfaces](docs/API-SURFACES.md)
-- [Plugin API design](docs/PLUGIN-API.md)
-- [Plugin development](docs/PLUGIN-DEVELOPMENT.md)
-- [SDK data dumper concept](docs/DATA-DUMPER.md)
+- [Plugin API](docs/PLUGIN-DEVELOPMENT.md)
+- [Data dumper concept](docs/DATA-DUMPER.md)
+
+The public mdBook documentation is expected to live in the sibling
+`docs-oppw4-prism` repository.
+
+## Development Notes
+
+- Keep bridges domain-neutral. Gameplay concepts belong in registry modules.
+- Prefer typed registry schemas over ad hoc bridge globals.
+- Keep runtime mod assets mod-relative and validate them before applying
+  patches.
+- Keep JS examples analyzer-clean unless the example is explicitly meant to fail.
+- Keep package output free of legacy Lua files.
+
+## Status
+
+This SDK is experimental. The current priority is making the registry contracts,
+JS bridge, standalone analyzer and packaging story reliable before locking a
+public API.
