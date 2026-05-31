@@ -49,6 +49,16 @@ struct Diagnostic {
     severity: DiagnosticSeverity,
     code: String,
     message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    span: Option<DiagnosticSpan>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct DiagnosticSpan {
+    line: usize,
+    column: usize,
+    length: usize,
+    source_line: String,
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
@@ -127,7 +137,7 @@ fn analyze_roots(
         let source = fs::read_to_string(&path)
             .map_err(|error| format!("failed to read {}: {error}", path.display()))?;
         let report = sdk_js_analyzer::analyze(&source, modules);
-        validate_effect_assets(roots, &path, &report.effects, &mut diagnostics);
+        validate_effect_assets(roots, &path, &source, &report.effects, &mut diagnostics);
         files.push(FileReport {
             path: path.display().to_string(),
             effects: report.effects,
@@ -179,10 +189,7 @@ fn format_human_report(report: &AppReport) -> String {
             DiagnosticSeverity::Error => "error",
             DiagnosticSeverity::Warning => "warning",
         };
-        output.push_str(&format!(
-            "{severity}[{}]: {}\n  --> {}\n\n",
-            diagnostic.code, diagnostic.message, diagnostic.path
-        ));
+        output.push_str(&format_diagnostic(severity, diagnostic));
     }
     for file in &report.files {
         for warning in &file.warnings {
@@ -212,6 +219,38 @@ fn format_human_report(report: &AppReport) -> String {
         report.summary.warnings + report.summary.diagnostics - report.summary.errors,
         report.summary.errors,
     ));
+    output
+}
+
+fn format_diagnostic(severity: &str, diagnostic: &Diagnostic) -> String {
+    let mut output = String::new();
+    output.push_str(&format!(
+        "{severity}[{}]: {}\n",
+        diagnostic.code, diagnostic.message
+    ));
+    if let Some(span) = &diagnostic.span {
+        output.push_str(&format!(
+            "  --> {}:{}:{}\n",
+            diagnostic.path, span.line, span.column
+        ));
+        let width = span.line.to_string().len();
+        output.push_str(&format!("{:>width$} |\n", "", width = width));
+        output.push_str(&format!(
+            "{:>width$} | {}\n",
+            span.line,
+            span.source_line,
+            width = width
+        ));
+        output.push_str(&format!(
+            "{:>width$} | {}{}\n\n",
+            "",
+            " ".repeat(span.column.saturating_sub(1)),
+            "^".repeat(span.length.max(1)),
+            width = width
+        ));
+    } else {
+        output.push_str(&format!("  --> {}\n\n", diagnostic.path));
+    }
     output
 }
 
@@ -388,6 +427,7 @@ fn validate_manifest(root: &Path, manifest: &Path, diagnostics: &mut Vec<Diagnos
 fn validate_effect_assets(
     roots: &[PathBuf],
     source_file: &Path,
+    source: &str,
     effects: &[BridgeModEffect],
     diagnostics: &mut Vec<Diagnostic>,
 ) {
@@ -401,21 +441,45 @@ fn validate_effect_assets(
                         .components()
                         .any(|component| matches!(component, std::path::Component::ParentDir))
                 {
-                    diagnostics.push(Diagnostic::error(
-                        source_file,
-                        "asset_path_invalid",
-                        format!("asset path must stay inside the mod: {file}"),
-                    ));
+                    diagnostics.push(
+                        Diagnostic::error(
+                            source_file,
+                            "asset_path_invalid",
+                            format!("asset path must stay inside the mod: {file}"),
+                        )
+                        .with_span(find_source_span(source, file)),
+                    );
                 } else if !mod_root.join(asset_path).is_file() {
-                    diagnostics.push(Diagnostic::error(
-                        source_file,
-                        "asset_missing",
-                        format!("referenced asset does not exist: {file}"),
-                    ));
+                    diagnostics.push(
+                        Diagnostic::error(
+                            source_file,
+                            "asset_missing",
+                            format!("referenced asset does not exist: {file}"),
+                        )
+                        .with_span(find_source_span(source, file)),
+                    );
                 }
             }
         }
     }
+}
+
+fn find_source_span(source: &str, needle: &str) -> Option<DiagnosticSpan> {
+    let offset = source.find(needle)?;
+    let before = &source[..offset];
+    let line = before.lines().count().max(1);
+    let line_start = before.rfind('\n').map(|index| index + 1).unwrap_or(0);
+    let column = source[line_start..offset].chars().count() + 1;
+    let line_end = source[offset..]
+        .find('\n')
+        .map(|index| offset + index)
+        .unwrap_or(source.len());
+    Some(DiagnosticSpan {
+        line,
+        column,
+        length: needle.chars().count(),
+        source_line: source[line_start..line_end].to_string(),
+    })
 }
 
 fn mod_root_for_source(roots: &[PathBuf], source_file: &Path) -> PathBuf {
@@ -474,6 +538,7 @@ impl Diagnostic {
             severity: DiagnosticSeverity::Error,
             code: code.into(),
             message: message.into(),
+            span: None,
         }
     }
 
@@ -483,7 +548,13 @@ impl Diagnostic {
             severity: DiagnosticSeverity::Warning,
             code: code.into(),
             message: message.into(),
+            span: None,
         }
+    }
+
+    fn with_span(mut self, span: Option<DiagnosticSpan>) -> Self {
+        self.span = span;
+        self
     }
 }
 
@@ -579,12 +650,31 @@ mod tests {
         )];
         let mut diagnostics = Vec::new();
 
-        validate_effect_assets(&[root.clone()], &source, &effects, &mut diagnostics);
+        validate_effect_assets(&[root.clone()], &source, "", &effects, &mut diagnostics);
 
         assert!(diagnostics
             .iter()
             .any(|diagnostic| diagnostic.code == "asset_missing"));
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn formats_diagnostic_source_spans() {
+        let diagnostic = Diagnostic::error(
+            Path::new("main.js"),
+            "asset_missing",
+            "referenced asset does not exist: missing.g1t",
+        )
+        .with_span(find_source_span(
+            r#"asset.replace("missing.g1t");"#,
+            "missing.g1t",
+        ));
+
+        let formatted = format_diagnostic("error", &diagnostic);
+
+        assert!(formatted.contains("--> main.js:1:16"));
+        assert!(formatted.contains("1 | asset.replace(\"missing.g1t\");"));
+        assert!(formatted.contains("^^^^^^^^^^^"));
     }
 
     #[test]
