@@ -2,19 +2,21 @@ use std::path::{Component, Path, PathBuf};
 
 use crate::{
     report::{source_span_at, Diagnostic, DiagnosticSpan},
-    sources::{mod_root_for_source, read_string_literal, skip_ws},
+    sources::{read_string_literal, skip_ws},
 };
 
 pub(crate) fn validate_relative_imports(
-    roots: &[PathBuf],
+    mod_root: &Path,
     source_file: &Path,
     source: &str,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
-    let mod_root = mod_root_for_source(roots, source_file);
+    if !source.contains("import") && !source.contains("from") {
+        return;
+    }
     let source_dir = source_file.parent().unwrap_or_else(|| Path::new("."));
     for import in relative_imports(source) {
-        let Some(target) = resolve_relative_module_path(&mod_root, source_dir, &import.specifier)
+        let Some(target) = resolve_relative_module_path(mod_root, source_dir, &import.specifier)
         else {
             diagnostics.push(
                 Diagnostic::error(
@@ -181,7 +183,7 @@ mod tests {
         let mut diagnostics = Vec::new();
 
         validate_relative_imports(
-            &[root.clone()],
+            &root,
             &source_file,
             r#"import "./missing.js";"#,
             &mut diagnostics,
@@ -202,13 +204,33 @@ mod tests {
         let mut diagnostics = Vec::new();
 
         validate_relative_imports(
-            &[root.clone()],
+            &root,
             &source_file,
             r#"import "./events/player";"#,
             &mut diagnostics,
         );
 
         assert!(diagnostics.is_empty());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn reports_missing_export_from_relative_source() {
+        let root = unique_temp_dir("missing-export-from");
+        fs::create_dir_all(&root).expect("temp dir");
+        let source_file = root.join("main.js");
+        let mut diagnostics = Vec::new();
+
+        validate_relative_imports(
+            &root,
+            &source_file,
+            r#"export { value } from "./missing.js";"#,
+            &mut diagnostics,
+        );
+
+        assert!(diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "import_missing"));
         let _ = fs::remove_dir_all(root);
     }
 

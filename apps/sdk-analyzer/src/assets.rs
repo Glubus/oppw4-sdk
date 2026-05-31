@@ -1,26 +1,28 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::{
     report::{find_source_span, source_span_at, Diagnostic, DiagnosticSpan},
-    sources::{mod_root_for_source, read_string_literal, skip_ws},
+    sources::{read_string_literal, skip_ws},
 };
 use sdk_bridge::BridgeModEffect;
 
 pub(crate) fn validate_effect_assets(
-    roots: &[PathBuf],
+    mod_root: &Path,
     source_file: &Path,
     source: &str,
     effects: &[BridgeModEffect],
     diagnostics: &mut Vec<Diagnostic>,
 ) {
-    let mod_root = mod_root_for_source(roots, source_file);
+    if effects.is_empty() {
+        return;
+    }
     for effect in effects {
         match effect {
             BridgeModEffect::ReplaceCostumeAsset { file, .. } => {
                 validate_asset_path(
                     source_file,
                     source,
-                    &mod_root,
+                    mod_root,
                     file,
                     "asset_missing",
                     diagnostics,
@@ -31,16 +33,18 @@ pub(crate) fn validate_effect_assets(
 }
 
 pub(crate) fn validate_replace_movesets_assets(
-    roots: &[PathBuf],
+    mod_root: &Path,
     source_file: &Path,
     source: &str,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
-    let mod_root = mod_root_for_source(roots, source_file);
+    if !source.contains("replace_movesets") && !source.contains("replaceMovesets") {
+        return;
+    }
     for call in replace_movesets_calls(source) {
         validate_asset_path_with_span(
             source_file,
-            &mod_root,
+            mod_root,
             &call.asset,
             call.span,
             "moveset_asset_missing",
@@ -154,7 +158,7 @@ mod tests {
         )];
         let mut diagnostics = Vec::new();
 
-        validate_effect_assets(&[root.clone()], &source, "", &effects, &mut diagnostics);
+        validate_effect_assets(&root, &source, "", &effects, &mut diagnostics);
 
         assert!(diagnostics
             .iter()
@@ -170,7 +174,7 @@ mod tests {
         let mut diagnostics = Vec::new();
 
         validate_replace_movesets_assets(
-            &[root.clone()],
+            &root,
             &source_file,
             r#"character.replace_movesets("missing.bin");"#,
             &mut diagnostics,
@@ -192,7 +196,7 @@ mod tests {
         let mut diagnostics = Vec::new();
 
         validate_replace_movesets_assets(
-            &[root.clone()],
+            &root,
             &source_file,
             r#"character.replace_movesets("moveset.bin");"#,
             &mut diagnostics,
@@ -202,7 +206,7 @@ mod tests {
         let _ = fs::remove_dir_all(root);
     }
 
-    fn unique_temp_dir(label: &str) -> PathBuf {
+    fn unique_temp_dir(label: &str) -> std::path::PathBuf {
         let nanos = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .expect("time")

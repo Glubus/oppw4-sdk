@@ -63,14 +63,22 @@ fn analyze_roots(
     modules: &[RegistryModuleDescriptor],
 ) -> Result<AppReport, String> {
     let mut diagnostics = manifest::manifest_diagnostics(roots);
-    let mut files = Vec::new();
-    for path in sources::source_files(roots)? {
+    let source_files = sources::source_files(roots)?;
+    let mut files = Vec::with_capacity(source_files.len());
+    for path in source_files {
         let source = fs::read_to_string(&path)
             .map_err(|error| format!("failed to read {}: {error}", path.display()))?;
         let analysis = sdk_js_analyzer::analyze(&source, modules);
-        imports::validate_relative_imports(roots, &path, &source, &mut diagnostics);
-        assets::validate_effect_assets(roots, &path, &source, &analysis.effects, &mut diagnostics);
-        assets::validate_replace_movesets_assets(roots, &path, &source, &mut diagnostics);
+        let mod_root = sources::mod_root_for_source(roots, &path);
+        imports::validate_relative_imports(&mod_root, &path, &source, &mut diagnostics);
+        assets::validate_effect_assets(
+            &mod_root,
+            &path,
+            &source,
+            &analysis.effects,
+            &mut diagnostics,
+        );
+        assets::validate_replace_movesets_assets(&mod_root, &path, &source, &mut diagnostics);
         files.push(FileReport {
             path: path.display().to_string(),
             effects: analysis.effects,

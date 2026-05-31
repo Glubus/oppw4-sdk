@@ -1,8 +1,8 @@
-use std::collections::BTreeMap;
+use std::collections::{HashMap, HashSet};
 
 use sdk_bridge::{
-    analysis_warning_at, registry_declares_method, BridgeAnalysisWarning, BridgeModEffect,
-    BridgeSourceSpan, RegistryModuleDescriptor,
+    analysis_warning_at, BridgeAnalysisWarning, BridgeModEffect, BridgeSourceSpan,
+    RegistryModuleDescriptor,
 };
 use serde::Serialize;
 
@@ -20,8 +20,8 @@ pub struct JsAnalysisReport {
 pub fn analyze(source: &str, modules: &[RegistryModuleDescriptor]) -> JsAnalysisReport {
     let mut analyzer = Analyzer {
         source,
-        modules,
-        character_vars: BTreeMap::new(),
+        declared_methods: declared_methods(modules),
+        character_vars: HashMap::new(),
         report: JsAnalysisReport::default(),
     };
     analyzer.scan_character_bindings();
@@ -31,8 +31,8 @@ pub fn analyze(source: &str, modules: &[RegistryModuleDescriptor]) -> JsAnalysis
 
 struct Analyzer<'a> {
     source: &'a str,
-    modules: &'a [RegistryModuleDescriptor],
-    character_vars: BTreeMap<String, String>,
+    declared_methods: HashSet<String>,
+    character_vars: HashMap<String, String>,
     report: JsAnalysisReport,
 }
 
@@ -191,7 +191,7 @@ impl Analyzer<'_> {
         offset: usize,
         length: usize,
     ) {
-        if !registry_declares_method(self.modules, method_name) {
+        if !self.declared_methods.contains(method_name) {
             self.warning_at(
                 "registry_method_missing",
                 format!(
@@ -216,6 +216,16 @@ impl Analyzer<'_> {
             source_span_at(self.source, offset, length),
         ));
     }
+}
+
+fn declared_methods(modules: &[RegistryModuleDescriptor]) -> HashSet<String> {
+    modules
+        .iter()
+        .filter_map(|module| module.schema.as_ref())
+        .flat_map(|schema| schema.extensions.iter())
+        .flat_map(|extension| extension.methods.iter())
+        .map(|method| method.name.clone())
+        .collect()
 }
 
 fn source_span_at(source: &str, offset: usize, length: usize) -> BridgeSourceSpan {
