@@ -1,4 +1,4 @@
-use std::{fs, path::Path, sync::OnceLock};
+use std::{collections::HashMap, fs, path::Path, sync::OnceLock};
 
 use serde::Deserialize;
 use serde_json::Value;
@@ -72,6 +72,13 @@ pub enum MissionDataError {
 }
 
 static MISSIONS: OnceLock<Vec<Mission>> = OnceLock::new();
+static MISSION_INDEXES: OnceLock<MissionIndexes> = OnceLock::new();
+
+#[derive(Debug)]
+struct MissionIndexes {
+    by_name: HashMap<String, usize>,
+    by_id: HashMap<u16, usize>,
+}
 
 pub fn all() -> &'static [Mission] {
     MISSIONS.get_or_init(Vec::new).as_slice()
@@ -93,21 +100,44 @@ pub fn find(query: &str) -> Option<&'static Mission> {
         return None;
     }
 
-    all().iter().find(|mission| {
-        normalize(&mission.id) == query
-            || mission
-                .display_name
-                .as_deref()
-                .is_some_and(|name| normalize(name) == query)
-            || mission
-                .aliases
-                .iter()
-                .any(|alias| normalize(alias) == query)
-    })
+    mission_indexes()
+        .by_name
+        .get(&query)
+        .and_then(|index| all().get(*index))
 }
 
 pub fn find_by_id(id: u16) -> Option<&'static Mission> {
-    all().iter().find(|mission| mission.mission_id == Some(id))
+    mission_indexes()
+        .by_id
+        .get(&id)
+        .and_then(|index| all().get(*index))
+}
+
+fn mission_indexes() -> &'static MissionIndexes {
+    MISSION_INDEXES.get_or_init(|| {
+        let mut by_name = HashMap::new();
+        let mut by_id = HashMap::new();
+        for (index, mission) in all().iter().enumerate() {
+            insert_name(&mut by_name, &mission.id, index);
+            if let Some(display_name) = mission.display_name.as_deref() {
+                insert_name(&mut by_name, display_name, index);
+            }
+            for alias in &mission.aliases {
+                insert_name(&mut by_name, alias, index);
+            }
+            if let Some(id) = mission.mission_id {
+                by_id.entry(id).or_insert(index);
+            }
+        }
+        MissionIndexes { by_name, by_id }
+    })
+}
+
+fn insert_name(index: &mut HashMap<String, usize>, value: &str, mission_index: usize) {
+    let value = normalize(value);
+    if !value.is_empty() {
+        index.entry(value).or_insert(mission_index);
+    }
 }
 
 pub fn read_data_root(root: &Path) -> Result<Vec<Mission>, MissionDataError> {

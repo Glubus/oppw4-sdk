@@ -1,7 +1,7 @@
 mod writer;
 
 use std::{
-    collections::HashMap,
+    collections::{hash_map::Entry, HashMap},
     ffi::CStr,
     fs,
     path::PathBuf,
@@ -86,36 +86,30 @@ impl LogRouter {
     }
 
     fn plugin_writer_for(&mut self, plugin_id: &str) -> std::io::Result<&mut SessionLogWriter> {
-        if !self.plugin_writers.contains_key(plugin_id) {
-            let root = self.plugin_log_root_for(plugin_id);
-            fs::create_dir_all(&root)?;
-            self.plugin_writers
-                .insert(plugin_id.to_string(), SessionLogWriter::new(root));
+        let plugin_roots = &self.plugin_roots;
+        match self.plugin_writers.entry(plugin_id.to_string()) {
+            Entry::Occupied(entry) => Ok(entry.into_mut()),
+            Entry::Vacant(entry) => {
+                let root = plugin_roots
+                    .get(plugin_id)
+                    .cloned()
+                    .unwrap_or_else(|| PathBuf::from("plugins").join(plugin_id).join("logs"));
+                fs::create_dir_all(&root)?;
+                Ok(entry.insert(SessionLogWriter::new(root)))
+            }
         }
-        Ok(self
-            .plugin_writers
-            .get_mut(plugin_id)
-            .expect("plugin log writer was inserted"))
     }
 
     fn mod_writer_for(&mut self, mod_id: &str) -> std::io::Result<&mut SessionLogWriter> {
-        if !self.mod_writers.contains_key(mod_id) {
-            let root = self.mod_log_root.join(mod_id);
-            fs::create_dir_all(&root)?;
-            self.mod_writers
-                .insert(mod_id.to_string(), SessionLogWriter::new(root));
+        let mod_log_root = &self.mod_log_root;
+        match self.mod_writers.entry(mod_id.to_string()) {
+            Entry::Occupied(entry) => Ok(entry.into_mut()),
+            Entry::Vacant(entry) => {
+                let root = mod_log_root.join(mod_id);
+                fs::create_dir_all(&root)?;
+                Ok(entry.insert(SessionLogWriter::new(root)))
+            }
         }
-        Ok(self
-            .mod_writers
-            .get_mut(mod_id)
-            .expect("mod log writer was inserted"))
-    }
-
-    fn plugin_log_root_for(&self, plugin_id: &str) -> PathBuf {
-        self.plugin_roots
-            .get(plugin_id)
-            .cloned()
-            .unwrap_or_else(|| PathBuf::from("plugins").join(plugin_id).join("logs"))
     }
 }
 

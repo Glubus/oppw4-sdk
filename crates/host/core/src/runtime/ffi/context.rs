@@ -88,9 +88,10 @@ impl ApiContext {
     }
 
     pub(crate) fn require_registry_module(&self, module_name: &str) -> Result<(), i32> {
-        if self
-            .registry_modules
-            .contains(&module_name.to_ascii_lowercase())
+        if self.registry_modules.contains(module_name)
+            || self
+                .registry_modules
+                .contains(&module_name.to_ascii_lowercase())
         {
             Ok(())
         } else {
@@ -99,7 +100,8 @@ impl ApiContext {
     }
 
     fn has_capability(&self, capability: &str) -> bool {
-        self.capabilities.contains(&capability.to_ascii_lowercase())
+        self.capabilities.contains(capability)
+            || self.capabilities.contains(&capability.to_ascii_lowercase())
     }
 }
 

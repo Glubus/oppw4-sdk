@@ -60,13 +60,18 @@ pub(super) fn log_unresolved_manifests(
         let missing_dependencies = manifest
             .dependencies
             .iter()
-            .filter(|dependency| !loaded.contains(&dependency.to_ascii_lowercase()))
+            .filter(|dependency| {
+                !loaded.contains(*dependency) && !loaded.contains(&dependency.to_ascii_lowercase())
+            })
             .cloned()
             .collect::<Vec<_>>();
         let missing_capabilities = manifest
             .capabilities_required
             .iter()
-            .filter(|capability| !capabilities.contains(&capability.to_ascii_lowercase()))
+            .filter(|capability| {
+                !capabilities.contains(*capability)
+                    && !capabilities.contains(&capability.to_ascii_lowercase())
+            })
             .cloned()
             .collect::<Vec<_>>();
         log::write_line(format!(

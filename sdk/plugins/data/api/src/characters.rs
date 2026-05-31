@@ -1,4 +1,4 @@
-use std::{fs, path::Path, sync::OnceLock};
+use std::{collections::HashMap, fs, path::Path, sync::OnceLock};
 
 use serde::Deserialize;
 
@@ -132,6 +132,13 @@ pub enum CharacterDataError {
 }
 
 static CHARACTERS: OnceLock<Vec<Character>> = OnceLock::new();
+static CHARACTER_INDEXES: OnceLock<CharacterIndexes> = OnceLock::new();
+
+#[derive(Debug)]
+struct CharacterIndexes {
+    by_name: HashMap<String, usize>,
+    by_id: HashMap<u16, usize>,
+}
 
 pub fn all() -> &'static [Character] {
     CHARACTERS
@@ -157,24 +164,51 @@ pub fn find(query: &str) -> Option<&'static Character> {
         return None;
     }
 
-    all().iter().find(|character| {
-        normalize(&character.canonical) == query
-            || normalize(&character.display_name) == query
-            || normalize(&character.model_stem) == query
-            || character
-                .aliases
-                .iter()
-                .any(|alias| normalize(alias) == query)
-    })
+    character_indexes()
+        .by_name
+        .get(&query)
+        .and_then(|index| all().get(*index))
 }
 
 pub fn find_by_id(id: u16) -> Option<&'static Character> {
-    all().iter().find(|character| {
-        character.model_id == Some(id)
-            || character.playable_id == Some(id)
-            || character.runtime_id == Some(id)
-            || character.boss_runtime_id == Some(id)
+    character_indexes()
+        .by_id
+        .get(&id)
+        .and_then(|index| all().get(*index))
+}
+
+fn character_indexes() -> &'static CharacterIndexes {
+    CHARACTER_INDEXES.get_or_init(|| {
+        let mut by_name = HashMap::new();
+        let mut by_id = HashMap::new();
+        for (index, character) in all().iter().enumerate() {
+            insert_name(&mut by_name, &character.canonical, index);
+            insert_name(&mut by_name, &character.display_name, index);
+            insert_name(&mut by_name, &character.model_stem, index);
+            for alias in &character.aliases {
+                insert_name(&mut by_name, alias, index);
+            }
+            for id in [
+                character.model_id,
+                character.playable_id,
+                character.runtime_id,
+                character.boss_runtime_id,
+            ]
+            .into_iter()
+            .flatten()
+            {
+                by_id.entry(id).or_insert(index);
+            }
+        }
+        CharacterIndexes { by_name, by_id }
     })
+}
+
+fn insert_name(index: &mut HashMap<String, usize>, value: &str, character_index: usize) {
+    let value = normalize(value);
+    if !value.is_empty() {
+        index.entry(value).or_insert(character_index);
+    }
 }
 
 pub fn parse_characters_json(text: &str) -> Result<Vec<Character>, CharacterDataError> {
