@@ -1,7 +1,8 @@
 use crate::{
-    BridgeDispatchReport, BridgeId, BridgeLoadReport, BridgeLoadRequest, BridgeModContext,
-    BridgeModSource, EventEnvelope, EventKey, HandlerDescriptor, HandlerRef, ModId, ModLifecycle,
-    MutationEnvelope, MutationKey, RegistryModuleDescriptor, RegistryModuleLoad, RuntimeAdapter,
+    BridgeAnalysisReport, BridgeDispatchReport, BridgeId, BridgeLoadReport, BridgeLoadRequest,
+    BridgeModContext, BridgeModEffect, BridgeModSource, EventEnvelope, EventKey, HandlerDescriptor,
+    HandlerRef, ModId, ModLifecycle, MutationEnvelope, MutationKey, RegistryModuleDescriptor,
+    RegistryModuleLoad, RuntimeAdapter,
 };
 
 use super::*;
@@ -59,16 +60,123 @@ fn dispatch_event_calls_registered_bridge_handlers() {
         )
         .expect("register mod");
 
+    assert!(registry.has_handlers(&event_key));
+
     let report = registry.dispatch_event(&EventEnvelope {
         key: event_key,
-        payload_json: "{}".to_string(),
+        payload_json: "{}".to_string().into(),
     });
 
     assert_eq!(report.errors, []);
     assert_eq!(report.logs, ["dispatch:on_tick"]);
+    assert_eq!(report.metrics.payload_bytes, 2);
+    assert_eq!(report.metrics.handler_count, 1);
+    assert_eq!(report.metrics.bridge_batch_count, 1);
+    assert_eq!(report.metrics.vm_batch_count, 1);
     assert_eq!(report.mod_logs.len(), 1);
     assert_eq!(report.mod_logs[0].mod_id.as_str(), "events");
     assert_eq!(report.mod_logs[0].message, "dispatch:on_tick");
+}
+
+#[test]
+fn has_handlers_is_false_for_unknown_events() {
+    let registry = BridgeRegistry::new();
+
+    assert!(!registry.has_handlers(&event_key("sdk.runtime.missing")));
+}
+
+#[test]
+fn handler_conflicts_report_multiple_mods_on_same_event() {
+    let mut registry = BridgeRegistry::new();
+    let bridge_id = bridge_id("fake");
+    let event_key = event_key("sdk.runtime.rank.event");
+    registry.register_runtime(FakeBridge::new("fake"));
+    registry
+        .register_loaded_mod(
+            mod_id("first"),
+            bridge_id.clone(),
+            BridgeLoadReport {
+                handlers: vec![HandlerDescriptor {
+                    mod_id: mod_id("first"),
+                    bridge_id: bridge_id.clone(),
+                    event_key: event_key.clone(),
+                    handler_ref: HandlerRef::new("first").expect("handler"),
+                }],
+                ..BridgeLoadReport::default()
+            },
+        )
+        .expect("first mod");
+    registry
+        .register_loaded_mod(
+            mod_id("second"),
+            bridge_id.clone(),
+            BridgeLoadReport {
+                handlers: vec![HandlerDescriptor {
+                    mod_id: mod_id("second"),
+                    bridge_id,
+                    event_key: event_key.clone(),
+                    handler_ref: HandlerRef::new("second").expect("handler"),
+                }],
+                ..BridgeLoadReport::default()
+            },
+        )
+        .expect("second mod");
+
+    let conflicts = registry.handler_conflicts();
+
+    assert_eq!(conflicts.len(), 1);
+    assert_eq!(conflicts[0].event_key, event_key);
+    assert_eq!(conflicts[0].mod_ids, [mod_id("first"), mod_id("second")]);
+}
+
+#[test]
+fn effect_conflicts_report_multiple_mods_on_same_costume_asset() {
+    let mut registry = BridgeRegistry::new();
+    let bridge_id = bridge_id("fake");
+    let effect = BridgeModEffect::ReplaceCostumeAsset {
+        character: Some("zoro".to_string()),
+        costume: "oni".to_string(),
+        slot: "texture.body".to_string(),
+        file: "body_a.g1t".to_string(),
+    };
+    registry.register_runtime(FakeBridge::new("fake"));
+    registry
+        .register_loaded_mod(
+            mod_id("first"),
+            bridge_id.clone(),
+            BridgeLoadReport {
+                analysis: BridgeAnalysisReport {
+                    effects: vec![effect.clone()],
+                    warnings: Vec::new(),
+                },
+                ..BridgeLoadReport::default()
+            },
+        )
+        .expect("first mod");
+    registry
+        .register_loaded_mod(
+            mod_id("second"),
+            bridge_id,
+            BridgeLoadReport {
+                analysis: BridgeAnalysisReport {
+                    effects: vec![BridgeModEffect::ReplaceCostumeAsset {
+                        character: Some("zoro".to_string()),
+                        costume: "oni".to_string(),
+                        slot: "texture.body".to_string(),
+                        file: "body_b.g1t".to_string(),
+                    }],
+                    warnings: Vec::new(),
+                },
+                ..BridgeLoadReport::default()
+            },
+        )
+        .expect("second mod");
+
+    let conflicts = registry.effect_conflicts();
+
+    assert_eq!(conflicts.len(), 1);
+    assert_eq!(conflicts[0].effect, effect);
+    assert_eq!(conflicts[0].mod_ids, [mod_id("first"), mod_id("second")]);
 }
 
 struct FakeBridge {
@@ -96,7 +204,7 @@ impl RuntimeAdapter for FakeBridge {
             boot_mutations: vec![MutationEnvelope {
                 key: mutation_key("fake.boot"),
                 source_mod: context.mod_id,
-                payload_json: "{}".to_string(),
+                payload_json: "{}".to_string().into(),
             }],
             logs: vec!["loaded".to_string()],
             ..BridgeLoadReport::default()

@@ -128,5 +128,7 @@ pub type HostEmitSignalFn = unsafe extern "system" fn(
     payload: *const u8,
     payload_len: usize,
 ) -> i32;
+pub type HostHasSignalListenersFn =
+    unsafe extern "system" fn(host_context: *mut c_void, signal_utf8: *const c_char) -> i32;
 pub type HostRegisterConfigSchemaFn =
     unsafe extern "system" fn(host_context: *mut c_void, schema: *const Oppw4ConfigSchema) -> i32;

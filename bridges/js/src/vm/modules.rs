@@ -4,9 +4,13 @@ use std::{
 };
 
 use rquickjs::{prelude::Func, Ctx};
-use sdk_bridge::{ModId, RegistryModuleLoad, RegistryModuleSchema, RegistryTypeRef};
+use sdk_bridge::{
+    ModId, RegistryEventDescriptor, RegistryFieldDescriptor, RegistryFunctionDescriptor,
+    RegistryMethodDescriptor, RegistryModuleLoad, RegistryModuleSchema, RegistryParamDescriptor,
+    RegistryTypeDescriptor, RegistryTypeExtensionDescriptor, RegistryTypeRef,
+};
 
-use crate::module::JsModule;
+use crate::{module::JsModule, vm::error};
 
 pub(super) fn install(
     ctx: Ctx<'_>,
@@ -14,6 +18,7 @@ pub(super) fn install(
     modules: &[JsModule],
     logs: Arc<Mutex<Vec<String>>>,
 ) -> rquickjs::Result<()> {
+    log_contract_errors(mod_id, modules, &logs);
     install_trace(ctx.clone(), mod_id, logs)?;
     install_registry_metadata(ctx.clone(), modules)?;
     install_registry_invoker(ctx.clone(), modules)?;
@@ -23,18 +28,32 @@ pub(super) fn install(
     Ok(())
 }
 
+fn log_contract_errors(mod_id: &ModId, modules: &[JsModule], logs: &Arc<Mutex<Vec<String>>>) {
+    let Ok(mut logs) = logs.lock() else {
+        return;
+    };
+    for module in modules {
+        let Some(schema) = &module.schema else {
+            continue;
+        };
+        if let Err(error) = schema.validate_contract() {
+            logs.push(format!(
+                "registry contract warning mod={} module={} error={error}",
+                mod_id.as_str(),
+                module.module_name
+            ));
+        }
+    }
+}
+
 fn install_registry_invoker(ctx: Ctx<'_>, modules: &[JsModule]) -> rquickjs::Result<()> {
     let modules = Arc::new(modules.to_vec());
     ctx.globals().set(
         "__oppw4_registry_invoke",
         Func::from(
             move |qualified_name: String, args_json: String| -> rquickjs::Result<String> {
-                invoke_registry_function(&modules, &qualified_name, &args_json).map_err(|error| {
-                    rquickjs::Error::new_from_js_message(
-                        "Registry",
-                        "Invoke",
-                        format!("{qualified_name}: {error}"),
-                    )
+                invoke_registry_function(&modules, &qualified_name, &args_json).map_err(|err| {
+                    error::js("Registry", "Invoke", format!("{qualified_name}: {err}"))
                 })
             },
         ),
@@ -189,49 +208,63 @@ fn schema_json(schema: &RegistryModuleSchema) -> serde_json::Value {
         "namespace": schema.namespace,
         "importName": schema.import_name,
         "constructible": schema.constructible,
-        "functions": schema.functions.iter().map(|function| {
-            serde_json::json!({
-                "name": function.name,
-                "params": function.params.iter().map(|param| {
-                    serde_json::json!({
-                        "name": param.name,
-                        "type": type_ref_json(&param.type_ref),
-                    })
-                }).collect::<Vec<_>>(),
-                "returns": type_ref_json(&function.returns),
-            })
-        }).collect::<Vec<_>>(),
-        "types": schema.types.iter().map(|type_descriptor| {
-            serde_json::json!({
-                "name": type_descriptor.name,
-                "constructible": type_descriptor.constructible,
-                "fields": type_descriptor.fields.iter().map(|field| {
-                    serde_json::json!({
-                        "name": field.name,
-                        "type": type_ref_json(&field.type_ref),
-                    })
-                }).collect::<Vec<_>>(),
-            })
-        }).collect::<Vec<_>>(),
-        "extensions": schema.extensions.iter().map(|extension| {
-            serde_json::json!({
-                "targetType": extension.target_type,
-                "methods": extension.methods.iter().map(|method| {
-                    serde_json::json!({
-                        "name": method.name,
-                        "function": method.function,
-                        "returns": type_ref_json(&method.returns),
-                    })
-                }).collect::<Vec<_>>(),
-            })
-        }).collect::<Vec<_>>(),
-        "events": schema.events.iter().map(|event| {
-            serde_json::json!({
-                "name": event.name,
-                "key": event.key,
-                "payload": type_ref_json(&event.payload),
-            })
-        }).collect::<Vec<_>>(),
+        "functions": schema.functions.iter().map(function_json).collect::<Vec<_>>(),
+        "types": schema.types.iter().map(type_descriptor_json).collect::<Vec<_>>(),
+        "extensions": schema.extensions.iter().map(extension_json).collect::<Vec<_>>(),
+        "events": schema.events.iter().map(event_json).collect::<Vec<_>>(),
+    })
+}
+
+fn function_json(function: &RegistryFunctionDescriptor) -> serde_json::Value {
+    serde_json::json!({
+        "name": function.name,
+        "params": function.params.iter().map(param_json).collect::<Vec<_>>(),
+        "returns": type_ref_json(&function.returns),
+    })
+}
+
+fn param_json(param: &RegistryParamDescriptor) -> serde_json::Value {
+    serde_json::json!({
+        "name": param.name,
+        "type": type_ref_json(&param.type_ref),
+    })
+}
+
+fn type_descriptor_json(type_descriptor: &RegistryTypeDescriptor) -> serde_json::Value {
+    serde_json::json!({
+        "name": type_descriptor.name,
+        "constructible": type_descriptor.constructible,
+        "fields": type_descriptor.fields.iter().map(field_json).collect::<Vec<_>>(),
+    })
+}
+
+fn field_json(field: &RegistryFieldDescriptor) -> serde_json::Value {
+    serde_json::json!({
+        "name": field.name,
+        "type": type_ref_json(&field.type_ref),
+    })
+}
+
+fn extension_json(extension: &RegistryTypeExtensionDescriptor) -> serde_json::Value {
+    serde_json::json!({
+        "targetType": extension.target_type,
+        "methods": extension.methods.iter().map(method_json).collect::<Vec<_>>(),
+    })
+}
+
+fn method_json(method: &RegistryMethodDescriptor) -> serde_json::Value {
+    serde_json::json!({
+        "name": method.name,
+        "function": method.function,
+        "returns": type_ref_json(&method.returns),
+    })
+}
+
+fn event_json(event: &RegistryEventDescriptor) -> serde_json::Value {
+    serde_json::json!({
+        "name": event.name,
+        "key": event.key,
+        "payload": type_ref_json(&event.payload),
     })
 }
 
@@ -268,7 +301,7 @@ fn register_plugin_module(ctx: Ctx<'_>, module: &JsModule) -> rquickjs::Result<(
         )
     };
     if result != 0 {
-        return Err(rquickjs::Error::new_from_js_message(
+        return Err(error::js(
             "Rust",
             "JsModule",
             format!(

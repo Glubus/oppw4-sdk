@@ -74,6 +74,10 @@ pub(crate) unsafe extern "system" fn host_emit_signal(
         };
         signals.get(&signal).cloned().unwrap_or_default()
     };
+    let has_runtime_handlers = loader::has_event_handlers(&signal);
+    if subscribers.is_empty() && !has_runtime_handlers {
+        return 0;
+    }
     for subscriber in subscribers {
         let code = unsafe {
             (subscriber.callback)(
@@ -87,12 +91,89 @@ pub(crate) unsafe extern "system" fn host_emit_signal(
             return code;
         }
     }
-    dispatch_runtime_event(&signal, payload, payload_len);
+    if has_runtime_handlers {
+        dispatch_runtime_event(&signal, payload, payload_len);
+    }
     0
+}
+
+pub(crate) unsafe extern "system" fn host_has_signal_listeners(
+    host_context: *mut c_void,
+    signal_utf8: *const c_char,
+) -> i32 {
+    let context = match context_from_raw(host_context) {
+        Ok(context) => context,
+        Err(code) => return code,
+    };
+    if let Err(code) = context.require_capability(CAP_SIGNALS_EMIT) {
+        return code;
+    }
+    let Some(signal) = signal_name(signal_utf8) else {
+        return -1;
+    };
+    if has_signal_subscribers(&signal) || loader::has_event_handlers(&signal) {
+        1
+    } else {
+        0
+    }
+}
+
+pub(crate) fn emit_host_json(signal: &str, payload: serde_json::Value) {
+    let Ok(bytes) = serde_json::to_vec(&payload) else {
+        return;
+    };
+    emit_host_bytes(signal, &bytes);
 }
 
 fn registry() -> &'static Mutex<HashMap<String, Vec<SignalSubscriber>>> {
     SIGNALS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn has_signal_subscribers(signal: &str) -> bool {
+    registry()
+        .lock()
+        .map(|signals| {
+            signals
+                .get(signal)
+                .is_some_and(|subscribers| !subscribers.is_empty())
+        })
+        .unwrap_or(true)
+}
+
+fn emit_host_bytes(signal: &str, payload: &[u8]) {
+    let signal = signal.trim().to_ascii_lowercase();
+    if signal.is_empty() {
+        return;
+    }
+    let subscribers = {
+        let Ok(signals) = registry().lock() else {
+            return;
+        };
+        signals.get(&signal).cloned().unwrap_or_default()
+    };
+    let has_runtime_handlers = loader::has_event_handlers(&signal);
+    if subscribers.is_empty() && !has_runtime_handlers {
+        return;
+    }
+    let Ok(signal_utf8) = std::ffi::CString::new(signal.as_str()) else {
+        return;
+    };
+    for subscriber in subscribers {
+        let code = unsafe {
+            (subscriber.callback)(
+                subscriber.context as *mut c_void,
+                signal_utf8.as_ptr(),
+                payload.as_ptr(),
+                payload.len(),
+            )
+        };
+        if code != 0 {
+            return;
+        }
+    }
+    if has_runtime_handlers {
+        dispatch_runtime_event(&signal, payload.as_ptr(), payload.len());
+    }
 }
 
 unsafe fn signal_name(raw: *const c_char) -> Option<String> {
@@ -107,12 +188,12 @@ fn dispatch_runtime_event(signal: &str, payload: *const u8, payload_len: usize) 
     let Ok(key) = EventKey::new(signal) else {
         return;
     };
-    let payload_json = if payload_len == 0 {
-        "{}".to_string()
+    let payload_json: std::sync::Arc<str> = if payload_len == 0 {
+        std::sync::Arc::from("{}")
     } else {
         let bytes = unsafe { std::slice::from_raw_parts(payload, payload_len) };
         match std::str::from_utf8(bytes) {
-            Ok(value) => value.to_string(),
+            Ok(value) => std::sync::Arc::from(value),
             Err(_) => return,
         }
     };

@@ -2,15 +2,16 @@ use std::ffi::{c_char, c_void};
 
 use super::ffi::{
     HostActiveCharacterFn, HostDebugEnabledFn, HostEmitSignalFn, HostForEachPluginModFn,
-    HostForEachPluginModZipFn, HostGameStatusFn, HostLogFn, HostModuleBaseFn,
-    HostPatchLinkDataRowFn, HostReadMemoryFn, HostRegisterActiveCharacterProviderFn,
-    HostRegisterConfigSchemaFn, HostRegisterFileProviderFn, HostRegisterGameStatusProviderFn,
-    HostRegisterLinkDataProviderFn, HostRegisterRdbPatchProviderFn, HostRegisterRdbServiceFn,
-    HostRegisterRdbVirtualProviderFn, HostRegisterRegistryModuleFn, HostReplaceLinkDataEntryFn,
-    HostRequireCapabilityFn, HostScanMemoryFn, HostSubscribeSignalFn, HostWriteMemoryFn,
-    Oppw4ProviderCloseFn, Oppw4ProviderFileTimeFn, Oppw4ProviderOpenPathFn,
-    Oppw4ProviderPatchReadFn, Oppw4ProviderReadFn, Oppw4ProviderSeekFn, Oppw4ProviderSizeFn,
-    Oppw4RegistryModuleInstallFn, Oppw4RegistryModuleInvokeFn,
+    HostForEachPluginModZipFn, HostGameStatusFn, HostHasSignalListenersFn, HostLogFn,
+    HostModuleBaseFn, HostPatchLinkDataRowFn, HostReadMemoryFn,
+    HostRegisterActiveCharacterProviderFn, HostRegisterConfigSchemaFn, HostRegisterFileProviderFn,
+    HostRegisterGameStatusProviderFn, HostRegisterLinkDataProviderFn,
+    HostRegisterRdbPatchProviderFn, HostRegisterRdbServiceFn, HostRegisterRdbVirtualProviderFn,
+    HostRegisterRegistryModuleFn, HostReplaceLinkDataEntryFn, HostRequireCapabilityFn,
+    HostScanMemoryFn, HostSubscribeSignalFn, HostWriteMemoryFn, Oppw4ProviderCloseFn,
+    Oppw4ProviderFileTimeFn, Oppw4ProviderOpenPathFn, Oppw4ProviderPatchReadFn,
+    Oppw4ProviderReadFn, Oppw4ProviderSeekFn, Oppw4ProviderSizeFn, Oppw4RegistryModuleInstallFn,
+    Oppw4RegistryModuleInvokeFn,
 };
 
 #[repr(C)]
@@ -47,6 +48,7 @@ pub struct Oppw4PluginApi {
     pub subscribe_signal: Option<HostSubscribeSignalFn>,
     pub emit_signal: Option<HostEmitSignalFn>,
     pub register_config_schema: Option<HostRegisterConfigSchemaFn>,
+    pub has_signal_listeners: Option<HostHasSignalListenersFn>,
 }
 
 #[repr(C)]

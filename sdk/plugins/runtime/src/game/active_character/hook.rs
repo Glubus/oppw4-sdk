@@ -77,7 +77,7 @@ fn build_local_player_cave(return_address: usize, original: &[u8]) -> Vec<u8> {
     code.extend_from_slice(&raw_local_player_address().to_le_bytes());
     code.extend_from_slice(&[0x48, 0x89, 0x01]);
     code.extend_from_slice(&[0x59]);
-    asm::emit_abs_jmp(&mut code, return_address);
+    asm::emit_absolute_jump(&mut code, return_address, asm::AbsoluteJumpMode::ClobberRax);
     code
 }
 

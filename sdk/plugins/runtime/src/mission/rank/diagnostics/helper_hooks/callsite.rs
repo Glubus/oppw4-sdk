@@ -317,7 +317,7 @@ fn build_callsite_cave(return_address: usize, probe: CallsiteProbe) -> Vec<u8> {
     code.extend_from_slice(&[0xff, 0xd0]);
     code.extend_from_slice(&[0x48, 0x83, 0xc4, 0x20]);
     pop_scratch_registers(&mut code);
-    asm::emit_abs_jmp_r11(&mut code, return_address);
+    asm::emit_absolute_jump(&mut code, return_address, asm::AbsoluteJumpMode::UseR11);
     code
 }
 
@@ -347,7 +347,7 @@ fn build_count_call_wrapper_cave(
     code.extend_from_slice(&(helper_address as u64).to_le_bytes());
     code.extend_from_slice(&[0xff, 0xd0]);
     code.extend_from_slice(&[0x0f, 0xb6, 0xc0]);
-    asm::emit_abs_jmp_r11(&mut code, return_address);
+    asm::emit_absolute_jump(&mut code, return_address, asm::AbsoluteJumpMode::UseR11);
     code
 }
 

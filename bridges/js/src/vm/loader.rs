@@ -2,41 +2,50 @@ use rquickjs::{
     loader::{BuiltinLoader, BuiltinResolver},
     CatchResultExt, Context, Module, Runtime,
 };
-use sdk_bridge::BridgeModContext;
+use sdk_bridge::{BridgeAnalysisReport, BridgeModContext};
 use std::sync::{Arc, Mutex};
 
-use crate::{module::JsModule, vm};
+use crate::{
+    module::JsModule,
+    vm::{self, error::StringContext},
+};
 
 pub fn load(context: &BridgeModContext, modules: &[JsModule]) -> Result<vm::JsVm, String> {
-    let runtime = Runtime::new().map_err(|error| format!("js runtime create failed: {error}"))?;
+    let runtime = Runtime::new().context("js runtime create failed")?;
     install_builtin_namespace_modules(&runtime, modules);
-    let js_context =
-        Context::full(&runtime).map_err(|error| format!("js context create failed: {error}"))?;
+    let js_context = Context::full(&runtime).context("js context create failed")?;
     let logs = Arc::new(Mutex::new(Vec::new()));
 
-    let handlers = js_context.with(|ctx| {
-        vm::runtime::install_mod_globals(ctx.clone(), context)
-            .map_err(|error| format!("js globals failed: {error}"))?;
-        let handlers = vm::handlers::install(ctx.clone(), context)
-            .map_err(|error| format!("js handler registry install failed: {error}"))?;
-        vm::modules::install(ctx.clone(), &context.mod_id, modules, logs.clone())
-            .map_err(|error| format!("js module install failed: {error}"))?;
-        vm::api::install(ctx.clone()).map_err(|error| format!("js api install failed: {error}"))?;
-        vm::runtime::hide_unsafe_globals(ctx.clone())
-            .map_err(|error| format!("js sandbox seal failed: {error}"))?;
+    let source = vm::source::read_entry_script(context).context("js entry read failed")?;
+    let analysis = analyze_source(context, &source);
 
-        let source = vm::source::read_entry_script(context)
-            .map_err(|error| format!("js entry read failed: {error}"))?;
+    let handlers = js_context.with(|ctx| {
+        vm::runtime::install_mod_globals(ctx.clone(), context).context("js globals failed")?;
+        let handlers = vm::handlers::install(ctx.clone(), context)
+            .context("js handler registry install failed")?;
+        vm::modules::install(ctx.clone(), &context.mod_id, modules, logs.clone())
+            .context("js module install failed")?;
+        vm::api::install(ctx.clone()).context("js api install failed")?;
+        vm::runtime::hide_unsafe_globals(ctx.clone()).context("js sandbox seal failed")?;
+
         Module::evaluate(ctx.clone(), context.entry_file.as_str(), source)
             .catch(&ctx)
-            .map_err(|error| format!("js entry failed: {error}"))?
+            .context("js entry failed")?
             .finish::<()>()
             .catch(&ctx)
-            .map_err(|error| format!("js entry failed: {error}"))?;
+            .context("js entry failed")?;
         handlers.descriptors()
     })?;
 
-    Ok(vm::JsVm::new(runtime, js_context, handlers, logs))
+    Ok(vm::JsVm::new(runtime, js_context, handlers, logs, analysis))
+}
+
+fn analyze_source(context: &BridgeModContext, source: &str) -> BridgeAnalysisReport {
+    let report = sdk_js_analyzer::analyze(source, &context.modules);
+    BridgeAnalysisReport {
+        effects: report.effects,
+        warnings: report.warnings,
+    }
 }
 
 fn install_builtin_namespace_modules(runtime: &Runtime, modules: &[JsModule]) {

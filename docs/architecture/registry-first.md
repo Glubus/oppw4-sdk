@@ -12,6 +12,14 @@ These crates must stay language-agnostic. They can talk about registry modules,
 events, mutations, files, memory, and capabilities. They must not depend on any
 language bridge.
 
+The current ABI still exposes some game/runtime-domain functions directly,
+notably `game_status`, `active_character`, and their provider registration
+hooks. Treat this as legacy shape, not the desired long-term boundary. These
+concepts belong to the runtime service layer and should eventually move behind
+registry modules/capabilities provided by `sdk_runtime`, with `plugin-sdk`
+keeping ergonomic wrappers on top. Do not expand the core ABI with more
+game-specific fields unless there is a short-term migration reason.
+
 ## Bridge Layer
 
 `bridges/core` defines the language-runtime contract: load a mod, expose

@@ -25,12 +25,26 @@ fn run(host: OwnedHostApi, path: PathBuf) {
         reload_if_changed(&host, &path, &mut state);
         if state.config.enabled {
             probe_renderer(&host, &mut state);
+            log_host_status_changes(&host, &mut state);
             log_debug_panel_changes(&host, &mut state);
         }
         thread::sleep(Duration::from_millis(
             state.config.poll_interval_ms.max(250),
         ));
     }
+}
+
+fn log_host_status_changes(host: &OwnedHostApi, state: &mut OverlayState) {
+    let Some(status) = panels::host_status() else {
+        return;
+    };
+    if state.last_host_status.as_ref() == Some(&status) {
+        return;
+    }
+    let _ = host
+        .log()
+        .write(PLUGIN_ID, format!("host_status {}", status.summary()));
+    state.last_host_status = Some(status);
 }
 
 fn log_debug_panel_changes(host: &OwnedHostApi, state: &mut OverlayState) {
@@ -86,5 +100,6 @@ struct OverlayState {
     config: OverlayConfig,
     loaded_at: Option<SystemTime>,
     last_probe: Option<RendererProbe>,
+    last_host_status: Option<panels::HostStatus>,
     last_debug_snapshot: Option<panels::DebugPanel>,
 }

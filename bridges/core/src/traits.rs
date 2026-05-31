@@ -16,5 +16,21 @@ pub trait RuntimeAdapter: Send {
         event: &EventEnvelope,
     ) -> BridgeDispatchReport;
 
+    fn dispatch_many(
+        &mut self,
+        handlers: &[HandlerDescriptor],
+        event: &EventEnvelope,
+    ) -> BridgeDispatchReport {
+        let mut report = BridgeDispatchReport::default();
+        for handler in handlers {
+            let handler_report = self.dispatch(handler, event);
+            report.mutations.extend(handler_report.mutations);
+            report.logs.extend(handler_report.logs);
+            report.errors.extend(handler_report.errors);
+            report.vm_batch_count += handler_report.vm_batch_count.max(1);
+        }
+        report
+    }
+
     fn unload_mod(&mut self, mod_id: &ModId);
 }

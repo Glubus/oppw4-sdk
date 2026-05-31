@@ -7,6 +7,7 @@ license.workspace = true
 [dependencies]
 rquickjs.workspace = true
 sdk-bridge.workspace = true
+sdk-js-analyzer.workspace = true
 serde_json.workspace = true
 zip.workspace = true
 

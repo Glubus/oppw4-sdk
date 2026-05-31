@@ -16,7 +16,7 @@ use super::{
         host_register_rdb_virtual_provider,
     },
     registry::host_register_registry_module,
-    signals::{host_emit_signal, host_subscribe_signal},
+    signals::{host_emit_signal, host_has_signal_listeners, host_subscribe_signal},
     status::{
         host_active_character, host_debug_enabled, host_game_status,
         host_register_active_character_provider, host_register_game_status_provider,
@@ -68,6 +68,7 @@ pub(crate) fn build_api(
         emit_signal: Some(host_emit_signal),
         register_config_schema: Some(host_register_config_schema),
         register_registry_module: Some(host_register_registry_module),
+        has_signal_listeners: Some(host_has_signal_listeners),
     }
 }
 

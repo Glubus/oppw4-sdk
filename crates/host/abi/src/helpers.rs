@@ -60,5 +60,6 @@ pub const fn null_api() -> Oppw4PluginApi {
         subscribe_signal: None,
         emit_signal: None,
         register_config_schema: None,
+        has_signal_listeners: None,
     }
 }

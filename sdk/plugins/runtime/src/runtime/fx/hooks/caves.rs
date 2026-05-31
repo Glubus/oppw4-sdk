@@ -12,7 +12,7 @@ pub(super) fn build_local_player_cave(
     let mut code = Vec::new();
     code.extend_from_slice(&[0x48, 0x8b, 0x80, 0xd0, 0x02, 0x00, 0x00]);
     code.extend_from_slice(&[0x48, 0x85, 0xc0]);
-    let jump_back_null = asm::emit_jz(&mut code);
+    let jump_back_null = asm::emit_conditional_jump(&mut code, asm::Condition::Zero);
     code.extend_from_slice(&[0x51, 0x52]);
     code.extend_from_slice(&[0x48, 0xb9]);
     code.extend_from_slice(&(data.local_player as u64).to_le_bytes());
@@ -22,7 +22,7 @@ pub(super) fn build_local_player_cave(
     code.extend_from_slice(&(data.local_player_fx_owner as u64).to_le_bytes());
     code.extend_from_slice(&[0x48, 0x89, 0x11]);
     code.extend_from_slice(&[0x5a, 0x59]);
-    let jump_back = asm::emit_jmp(&mut code);
+    let jump_back = asm::emit_jump(&mut code);
 
     let base = arena.reserve(code.len(), 16)?;
     asm::patch_rel32_vec(&mut code, base, jump_back_null, return_address)?;
@@ -39,36 +39,37 @@ pub(super) fn build_duration_cave(
     let mut code = Vec::new();
     let duration_hits_inc = asm::emit_inc_rip_u32(&mut code);
     let enabled_cmp = asm::emit_cmp_rip_u32(&mut code);
-    let jump_original_disabled = asm::emit_jz(&mut code);
+    let jump_original_disabled = asm::emit_conditional_jump(&mut code, asm::Condition::Zero);
     let force_cmp = asm::emit_cmp_rip_u32(&mut code);
-    let jump_original_not_forced = asm::emit_jz(&mut code);
+    let jump_original_not_forced = asm::emit_conditional_jump(&mut code, asm::Condition::Zero);
     let effect_cmp = asm::emit_cmp_edx_rip(&mut code);
-    let jump_original_mismatch = asm::emit_jne(&mut code);
+    let jump_original_mismatch = asm::emit_conditional_jump(&mut code, asm::Condition::NotZero);
     let duration_match_hits_inc = asm::emit_inc_rip_u32(&mut code);
 
-    asm::emit_mov_dword_rdi_disp_imm(&mut code, 0xe0, 1.0);
-    asm::emit_mov_dword_rdi_disp_imm(&mut code, 0xe4, 0.0);
-    asm::emit_mov_dword_rdi_disp_imm(&mut code, 0x2dc, 0.0);
-    asm::emit_mov_dword_rdi_disp_imm(&mut code, 0x2e8, 2.0);
-    asm::emit_mov_dword_rdi_disp_imm(&mut code, 0x2d0, 0.0);
-    asm::emit_mov_dword_rdi_disp_imm(&mut code, 0x2d4, 0.0);
-    asm::emit_mov_dword_rdi_disp_imm(&mut code, 0x2d8, 0.0);
+    asm::emit_mov_dword_rdi_disp_f32(&mut code, 0xe0, 1.0);
+    asm::emit_mov_dword_rdi_disp_f32(&mut code, 0xe4, 0.0);
+    asm::emit_mov_dword_rdi_disp_f32(&mut code, 0x2dc, 0.0);
+    asm::emit_mov_dword_rdi_disp_f32(&mut code, 0x2e8, 2.0);
+    asm::emit_mov_dword_rdi_disp_f32(&mut code, 0x2d0, 0.0);
+    asm::emit_mov_dword_rdi_disp_f32(&mut code, 0x2d4, 0.0);
+    asm::emit_mov_dword_rdi_disp_f32(&mut code, 0x2d8, 0.0);
 
     let timer_load = asm::emit_movss_xmm2_rip(&mut code);
     let speed_load = asm::emit_movss_xmm0_rip(&mut code);
     code.extend_from_slice(&[0xf3, 0x0f, 0x58, 0xd0]);
     let timer_store = asm::emit_movss_rip_xmm2(&mut code);
     code.extend_from_slice(&[0xf3, 0x0f, 0x11, 0x97, 0xe4, 0x02, 0x00, 0x00]);
-    asm::emit_mov_dword_rdi_disp_imm(&mut code, 0x2ec, 1.0);
+    asm::emit_mov_dword_rdi_disp_f32(&mut code, 0x2ec, 1.0);
     let loop_end_load = asm::emit_movss_xmm0_rip(&mut code);
     code.extend_from_slice(&[0x0f, 0x2e, 0xd0]);
-    let jump_original_not_done = asm::emit_jbe(&mut code);
+    let jump_original_not_done =
+        asm::emit_conditional_jump(&mut code, asm::Condition::BelowOrEqual);
     let loop_start_load = asm::emit_movss_xmm0_rip(&mut code);
     let timer_reset = asm::emit_movss_rip_xmm0(&mut code);
 
     let original_label = code.len();
     code.extend_from_slice(AURA_DURATION_PATTERN);
-    let jump_back = asm::emit_jmp(&mut code);
+    let jump_back = asm::emit_jump(&mut code);
 
     let base = arena.reserve(code.len(), 16)?;
     asm::patch_disp32_vec(&mut code, base, duration_hits_inc, data.duration_hits)?;

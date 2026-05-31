@@ -14,6 +14,9 @@ pub(crate) const REWARD_EVENT: &str = "sdk.runtime.rewards.event";
 pub(crate) const REWARD_ITEMS: &str = "sdk.runtime.rewards.items";
 
 pub(crate) fn emit_json<T: Serialize>(host: &OwnedHostApi, signal: &str, payload: &T) {
+    if !host.signals().has_listeners(signal) {
+        return;
+    }
     match serde_json::to_vec(payload) {
         Ok(bytes) => {
             let _ = host.signals().emit_bytes(signal, &bytes);

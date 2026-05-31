@@ -78,11 +78,15 @@ impl InlineHook {
             .map_err(|error| format!("read_memory failed site=0x{site:x}: {error}"))?;
 
         let mut trampoline_code = original;
-        asm::emit_abs_jmp(&mut trampoline_code, site + overwrite_len);
+        asm::emit_absolute_jump(
+            &mut trampoline_code,
+            site + overwrite_len,
+            asm::AbsoluteJumpMode::ClobberRax,
+        );
         let trampoline = arena.alloc(&trampoline_code, 16)?;
 
         let mut patch = Vec::with_capacity(overwrite_len);
-        asm::emit_abs_jmp(&mut patch, detour);
+        asm::emit_absolute_jump(&mut patch, detour, asm::AbsoluteJumpMode::ClobberRax);
         patch.resize(overwrite_len, 0x90);
         api.memory()
             .write(site, &patch)

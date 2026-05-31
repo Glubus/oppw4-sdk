@@ -50,6 +50,18 @@ impl<'api> SignalService<'api> {
             super::r#unsafe::emit_signal(self.abi.host_context, emit, signal.as_c_str(), payload);
         host_code_result("emit_signal", code)
     }
+
+    pub fn has_listeners(self, signal: &str) -> bool {
+        let Some(has_listeners) = self.abi.has_signal_listeners else {
+            return true;
+        };
+        let signal = cstring_lossy(signal);
+        super::r#unsafe::has_signal_listeners(
+            self.abi.host_context,
+            has_listeners,
+            signal.as_c_str(),
+        ) != 0
+    }
 }
 
 fn host_code_result(operation: &'static str, code: i32) -> PluginResult<()> {
@@ -96,6 +108,13 @@ mod tests {
         0
     }
 
+    unsafe extern "system" fn has_signal_listeners(
+        _host_context: *mut c_void,
+        _signal_utf8: *const c_char,
+    ) -> i32 {
+        0
+    }
+
     unsafe extern "system" fn signal_callback(
         _subscriber_context: *mut c_void,
         _signal_utf8: *const c_char,
@@ -131,5 +150,20 @@ mod tests {
 
         assert_eq!(result, Ok(()));
         assert_eq!(LAST_PAYLOAD_LEN.load(Ordering::Relaxed), 3);
+    }
+
+    #[test]
+    fn signal_service_has_listeners_falls_back_to_true() {
+        let api = null_api();
+
+        assert!(SignalService::new(&api).has_listeners("runtime.loaded"));
+    }
+
+    #[test]
+    fn signal_service_reports_has_listeners_result() {
+        let mut api = null_api();
+        api.has_signal_listeners = Some(has_signal_listeners);
+
+        assert!(!SignalService::new(&api).has_listeners("runtime.loaded"));
     }
 }

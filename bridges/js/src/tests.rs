@@ -126,7 +126,7 @@ fn dispatch_calls_callback_in_loaded_vm() {
     assert_eq!(lifecycle, ModLifecycle::EventDriven);
     let report = registry.dispatch_event(&EventEnvelope {
         key: EventKey::new("sdk.test.event").expect("event key"),
-        payload_json: serde_json::json!({ "value": 42 }).to_string(),
+        payload_json: serde_json::json!({ "value": 42 }).to_string().into(),
     });
 
     assert_eq!(report.errors, []);
@@ -161,7 +161,7 @@ fn dispatch_reports_js_callback_errors() {
 
     let report = registry.dispatch_event(&EventEnvelope {
         key: EventKey::new("sdk.test.event").expect("event key"),
-        payload_json: "{}".to_string(),
+        payload_json: "{}".to_string().into(),
     });
 
     assert_eq!(report.errors.len(), 1);
@@ -506,7 +506,9 @@ fn typed_registry_schema_projects_event_helpers() {
     assert_eq!(lifecycle, ModLifecycle::EventDriven);
     let report = registry.dispatch_event(&EventEnvelope {
         key: EventKey::new("sdk.runtime.player.character_changed").expect("event key"),
-        payload_json: serde_json::json!({ "characterId": "whitebeard" }).to_string(),
+        payload_json: serde_json::json!({ "characterId": "whitebeard" })
+            .to_string()
+            .into(),
     });
 
     assert_eq!(report.errors, []);
@@ -549,7 +551,7 @@ fn registry_dispatches_same_event_to_multiple_js_mods() {
 
     let report = registry.dispatch_event(&EventEnvelope {
         key: EventKey::new("sdk.test.broadcast").expect("event key"),
-        payload_json: "{}".to_string(),
+        payload_json: "{}".to_string().into(),
     });
 
     assert_eq!(report.errors.len(), 2);
@@ -574,7 +576,9 @@ fn invalid_json_payload_is_reported_as_js_dispatch_error() {
     fs::write(
         root.join("mod.js"),
         r#"
-        oppw4.events.on("sdk.test.invalid_json", () => {});
+        oppw4.events.on("sdk.test.invalid_json", (event) => {
+            event.payload;
+        });
         "#,
     )
     .expect("script");
@@ -585,12 +589,90 @@ fn invalid_json_payload_is_reported_as_js_dispatch_error() {
 
     let report = registry.dispatch_event(&EventEnvelope {
         key: EventKey::new("sdk.test.invalid_json").expect("event key"),
-        payload_json: "{".to_string(),
+        payload_json: "{".to_string().into(),
     });
 
     assert_eq!(report.errors.len(), 1);
     assert_eq!(report.errors[0].mod_id.as_str(), "invalid_json_mod");
     assert!(report.errors[0].message.contains("js handler call failed"));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn invalid_json_payload_is_lazy_when_payload_is_not_read() {
+    let root = temp_root("js-bridge-invalid-json-lazy");
+    fs::create_dir_all(&root).expect("temp dir");
+    fs::write(
+        root.join("mod.js"),
+        r#"
+        oppw4.events.on("sdk.test.invalid_json_lazy", (event) => {
+            if (event.eventKey !== "sdk.test.invalid_json_lazy") {
+                throw new Error("bad event key");
+            }
+        });
+        "#,
+    )
+    .expect("script");
+
+    let mut registry = BridgeRegistry::new();
+    register_js_bridge(&mut registry, Vec::new());
+    load_js_mod(
+        &mut registry,
+        "invalid_json_lazy_mod",
+        "Invalid Json Lazy Mod",
+        &root,
+    );
+
+    let report = registry.dispatch_event(&EventEnvelope {
+        key: EventKey::new("sdk.test.invalid_json_lazy").expect("event key"),
+        payload_json: "{".to_string().into(),
+    });
+
+    assert_eq!(report.errors, []);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn payload_is_parsed_once_for_multiple_handlers_in_same_vm() {
+    let root = temp_root("js-bridge-lazy-parse-once");
+    fs::create_dir_all(&root).expect("temp dir");
+    fs::write(
+        root.join("mod.js"),
+        r#"
+        const parse = JSON.parse;
+        globalThis.parseCount = 0;
+        JSON.parse = (json) => {
+            globalThis.parseCount += 1;
+            return parse(json);
+        };
+        oppw4.events.on("sdk.test.lazy_parse", (event) => {
+            if (event.payload.value !== 42) {
+                throw new Error("bad first payload");
+            }
+        });
+        oppw4.events.on("sdk.test.lazy_parse", (event) => {
+            if (event.payload.value !== 42) {
+                throw new Error("bad second payload");
+            }
+            oppw4.trace("parse_count=" + globalThis.parseCount);
+        });
+        "#,
+    )
+    .expect("script");
+
+    let mut registry = BridgeRegistry::new();
+    register_js_bridge(&mut registry, Vec::new());
+    load_js_mod(&mut registry, "lazy_parse_mod", "Lazy Parse Mod", &root);
+
+    let report = registry.dispatch_event(&EventEnvelope {
+        key: EventKey::new("sdk.test.lazy_parse").expect("event key"),
+        payload_json: serde_json::json!({ "value": 42 }).to_string().into(),
+    });
+
+    assert_eq!(report.errors, []);
+    assert_eq!(report.metrics.handler_count, 2);
+    assert_eq!(report.metrics.vm_batch_count, 1);
+    assert_eq!(report.logs, ["js trace mod=lazy_parse_mod parse_count=1"]);
     let _ = fs::remove_dir_all(root);
 }
 

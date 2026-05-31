@@ -1,11 +1,11 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    BridgeId, EventKey, HandlerDescriptor, ModId, ModRecord, MutationEnvelope,
+    BridgeId, BridgeModEffect, EventKey, HandlerDescriptor, ModId, ModRecord, MutationEnvelope,
     RegistryModuleDescriptor, RuntimeAdapter,
 };
 
-mod dispatch;
+pub mod dispatch;
 mod load;
 
 #[cfg(test)]
@@ -17,6 +17,7 @@ pub struct BridgeRegistry {
     modules: Vec<RegistryModuleDescriptor>,
     mods: BTreeMap<ModId, ModRecord>,
     handlers_by_event: BTreeMap<EventKey, Vec<HandlerDescriptor>>,
+    effects_by_mod: BTreeMap<ModId, Vec<BridgeModEffect>>,
     boot_mutations: Vec<MutationEnvelope>,
     load_logs: Vec<String>,
 }

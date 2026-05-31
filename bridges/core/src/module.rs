@@ -227,6 +227,109 @@ impl RegistryModuleSchema {
         self.events.push(event);
         self
     }
+
+    pub fn validate_contract(&self) -> Result<(), RegistrySchemaError> {
+        validate_unique_named_items(
+            self.types
+                .iter()
+                .map(|type_descriptor| type_descriptor.name.as_str()),
+            "type",
+        )?;
+        validate_unique_named_items(
+            self.functions.iter().map(|function| function.name.as_str()),
+            "function",
+        )?;
+        validate_unique_named_items(self.events.iter().map(|event| event.name.as_str()), "event")?;
+        for function in &self.functions {
+            validate_type_ref(&function.returns, self)?;
+            for param in &function.params {
+                validate_type_ref(&param.type_ref, self)?;
+            }
+        }
+        for type_descriptor in &self.types {
+            validate_unique_named_items(
+                type_descriptor
+                    .fields
+                    .iter()
+                    .map(|field| field.name.as_str()),
+                "field",
+            )?;
+            for field in &type_descriptor.fields {
+                validate_type_ref(&field.type_ref, self)?;
+            }
+        }
+        for event in &self.events {
+            validate_type_ref(&event.payload, self)?;
+        }
+        for extension in &self.extensions {
+            for method in &extension.methods {
+                validate_type_ref(&method.returns, self)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RegistrySchemaError {
+    DuplicateName { kind: &'static str, name: String },
+    MissingNamedType { name: String },
+}
+
+impl std::fmt::Display for RegistrySchemaError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DuplicateName { kind, name } => {
+                write!(formatter, "duplicate registry {kind} name: {name}")
+            }
+            Self::MissingNamedType { name } => {
+                write!(formatter, "registry named type is not declared: {name}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for RegistrySchemaError {}
+
+fn validate_unique_named_items<'a>(
+    names: impl Iterator<Item = &'a str>,
+    kind: &'static str,
+) -> Result<(), RegistrySchemaError> {
+    let mut seen = Vec::new();
+    for name in names {
+        if seen.iter().any(|known| known == &name) {
+            return Err(RegistrySchemaError::DuplicateName {
+                kind,
+                name: name.to_string(),
+            });
+        }
+        seen.push(name);
+    }
+    Ok(())
+}
+
+fn validate_type_ref(
+    type_ref: &RegistryTypeRef,
+    schema: &RegistryModuleSchema,
+) -> Result<(), RegistrySchemaError> {
+    match type_ref {
+        RegistryTypeRef::Named { name } => {
+            if name.contains('.') || schema.types.iter().any(|known| known.name == *name) {
+                Ok(())
+            } else {
+                Err(RegistrySchemaError::MissingNamedType { name: name.clone() })
+            }
+        }
+        RegistryTypeRef::Optional { inner } | RegistryTypeRef::Array { inner } => {
+            validate_type_ref(inner, schema)
+        }
+        RegistryTypeRef::Void
+        | RegistryTypeRef::Bool
+        | RegistryTypeRef::I64
+        | RegistryTypeRef::F64
+        | RegistryTypeRef::String
+        | RegistryTypeRef::Json => Ok(()),
+    }
 }
 
 impl RegistryFunctionDescriptor {
@@ -305,5 +408,59 @@ impl RegistryMethodDescriptor {
             function: function.into(),
             returns,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn validates_named_event_payloads() {
+        let schema = RegistryModuleSchema::new("sdk", "player")
+            .type_descriptor(RegistryTypeDescriptor::new("CharacterChanged"))
+            .event(RegistryEventDescriptor::new(
+                "changed",
+                "sdk.player.changed",
+                RegistryTypeRef::Named {
+                    name: "CharacterChanged".to_string(),
+                },
+            ));
+
+        assert_eq!(schema.validate_contract(), Ok(()));
+    }
+
+    #[test]
+    fn rejects_missing_named_payload_type() {
+        let schema =
+            RegistryModuleSchema::new("sdk", "player").event(RegistryEventDescriptor::new(
+                "changed",
+                "sdk.player.changed",
+                RegistryTypeRef::Named {
+                    name: "MissingPayload".to_string(),
+                },
+            ));
+
+        assert_eq!(
+            schema.validate_contract(),
+            Err(RegistrySchemaError::MissingNamedType {
+                name: "MissingPayload".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn rejects_duplicate_type_names() {
+        let schema = RegistryModuleSchema::new("sdk", "player")
+            .type_descriptor(RegistryTypeDescriptor::new("Payload"))
+            .type_descriptor(RegistryTypeDescriptor::new("Payload"));
+
+        assert_eq!(
+            schema.validate_contract(),
+            Err(RegistrySchemaError::DuplicateName {
+                kind: "type",
+                name: "Payload".to_string(),
+            })
+        );
     }
 }

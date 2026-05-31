@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use crate::{
     BridgeError, BridgeId, BridgeLoadReport, BridgeLoadRequest, BridgeModContext, ModId,
     ModLifecycle, ModRecord, RegistryModuleDescriptor, RegistryModuleLoad,
@@ -42,6 +44,13 @@ impl BridgeRegistry {
 
         let lifecycle = ModLifecycle::infer(&report);
         self.load_logs.extend(report.logs);
+        self.load_logs.extend(
+            report
+                .analysis
+                .warnings
+                .iter()
+                .map(|warning| format!("analysis warning {}: {}", warning.code, warning.message)),
+        );
         for handler in report.handlers {
             if handler.mod_id != mod_id {
                 return Err(BridgeError::MismatchedModId {
@@ -62,6 +71,8 @@ impl BridgeRegistry {
         }
 
         self.boot_mutations.extend(report.boot_mutations);
+        self.effects_by_mod
+            .insert(mod_id.clone(), report.analysis.effects);
         self.mods.insert(
             mod_id.clone(),
             ModRecord {
@@ -95,13 +106,15 @@ impl BridgeRegistry {
     }
 
     fn modules_for(&self, uses_plugins: &[String]) -> Vec<RegistryModuleDescriptor> {
+        let requested = uses_plugins
+            .iter()
+            .map(|plugin| plugin.to_ascii_lowercase())
+            .collect::<BTreeSet<_>>();
         self.modules
             .iter()
             .filter(|module| {
                 module.load == RegistryModuleLoad::Always
-                    || uses_plugins
-                        .iter()
-                        .any(|plugin| module.provider_id.eq_ignore_ascii_case(plugin))
+                    || requested.contains(&module.provider_id.to_ascii_lowercase())
             })
             .cloned()
             .collect()

@@ -7,10 +7,12 @@ members = [
     "crates/sdk/api",
     "crates/rdb",
     "bridges/core",
+    "bridges/js-analyzer",
     "bridges/js",
     "examples/rust/log_plugin",
     "examples/rust/native_mod",
     "tools/moveset-tool",
+    "tools/linkdata-dump",
     "tools/mod-manifest-tool",
     "tools/plugin-manifest-tool",
     "tools/rdb-tool",
@@ -39,6 +41,7 @@ asm = { path = "crates/asm" }
 hooks = { path = "crates/hooks" }
 plugin-abi = { path = "crates/host/abi" }
 sdk-bridge = { path = "bridges/core" }
+sdk-js-analyzer = { path = "bridges/js-analyzer" }
 sdk-js-bridge = { path = "bridges/js" }
 plugin-host = { path = "crates/host/core" }
 plugin-sdk = { path = "crates/sdk/api" }

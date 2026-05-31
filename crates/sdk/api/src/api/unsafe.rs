@@ -3,13 +3,13 @@ use std::ffi::{c_char, c_void, CStr, CString};
 use crate::{PluginError, PluginModInfo, PluginResult};
 use plugin_abi::{
     optional_cstr, HostActiveCharacterFn, HostDebugEnabledFn, HostEmitSignalFn,
-    HostForEachPluginModFn, HostForEachPluginModZipFn, HostGameStatusFn, HostLogFn,
-    HostModuleBaseFn, HostPatchLinkDataRowFn, HostReadMemoryFn, HostRegisterConfigSchemaFn,
-    HostRegisterFileProviderFn, HostRegisterRegistryModuleFn, HostReplaceLinkDataEntryFn,
-    HostRequireCapabilityFn, HostScanMemoryFn, HostSignalCallbackFn, HostSubscribeSignalFn,
-    HostWriteMemoryFn, Oppw4ActiveCharacter, Oppw4ConfigSchema, Oppw4FileProvider, Oppw4GameStatus,
-    Oppw4LinkDataEntryPatch, Oppw4LinkDataRowPatch, Oppw4LogEntry, Oppw4PluginModEntry,
-    Oppw4RegistryModule,
+    HostForEachPluginModFn, HostForEachPluginModZipFn, HostGameStatusFn, HostHasSignalListenersFn,
+    HostLogFn, HostModuleBaseFn, HostPatchLinkDataRowFn, HostReadMemoryFn,
+    HostRegisterConfigSchemaFn, HostRegisterFileProviderFn, HostRegisterRegistryModuleFn,
+    HostReplaceLinkDataEntryFn, HostRequireCapabilityFn, HostScanMemoryFn, HostSignalCallbackFn,
+    HostSubscribeSignalFn, HostWriteMemoryFn, Oppw4ActiveCharacter, Oppw4ConfigSchema,
+    Oppw4FileProvider, Oppw4GameStatus, Oppw4LinkDataEntryPatch, Oppw4LinkDataRowPatch,
+    Oppw4LogEntry, Oppw4PluginModEntry, Oppw4RegistryModule,
 };
 
 pub(super) fn host_log(
@@ -136,6 +136,14 @@ pub(super) fn emit_signal(
             payload.len(),
         )
     }
+}
+
+pub(super) fn has_signal_listeners(
+    host_context: *mut c_void,
+    has_listeners: HostHasSignalListenersFn,
+    signal: &CStr,
+) -> i32 {
+    unsafe { has_listeners(host_context, signal.as_ptr()) }
 }
 
 pub(super) fn game_status(

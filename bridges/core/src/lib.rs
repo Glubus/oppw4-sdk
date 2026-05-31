@@ -1,3 +1,4 @@
+mod analysis;
 mod context;
 mod envelope;
 mod error;
@@ -10,6 +11,10 @@ mod registry;
 mod report;
 mod traits;
 
+pub use analysis::{
+    analysis_warning, registry_declares_method, BridgeAnalysisReport, BridgeAnalysisWarning,
+    BridgeModEffect, EffectConflict,
+};
 pub use context::{BridgeLoadRequest, BridgeModContext, BridgeModSource};
 pub use envelope::{EventEnvelope, MutationEnvelope};
 pub use error::BridgeError;
@@ -19,14 +24,15 @@ pub use manifest::{discover_mods, BridgeModManifest, BridgeModManifestError, Dis
 pub use module::{
     RegistryEventDescriptor, RegistryFieldDescriptor, RegistryFunctionDescriptor,
     RegistryMethodDescriptor, RegistryModuleBuilder, RegistryModuleDescriptor, RegistryModuleLoad,
-    RegistryModuleSchema, RegistryParamDescriptor, RegistryTypeDescriptor,
+    RegistryModuleSchema, RegistryParamDescriptor, RegistrySchemaError, RegistryTypeDescriptor,
     RegistryTypeExtensionDescriptor, RegistryTypeRef,
 };
 pub use record::{ModLifecycle, ModRecord};
+pub use registry::dispatch::HandlerConflict;
 pub use registry::BridgeRegistry;
 pub use report::{
     BridgeDispatchError, BridgeDispatchLog, BridgeDispatchReport, BridgeLoadReport,
-    RegistryDispatchReport,
+    RegistryDispatchMetrics, RegistryDispatchReport,
 };
 pub use traits::RuntimeAdapter;
 

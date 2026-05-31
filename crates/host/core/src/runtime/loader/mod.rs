@@ -10,9 +10,9 @@ use std::{
 };
 
 use crate::log;
-use sdk_bridge::{BridgeRegistry, EventEnvelope, RegistryModuleDescriptor};
+use sdk_bridge::{BridgeRegistry, EventEnvelope, EventKey, RegistryModuleDescriptor};
 
-use super::logs;
+use super::{logs, signals};
 use plugin::LoadedPlugin;
 
 static LOADED: OnceLock<Mutex<Vec<LoadedPlugin>>> = OnceLock::new();
@@ -29,6 +29,7 @@ pub fn initialize_with_bridge_setup(
     setup: impl FnOnce(&mut BridgeRegistry),
 ) {
     prepare_runtime(game_root, plugin_root, session_stamp);
+    log_sdk_status("initializing sdk");
     if let Some(registry) = BRIDGES.get() {
         setup(&mut registry.lock().expect("bridge registry lock"));
     }
@@ -36,6 +37,10 @@ pub fn initialize_with_bridge_setup(
     log::write_line(format!(
         "plugin host: scanned={} manifests={} loaded={}",
         report.scanned, report.manifests, report.loaded
+    ));
+    log_sdk_status(format!(
+        "sdk plugins loaded {}/{}",
+        report.loaded, report.manifests
     ));
     load_mods(game_root);
 }
@@ -76,6 +81,7 @@ fn load_mods(game_root: &Path) {
     let mut registry = registry.lock().expect("bridge registry lock");
     let total = mods.len();
     let mut loaded = 0usize;
+    log_sdk_status(format!("mods loaded {loaded}/{total}"));
     for mod_entry in mods {
         let mod_id = mod_entry.manifest.id.as_str().to_string();
         logs::write_mod(
@@ -95,6 +101,7 @@ fn load_mods(game_root: &Path) {
                 let line = format!("mod loaded id={mod_id} lifecycle={lifecycle:?}");
                 log::write_line(format!("plugin host: {line}"));
                 logs::write_mod("plugin_host", &line);
+                log_sdk_status(format!("mods loaded {loaded}/{total}"));
             }
             Err(error) => {
                 for line in registry.drain_load_logs() {
@@ -111,6 +118,50 @@ fn load_mods(game_root: &Path) {
     logs::write_mod(
         "plugin_host",
         &format!("mods scanned={total} loaded={loaded}"),
+    );
+    log_mod_conflicts(&registry);
+}
+
+fn log_mod_conflicts(registry: &BridgeRegistry) {
+    for conflict in registry.handler_conflicts() {
+        let mods = conflict
+            .mod_ids
+            .iter()
+            .map(|mod_id| mod_id.as_str())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let line = format!(
+            "Attention! the mods: {mods} listen to the same event {} and could conflict if they modify the same runtime aspect",
+            conflict.event_key.as_str()
+        );
+        log::write_line(format!("plugin host: {line}"));
+        logs::write_mod("plugin_host", &line);
+    }
+    for conflict in registry.effect_conflicts() {
+        let mods = conflict
+            .mod_ids
+            .iter()
+            .map(|mod_id| mod_id.as_str())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let line = format!(
+            "Attention! the mods: {mods} both modify {}",
+            conflict.effect.describe()
+        );
+        log::write_line(format!("plugin host: {line}"));
+        logs::write_mod("plugin_host", &line);
+    }
+}
+
+fn log_sdk_status(message: impl AsRef<str>) {
+    let message = message.as_ref();
+    log::write_line(format!("plugin host: sdk status {message}"));
+    signals::emit_host_json(
+        "sdk.host.status",
+        serde_json::json!({
+            "schema": "sdk.host.status.v1",
+            "message": message,
+        }),
     );
 }
 
@@ -163,5 +214,29 @@ pub(crate) fn dispatch_event(event: EventEnvelope) -> i32 {
             report.mutations.len()
         ));
     }
+    if report.metrics.dispatch_us >= 1_000 {
+        log::write_line(format!(
+            "plugin host: event dispatch slow key={} handlers={} bridge_batches={} vm_batches={} payload_bytes={} dispatch_us={}",
+            event.key.as_str(),
+            report.metrics.handler_count,
+            report.metrics.bridge_batch_count,
+            report.metrics.vm_batch_count,
+            report.metrics.payload_bytes,
+            report.metrics.dispatch_us,
+        ));
+    }
     0
+}
+
+pub(crate) fn has_event_handlers(signal: &str) -> bool {
+    let Ok(key) = EventKey::new(signal) else {
+        return false;
+    };
+    let Some(registry) = BRIDGES.get() else {
+        return false;
+    };
+    registry
+        .lock()
+        .map(|registry| registry.has_handlers(&key))
+        .unwrap_or(true)
 }

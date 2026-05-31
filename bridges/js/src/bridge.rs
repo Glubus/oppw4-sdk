@@ -71,10 +71,12 @@ impl RuntimeAdapter for JsBridge {
         match vm::load(&context, &modules) {
             Ok(vm) => {
                 let handlers = vm.handler_descriptors().to_vec();
+                let analysis = vm.analysis().clone();
                 let logs = vm.drain_logs();
                 self.vms.insert(context.mod_id.clone(), vm);
                 BridgeLoadReport {
                     handlers,
+                    analysis,
                     logs,
                     ..BridgeLoadReport::default()
                 }
@@ -108,6 +110,7 @@ impl RuntimeAdapter for JsBridge {
         match vm.dispatch(handler, event) {
             Ok(()) => BridgeDispatchReport {
                 logs: vm.drain_logs(),
+                vm_batch_count: 1,
                 ..BridgeDispatchReport::default()
             },
             Err(error) => BridgeDispatchReport {
@@ -121,9 +124,58 @@ impl RuntimeAdapter for JsBridge {
         }
     }
 
+    fn dispatch_many(
+        &mut self,
+        handlers: &[HandlerDescriptor],
+        event: &EventEnvelope,
+    ) -> BridgeDispatchReport {
+        let mut report = BridgeDispatchReport::default();
+        for (mod_id, mod_handlers) in handlers_by_mod(handlers) {
+            let Some(vm) = self.vms.get(&mod_id) else {
+                for handler in mod_handlers {
+                    report.errors.push(BridgeDispatchError {
+                        mod_id: handler.mod_id.clone(),
+                        bridge_id: handler.bridge_id.clone(),
+                        message: "js vm is not loaded".to_string(),
+                    });
+                }
+                continue;
+            };
+            report.vm_batch_count += 1;
+            match vm.dispatch_many(&mod_handlers, event) {
+                Ok(()) => report.logs.extend(vm.drain_logs()),
+                Err(error) => {
+                    for handler in mod_handlers {
+                        report.errors.push(BridgeDispatchError {
+                            mod_id: handler.mod_id.clone(),
+                            bridge_id: handler.bridge_id.clone(),
+                            message: error.clone(),
+                        });
+                    }
+                }
+            }
+        }
+        report
+    }
+
     fn unload_mod(&mut self, mod_id: &ModId) {
         self.vms.remove(mod_id);
     }
+}
+
+fn handlers_by_mod(handlers: &[HandlerDescriptor]) -> Vec<(ModId, Vec<HandlerDescriptor>)> {
+    let mut grouped: Vec<(ModId, Vec<HandlerDescriptor>)> = Vec::new();
+    for handler in handlers {
+        if let Some((_, existing)) = grouped
+            .iter_mut()
+            .find(|(mod_id, _)| *mod_id == handler.mod_id)
+        {
+            existing.push(handler.clone());
+        } else {
+            grouped.push((handler.mod_id.clone(), vec![handler.clone()]));
+        }
+    }
+    grouped
 }
 
 fn modules_for_context(descriptors: &[RegistryModuleDescriptor]) -> Vec<JsModule> {

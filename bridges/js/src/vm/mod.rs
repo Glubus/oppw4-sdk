@@ -1,4 +1,5 @@
 mod api;
+mod error;
 mod handlers;
 mod loader;
 mod modules;
@@ -7,14 +8,17 @@ mod source;
 
 pub use loader::load;
 
-use sdk_bridge::{EventEnvelope, HandlerDescriptor};
+use sdk_bridge::{BridgeAnalysisReport, EventEnvelope, HandlerDescriptor};
 use std::sync::{Arc, Mutex};
+
+use self::error::StringContext;
 
 pub struct JsVm {
     runtime: rquickjs::Runtime,
     context: rquickjs::Context,
     handler_descriptors: Vec<HandlerDescriptor>,
     logs: Arc<Mutex<Vec<String>>>,
+    analysis: BridgeAnalysisReport,
 }
 
 impl JsVm {
@@ -23,17 +27,23 @@ impl JsVm {
         context: rquickjs::Context,
         handler_descriptors: Vec<HandlerDescriptor>,
         logs: Arc<Mutex<Vec<String>>>,
+        analysis: BridgeAnalysisReport,
     ) -> Self {
         Self {
             runtime,
             context,
             handler_descriptors,
             logs,
+            analysis,
         }
     }
 
     pub fn handler_descriptors(&self) -> &[HandlerDescriptor] {
         &self.handler_descriptors
+    }
+
+    pub fn analysis(&self) -> &BridgeAnalysisReport {
+        &self.analysis
     }
 
     pub fn drain_logs(&self) -> Vec<String> {
@@ -48,19 +58,31 @@ impl JsVm {
         handler: &HandlerDescriptor,
         event: &EventEnvelope,
     ) -> Result<(), String> {
+        self.dispatch_many(std::slice::from_ref(handler), event)
+    }
+
+    pub fn dispatch_many(
+        &self,
+        handlers: &[HandlerDescriptor],
+        event: &EventEnvelope,
+    ) -> Result<(), String> {
         let _keep_runtime_alive = &self.runtime;
+        let handler_refs = handlers
+            .iter()
+            .map(|handler| handler.handler_ref.as_str().to_string())
+            .collect::<Vec<_>>();
         self.context.with(|ctx| {
             let dispatch = ctx
                 .globals()
-                .get::<_, rquickjs::Function>("__oppw4_dispatch_handler")
-                .map_err(|error| format!("js dispatch lookup failed: {error}"))?;
+                .get::<_, rquickjs::Function>("__oppw4_dispatch_handlers")
+                .context("js dispatch lookup failed")?;
             dispatch
                 .call::<_, ()>((
-                    handler.handler_ref.as_str().to_string(),
+                    handler_refs,
                     event.key.as_str().to_string(),
-                    event.payload_json.clone(),
+                    event.payload_json.as_ref(),
                 ))
-                .map_err(|error| format!("js handler call failed: {error}"))
+                .context("js handler call failed")
         })
     }
 }

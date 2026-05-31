@@ -67,8 +67,8 @@ impl ScannedHookBuilder {
         detour: usize,
     ) -> Result<InlineHook, String> {
         let mut entry = Vec::with_capacity(17);
-        asm::emit_mov_r9_rsp_deref(&mut entry);
-        asm::emit_abs_jmp_r11(&mut entry, detour);
+        asm::emit_return_address_to_r9(&mut entry);
+        asm::emit_absolute_jump(&mut entry, detour, asm::AbsoluteJumpMode::UseR11);
         let entry = allocate_executable(&entry)?;
         self.install_abs_jump_with_options(entry, TrampolineJump::PreserveRax)
     }
@@ -90,7 +90,7 @@ impl ScannedHookBuilder {
         let trampoline = allocate_executable(&trampoline_code)?;
 
         let mut patch = Vec::with_capacity(self.overwrite_len);
-        asm::emit_abs_jmp(&mut patch, detour);
+        asm::emit_absolute_jump(&mut patch, detour, asm::AbsoluteJumpMode::ClobberRax);
         patch.resize(self.overwrite_len, 0x90);
         write_patch(self.site, &patch)?;
 
@@ -123,8 +123,12 @@ enum TrampolineJump {
 impl TrampolineJump {
     fn emit(self, code: &mut Vec<u8>, target: usize) {
         match self {
-            Self::ClobberRax => asm::emit_abs_jmp(code, target),
-            Self::PreserveRax => asm::emit_abs_jmp_preserve_rax(code, target),
+            Self::ClobberRax => {
+                asm::emit_absolute_jump(code, target, asm::AbsoluteJumpMode::ClobberRax)
+            }
+            Self::PreserveRax => {
+                asm::emit_absolute_jump(code, target, asm::AbsoluteJumpMode::PreserveRax)
+            }
         }
     }
 }

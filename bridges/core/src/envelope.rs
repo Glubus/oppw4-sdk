@@ -1,13 +1,15 @@
+use std::sync::Arc;
+
 use crate::{EventKey, ModId, MutationKey};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EventEnvelope {
     pub key: EventKey,
-    pub payload_json: String,
+    pub payload_json: Arc<str>,
 }
 
 impl EventEnvelope {
-    pub fn new(key: EventKey, payload_json: impl Into<String>) -> Self {
+    pub fn new(key: EventKey, payload_json: impl Into<Arc<str>>) -> Self {
         Self {
             key,
             payload_json: payload_json.into(),
