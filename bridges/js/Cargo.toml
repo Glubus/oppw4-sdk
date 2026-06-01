@@ -5,6 +5,12 @@ version.workspace = true
 license.workspace = true
 
 [dependencies]
+swc_common = "21"
+swc_ecma_ast = "23"
+swc_ecma_codegen = "26"
+swc_ecma_parser = { version = "39", features = ["typescript"] }
+swc_ecma_transforms_typescript = "47"
+swc_ecma_visit = "23"
 rquickjs.workspace = true
 sdk-bridge.workspace = true
 sdk-js-analyzer.workspace = true

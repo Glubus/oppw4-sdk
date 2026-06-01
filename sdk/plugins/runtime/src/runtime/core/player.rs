@@ -67,38 +67,41 @@ pub(crate) fn latest_snapshot() -> PlayerSnapshot {
 }
 
 pub(crate) fn update_snapshot(snapshot: PlayerSnapshot) {
-    let changed_snapshot = {
+    let changed = {
         let Ok(mut latest) = latest_snapshot_store().write() else {
             return;
         };
         if *latest == snapshot {
             return;
         }
+        let previous_snapshot = latest.clone();
         let changed_snapshot = snapshot.clone();
         *latest = snapshot;
-        changed_snapshot
+        (previous_snapshot, changed_snapshot)
     };
-    publish_character_changed(&changed_snapshot);
+    publish_character_changed(&changed.0, &changed.1);
 }
 
 fn latest_snapshot_store() -> &'static RwLock<PlayerSnapshot> {
     LATEST_PLAYER_SNAPSHOT.get_or_init(|| RwLock::new(PlayerSnapshot::new()))
 }
 
-fn publish_character_changed(snapshot: &PlayerSnapshot) {
+fn publish_character_changed(previous: &PlayerSnapshot, current: &PlayerSnapshot) {
     let Some(host) = EVENT_HOST.get() else {
         return;
     };
-    let Some(character_id) = snapshot
+    let Some(current_character_id) = current
         .active_character_ids
         .first()
         .map(CharacterId::as_str)
     else {
         return;
     };
+    let previous_character_id = previous.active_character_ids.first().map(CharacterId::as_str);
     let payload = CharacterChangedPayload {
-        character_id,
-        active_character_ids: snapshot
+        previous_character_id,
+        current_character_id,
+        active_character_ids: current
             .active_character_ids
             .iter()
             .map(CharacterId::as_str)
@@ -108,9 +111,10 @@ fn publish_character_changed(snapshot: &PlayerSnapshot) {
 }
 
 #[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
 struct CharacterChangedPayload<'a> {
-    character_id: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    previous_character_id: Option<&'a str>,
+    current_character_id: &'a str,
     active_character_ids: Vec<&'a str>,
 }
 

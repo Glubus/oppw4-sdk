@@ -4,7 +4,7 @@ use rquickjs::{
     CatchResultExt, Context, Ctx, Error, Module, Runtime,
 };
 use sdk_bridge::{BridgeAnalysisReport, BridgeModContext};
-use std::collections::{HashMap, HashSet};
+use std::{collections::{HashMap, HashSet}, path::Path};
 use std::sync::mpsc;
 
 use crate::{
@@ -20,6 +20,8 @@ pub fn load(context: &BridgeModContext, modules: &[JsModuleRef<'_>]) -> Result<v
 
     let source = vm::source::read_entry_script(context).context("js entry read failed")?;
     let analysis = analyze_source(context, &source);
+    let source = vm::source::transpile_script(&context.entry_file, &source)
+        .map_err(|error| format!("js entry transpile failed: {error}"))?;
 
     let handlers = js_context.with(|ctx| {
         vm::runtime::install_mod_globals(ctx.clone(), context).context("js globals failed")?;
@@ -129,6 +131,8 @@ impl Loader for ModLoader {
         };
         let source = vm::source::read_script(&self.context, &path)
             .map_err(|error| Error::new_loading_message(name, error.to_string()))?;
+        let source = vm::source::transpile_script(&path, &source)
+            .map_err(|error| Error::new_loading_message(name, error))?;
         Module::declare(ctx.clone(), name, source)
     }
 }
@@ -168,9 +172,11 @@ fn resolve_existing_script(context: &BridgeModContext, name: &str) -> Option<Str
 
 fn candidate_script_paths(name: &str) -> Vec<String> {
     let mut candidates = vec![name.to_string()];
-    if !name.ends_with(".js") {
-        candidates.push(format!("{name}.js"));
-        candidates.push(format!("{name}/index.js"));
+    if Path::new(name).extension().is_none() {
+        for extension in ["js", "ts", "mjs", "mts"] {
+            candidates.push(format!("{name}.{extension}"));
+            candidates.push(format!("{name}/index.{extension}"));
+        }
     }
     candidates
 }

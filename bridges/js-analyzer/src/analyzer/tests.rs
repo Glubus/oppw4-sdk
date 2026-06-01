@@ -103,6 +103,26 @@ fn variable_receiver_borrows_character_binding() {
     ));
 }
 
+#[test]
+fn typed_variable_receiver_borrows_character_binding() {
+    let source = r#"
+        const zoro: sdk.Character = sdk.character.get("zoro");
+        zoro.replace_costume("oni", { model: "zoro_oni.g1m" });
+    "#;
+
+    let report = analyze(source, &[]);
+
+    assert_eq!(report.effects.len(), 1);
+    assert!(report
+        .effects
+        .contains(&BridgeModEffect::ReplaceCostumeAsset {
+            character: Some("zoro".to_string()),
+            costume: "oni".to_string(),
+            slot: "model".to_string(),
+            file: "zoro_oni.g1m".to_string(),
+        }));
+}
+
 fn module_with_method(method_name: &str) -> sdk_bridge::RegistryModuleDescriptor {
     sdk_bridge::RegistryModuleDescriptor::builder("test", "sdk.character")
         .schema(

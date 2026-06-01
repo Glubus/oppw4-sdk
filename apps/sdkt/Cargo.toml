@@ -1,15 +1,19 @@
 [package]
-name = "oppw4-sdk-analyzer"
+name = "sdkt"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
 
 [[bin]]
-name = "sdk-analyzer"
+name = "sdkt"
 path = "src/main.rs"
 
 [dependencies]
+clap = { version = "4.6.1", features = ["derive"] }
 sdk-bridge.workspace = true
 sdk-js-analyzer.workspace = true
+sdk-mod-loader.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+toml.workspace = true
+zip.workspace = true

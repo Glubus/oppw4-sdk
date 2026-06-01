@@ -70,10 +70,24 @@ fn module_path_exists(path: &Path) -> bool {
     if path.is_file() {
         return true;
     }
-    if path.extension().is_none() && path.with_extension("js").is_file() {
-        return true;
+    if path.extension().is_none() {
+        for extension in ["js", "ts", "mjs", "mts"] {
+            if path.with_extension(extension).is_file() {
+                return true;
+            }
+        }
     }
-    path.join("index.js").is_file()
+    for index_name in [
+        "index.js",
+        "index.ts",
+        "index.mjs",
+        "index.mts",
+    ] {
+        if path.join(index_name).is_file() {
+            return true;
+        }
+    }
+    false
 }
 
 #[derive(Debug)]
@@ -215,6 +229,25 @@ mod tests {
     }
 
     #[test]
+    fn accepts_existing_extensionless_typescript_import() {
+        let root = unique_temp_dir("existing-ts-import");
+        fs::create_dir_all(root.join("events")).expect("temp dir");
+        fs::write(root.join("events/player.ts"), "").expect("import target");
+        let source_file = root.join("main.ts");
+        let mut diagnostics = Vec::new();
+
+        validate_relative_imports(
+            &root,
+            &source_file,
+            r#"import "./events/player";"#,
+            &mut diagnostics,
+        );
+
+        assert!(diagnostics.is_empty());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn reports_missing_export_from_relative_source() {
         let root = unique_temp_dir("missing-export-from");
         fs::create_dir_all(&root).expect("temp dir");
@@ -239,6 +272,6 @@ mod tests {
             .duration_since(SystemTime::UNIX_EPOCH)
             .expect("time")
             .as_nanos();
-        env::temp_dir().join(format!("oppw4-sdk-analyzer-{label}-{nanos}"))
+        env::temp_dir().join(format!("oppw4-sdkt-{label}-{nanos}"))
     }
 }

@@ -63,10 +63,7 @@ impl RuntimeAdapter for JsBridge {
     }
 
     fn supports(&self, request: &BridgeLoadRequest) -> bool {
-        request
-            .entry_file
-            .rsplit_once('.')
-            .is_some_and(|(_, extension)| extension.eq_ignore_ascii_case("js"))
+        is_supported_script_path(&request.entry_file)
     }
 
     fn load_mod(&mut self, context: &BridgeModContext) -> BridgeLoadReport {
@@ -194,6 +191,17 @@ fn module_refs_for_context(descriptors: &[RegistryModuleDescriptor]) -> Vec<JsMo
         .iter()
         .filter_map(JsModuleRef::from_descriptor)
         .collect()
+}
+
+fn is_supported_script_path(path: &str) -> bool {
+    matches!(
+        std::path::Path::new(path)
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .map(|extension| extension.to_ascii_lowercase())
+            .as_deref(),
+        Some("js" | "mjs" | "ts" | "mts")
+    )
 }
 
 #[cfg(test)]

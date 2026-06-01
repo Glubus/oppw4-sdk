@@ -83,7 +83,7 @@ Expected impact:
 
 File:
 
-- `apps/sdk-analyzer/src/report.rs`
+- `apps/sdkt/src/report.rs`
 
 Current shape:
 
@@ -107,8 +107,8 @@ Expected impact:
 
 Files:
 
-- `apps/sdk-analyzer/src/sources.rs`
-- `apps/sdk-analyzer/src/manifest.rs`
+- `apps/sdkt/src/sources.rs`
+- `apps/sdkt/src/manifest.rs`
 
 Current shape:
 
@@ -342,9 +342,9 @@ These are not good first targets:
 Run after each implementation step:
 
 - `cargo fmt`
-- `CARGO_TARGET_DIR=/tmp/oppw4-sdk-target env -u RUSTC_WRAPPER cargo test -p oppw4-sdk-analyzer -p sdk-js-analyzer -p sdk-js-bridge -p sdk-bridge`
+- `CARGO_TARGET_DIR=/tmp/oppw4-sdk-target env -u RUSTC_WRAPPER cargo test -p sdkt -p sdk-js-analyzer -p sdk-js-bridge -p sdk-bridge`
 - `CARGO_TARGET_DIR=/tmp/oppw4-sdk-target env -u RUSTC_WRAPPER cargo check --workspace`
-- `CARGO_TARGET_DIR=/tmp/oppw4-sdk-target env -u RUSTC_WRAPPER cargo run -q -p oppw4-sdk-analyzer -- check examples/js/player_event`
+- `CARGO_TARGET_DIR=/tmp/oppw4-sdk-target env -u RUSTC_WRAPPER cargo run -q -p sdkt -- check examples/js/player_event`
 
 Known caveat:
 

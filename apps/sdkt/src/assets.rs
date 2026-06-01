@@ -211,6 +211,6 @@ mod tests {
             .duration_since(SystemTime::UNIX_EPOCH)
             .expect("time")
             .as_nanos();
-        env::temp_dir().join(format!("oppw4-sdk-analyzer-{label}-{nanos}"))
+        env::temp_dir().join(format!("oppw4-sdkt-{label}-{nanos}"))
     }
 }

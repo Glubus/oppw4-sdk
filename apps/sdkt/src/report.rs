@@ -1,8 +1,9 @@
 use std::path::Path;
 
+use clap::ValueEnum;
 use serde::Serialize;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
 pub(crate) enum OutputFormat {
     Human,
     Json,
@@ -105,7 +106,7 @@ fn format_human_report(report: &AppReport) -> String {
         "Failed"
     };
     output.push_str(&format!(
-        "{status} sdk-analyzer: {} file(s), {} effect(s), {} warning(s), {} error(s)\n",
+        "{status} sdkt: {} file(s), {} effect(s), {} warning(s), {} error(s)\n",
         report.summary.files,
         report.summary.effects,
         report.summary.warnings + report.summary.diagnostics - report.summary.errors,
@@ -253,7 +254,7 @@ mod tests {
         assert!(formatted.contains("warning[uses_plugins_empty]"));
         assert!(formatted.contains("  --> mod.toml"));
         assert!(formatted.contains("warning[dynamic_patch]"));
-        assert!(formatted.contains("Finished sdk-analyzer"));
+        assert!(formatted.contains("Finished sdkt"));
     }
 
     #[test]

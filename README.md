@@ -13,7 +13,7 @@ development.
 
 ```text
 apps/
-  sdk-analyzer/          # standalone analyzer CLI, future base for LSP support
+  sdkt/                  # sdkt CLI, future base for LSP support
 bridges/
   core/                  # mod manifests, registry contracts, events, reports
   js/                    # QuickJS bridge for JS mods
@@ -45,7 +45,7 @@ docs/                    # architecture notes and reverse notes
 - JS can import SDK registry modules with `import { player } from "sdk"`.
 - JS can split code with relative imports such as `import "./events/player.js"`.
 - Runtime features are exposed by registry modules, not hardcoded in bridges.
-- `sdk-analyzer` checks JS mods before runtime, similar in spirit to
+- `sdkt` checks JS mods before runtime, similar in spirit to
   `cargo check`.
 - Native Rust plugins remain available for services, low-level patchers and
   advanced integrations.
@@ -74,7 +74,7 @@ cargo check --workspace
 Run focused tests for the active registry, JS bridge and analyzer work:
 
 ```bash
-cargo test -p sdk-bridge -p sdk-js-bridge -p sdk-js-analyzer -p oppw4-sdk-analyzer
+cargo test -p sdk-bridge -p sdk-js-bridge -p sdk-js-analyzer -p sdkt
 ```
 
 On Linux, full `cargo test --workspace` can hit Windows-only plugin linkage for
@@ -87,42 +87,52 @@ If your environment sets a read-only target dir or blocked `sccache`, use:
 CARGO_TARGET_DIR=/tmp/oppw4-sdk-target env -u RUSTC_WRAPPER cargo check --workspace
 ```
 
-## SDK Analyzer
+## SDKT
 
-The analyzer app lives in `apps/sdk-analyzer` and builds the `sdk-analyzer`
-binary.
+The analyzer app lives in `apps/sdkt` and builds the `sdkt` binary.
 
 Run it through Cargo:
 
 ```bash
-cargo run -q -p oppw4-sdk-analyzer -- check examples/js/player_event
+cargo run -q -p sdkt -- check examples/js/player_event
 ```
 
 Human output is the default:
 
 ```text
     Checking bridge-js mods
-Finished sdk-analyzer: 1 file(s), 0 effect(s), 0 warning(s), 0 error(s)
+Finished sdkt: 1 file(s), 0 effect(s), 0 warning(s), 0 error(s)
 ```
 
 Machine-readable JSON is available for tools and future LSP integration:
 
 ```bash
-cargo run -q -p oppw4-sdk-analyzer -- check --json examples/js/player_event
+cargo run -q -p sdkt -- check --json examples/js/player_event
 ```
 
 Initialize the analyzer config shape for future bridge/plugin discovery:
 
 ```bash
-cargo run -q -p oppw4-sdk-analyzer -- init bridge-js
-cargo run -q -p oppw4-sdk-analyzer -- install bridge-js
+cargo run -q -p sdkt -- init
+cargo run -q -p sdkt -- config --game-path d:/idk/oppw4
+cargo run -q -p sdkt -- config show
+cargo run -q -p sdkt -- config get game-path
+cargo run -q -p sdkt -- install bridge-js
+cargo run -q -p sdkt -- run
 ```
 
-Install the binary locally if you want `sdk-analyzer` directly in your shell:
+Package validation stops on warnings by default. Use `--ignore-warnings` to
+force the archive anyway:
 
 ```bash
-cargo install --path apps/sdk-analyzer
-sdk-analyzer check examples/js/player_event
+cargo run -q -p sdkt -- package --ignore-warnings
+```
+
+Install the binary locally if you want `sdkt` directly in your shell:
+
+```bash
+cargo install --path apps/sdkt
+sdkt check examples/js/player_event
 ```
 
 The analyzer currently checks:
@@ -138,7 +148,7 @@ The analyzer currently checks:
 Example failing check:
 
 ```bash
-cargo run -q -p oppw4-sdk-analyzer -- check examples/js/analyzer-test
+cargo run -q -p sdkt -- check examples/js/analyzer-test
 ```
 
 Expected style:
@@ -154,13 +164,13 @@ error[asset_missing]: referenced asset does not exist: analyzer-test-body.g1t
 note[effect]: luffy costume default texture.body with analyzer-test-body.g1t
   --> examples/js/analyzer-test/main.js
 
-Failed sdk-analyzer: 2 file(s), 1 effect(s), 0 warning(s), 1 error(s)
+Failed sdkt: 2 file(s), 1 effect(s), 0 warning(s), 1 error(s)
 ```
 
 Watch mode is available for continuous checks:
 
 ```bash
-cargo run -q -p oppw4-sdk-analyzer -- check --watch examples/js/player_event
+cargo run -q -p sdkt -- check --watch examples/js/player_event
 ```
 
 ## JavaScript Mods
@@ -358,7 +368,7 @@ The public mdBook documentation is expected to live in the sibling
 
 These are intentionally not done yet, but should stay visible:
 
-- Build the actual `sdk-analyzer lsp` server on top of the existing check
+- Build the actual `sdkt lsp` server on top of the existing check
   engine.
 - Define the stable analyzer plugin ABI for future drop-in `.dll` checks.
 - Add Zed/Vscode extension adapters.

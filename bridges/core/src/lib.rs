@@ -4,7 +4,6 @@ mod envelope;
 mod error;
 mod handler;
 mod id;
-mod manifest;
 mod module;
 mod record;
 mod registry;
@@ -20,10 +19,6 @@ pub use envelope::{EventEnvelope, MutationEnvelope};
 pub use error::BridgeError;
 pub use handler::HandlerDescriptor;
 pub use id::{BridgeId, EventKey, HandlerRef, ModId, MutationKey};
-pub use manifest::{
-    discover_mods, parse_mod_manifest, BridgeModManifest, BridgeModManifestError,
-    DiscoveredBridgeMod,
-};
 pub use module::{
     RegistryEventDescriptor, RegistryFieldDescriptor, RegistryFunctionDescriptor,
     RegistryMethodDescriptor, RegistryModuleBuilder, RegistryModuleDescriptor,

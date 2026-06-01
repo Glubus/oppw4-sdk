@@ -1,24 +1,30 @@
-# SDK Analyzer Architecture
+# SDKT Architecture
 
-`sdk-analyzer` is the standalone check process for SDK mods. It is intentionally
-separate from the JS bridge runtime so it can be reused by editors and future
-language servers.
+`sdkt` is the standalone development toolkit for SDK mods. It stays separate
+from the JS bridge runtime so it can be reused by editors and future language
+servers.
 
 ## Current CLI
 
 ```bash
-sdk-analyzer check examples/js/player_event
-sdk-analyzer check --json examples/js/player_event
-sdk-analyzer check --watch examples/js/player_event
-sdk-analyzer init bridge-js
-sdk-analyzer install bridge-js
+sdkt check examples/js/player_event
+sdkt check --json examples/js/player_event
+sdkt check --watch examples/js/player_event
+sdkt config --game-path d:/idk/oppw4
+sdkt config show
+sdkt config get game-path
+sdkt init
+sdkt install bridge-js
+sdkt run
+sdkt test
+sdkt package --ignore-warnings
 ```
 
 `bridge-js` is currently built in. The `init` and `install` commands create the
 first on-disk shape for future bridge/plugin discovery:
 
 ```text
-.sdk-analyzer/
+.sdkt/
   config.toml
   bridges/
     bridge-js.toml
@@ -38,7 +44,7 @@ first on-disk shape for future bridge/plugin discovery:
 The intended layering is:
 
 ```text
-editor extension -> sdk-analyzer lsp -> sdk-analyzer check engine -> bridge analyzers
+editor extension -> sdkt lsp -> sdkt check engine -> bridge analyzers
 ```
 
 The LSP should not duplicate analyzer logic. It should keep projects warm, run
@@ -49,7 +55,7 @@ incremental checks, and translate diagnostics/completions/actions into LSP.
 Analyzer bridge plugins should be discoverable next to the analyzer:
 
 ```text
-.sdk-analyzer/
+.sdkt/
   plugins/
     my-check.dll
 ```

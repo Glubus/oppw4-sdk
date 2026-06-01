@@ -82,10 +82,15 @@ fn character_invoke(function_name: &str, args_json: &str) -> Result<String, Stri
         .first()
         .and_then(serde_json::Value::as_str)
         .ok_or_else(|| "character.find expects id string".to_string())?;
-    if id == "zoro" {
+    if id == "zoro" || id == "whitebeard" {
+        let name = if id == "zoro" {
+            "Roronoa Zoro"
+        } else {
+            "Edward Newgate"
+        };
         Ok(serde_json::json!({
-            "id": "zoro",
-            "name": "Roronoa Zoro",
+            "id": id,
+            "name": name,
             "movesetLinkdataEntry": 69,
         })
         .to_string())

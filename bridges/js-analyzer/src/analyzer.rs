@@ -50,7 +50,7 @@ impl Analyzer<'_, '_> {
                 else {
                     continue;
                 };
-                let after_equals = skip_ws(self.source, after_name);
+                let after_equals = skip_ws(self.source, skip_ts_type_annotation(self.source, after_name));
                 if !self.source[after_equals..].starts_with('=') {
                     continue;
                 }
@@ -174,6 +174,56 @@ impl Analyzer<'_, '_> {
             source_span_at(self.source, offset, length),
         ));
     }
+}
+
+fn skip_ts_type_annotation(source: &str, start: usize) -> usize {
+    let mut index = skip_ws(source, start);
+    if !source.as_bytes().get(index).is_some_and(|byte| *byte == b':') {
+        return index;
+    }
+    index += 1;
+    let mut angle_depth = 0usize;
+    let mut brace_depth = 0usize;
+    let mut paren_depth = 0usize;
+    let mut bracket_depth = 0usize;
+    let mut string_quote: Option<u8> = None;
+    let bytes = source.as_bytes();
+    while let Some(byte) = bytes.get(index).copied() {
+        if let Some(quote) = string_quote {
+            if byte == b'\\' {
+                index += 2;
+                continue;
+            }
+            if byte == quote {
+                string_quote = None;
+            }
+            index += 1;
+            continue;
+        }
+        match byte {
+            b'\'' | b'"' | b'`' => {
+                string_quote = Some(byte);
+            }
+            b'<' => angle_depth += 1,
+            b'>' => angle_depth = angle_depth.saturating_sub(1),
+            b'{' => brace_depth += 1,
+            b'}' => brace_depth = brace_depth.saturating_sub(1),
+            b'(' => paren_depth += 1,
+            b')' => paren_depth = paren_depth.saturating_sub(1),
+            b'[' => bracket_depth += 1,
+            b']' => bracket_depth = bracket_depth.saturating_sub(1),
+            b'=' if angle_depth == 0
+                && brace_depth == 0
+                && paren_depth == 0
+                && bracket_depth == 0 =>
+            {
+                return index;
+            }
+            _ => {}
+        }
+        index += 1;
+    }
+    source.len()
 }
 
 enum CharacterReceiver<'a> {

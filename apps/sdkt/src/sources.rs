@@ -30,7 +30,7 @@ pub(crate) fn source_files(roots: &[PathBuf]) -> Result<Vec<PathBuf>, String> {
 
 fn collect_source_files(path: &Path, files: &mut Vec<PathBuf>) -> Result<(), String> {
     if path.is_file() {
-        if is_js_file(path) {
+        if is_script_file(path) {
             files.push(path.to_path_buf());
         }
         return Ok(());
@@ -45,9 +45,23 @@ fn collect_source_files(path: &Path, files: &mut Vec<PathBuf>) -> Result<(), Str
     Ok(())
 }
 
-pub(crate) fn is_js_file(path: &Path) -> bool {
-    path.extension()
-        .is_some_and(|extension| extension.eq_ignore_ascii_case("js"))
+pub(crate) fn is_script_file(path: &Path) -> bool {
+    if is_typescript_definition_file(path) {
+        return false;
+    }
+    path.extension().is_some_and(|extension| {
+        matches!(
+            extension.to_string_lossy().to_ascii_lowercase().as_str(),
+            "js" | "mjs" | "ts" | "mts"
+        )
+    })
+}
+
+fn is_typescript_definition_file(path: &Path) -> bool {
+    path.file_name().is_some_and(|name| {
+        let name = name.to_string_lossy().to_ascii_lowercase();
+        name.ends_with(".d.ts") || name.ends_with(".d.mts") || name.ends_with(".d.cts")
+    })
 }
 
 pub(crate) fn mod_root_for_source(roots: &[PathBuf], source_file: &Path) -> PathBuf {
@@ -123,11 +137,28 @@ mod tests {
         let _ = fs::remove_dir_all(root);
     }
 
+    #[test]
+    fn collects_typescript_sources_recursively() {
+        let root = unique_temp_dir("ts-sources");
+        fs::create_dir_all(root.join("events")).expect("temp dir");
+        fs::write(root.join("main.ts"), "").expect("entry");
+        fs::write(root.join("events/player.mts"), "").expect("split source");
+        fs::write(root.join("types.d.ts"), "").expect("definition");
+
+        let files = source_files(&[root.clone()]).expect("source files");
+
+        assert_eq!(files.len(), 2);
+        assert!(files.iter().any(|path| path.ends_with("main.ts")));
+        assert!(files.iter().any(|path| path.ends_with("player.mts")));
+        assert!(!files.iter().any(|path| path.ends_with("types.d.ts")));
+        let _ = fs::remove_dir_all(root);
+    }
+
     fn unique_temp_dir(label: &str) -> PathBuf {
         let nanos = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .expect("time")
             .as_nanos();
-        env::temp_dir().join(format!("oppw4-sdk-analyzer-{label}-{nanos}"))
+        env::temp_dir().join(format!("oppw4-sdkt-{label}-{nanos}"))
     }
 }

@@ -17,8 +17,9 @@
       "name": "CharacterChangedEvent",
       "constructible": false,
       "fields": [
-        { "name": "characterId", "type_ref": { "kind": "string" } },
-        { "name": "activeCharacterIds", "type_ref": { "kind": "array", "inner": { "kind": "string" } } }
+        { "name": "previous_character_id", "type_ref": { "kind": "optional", "inner": { "kind": "string" } } },
+        { "name": "current_character_id", "type_ref": { "kind": "string" } },
+        { "name": "active_character_ids", "type_ref": { "kind": "array", "inner": { "kind": "string" } } }
       ]
     }
   ],

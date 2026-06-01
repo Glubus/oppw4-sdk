@@ -28,6 +28,46 @@ fn js_bridge_registers_and_loads_through_rust_registry() {
 }
 
 #[test]
+fn js_bridge_loads_typescript_sources() {
+    let root = temp_root("js-bridge-typescript");
+    fs::create_dir_all(root.join("handlers")).expect("temp dir");
+    fs::write(
+        root.join("mod.ts"),
+        r#"
+            import "./handlers/log";
+            const value: number = 40 + 2;
+            oppw4.trace(String(value));
+        "#,
+    )
+    .expect("entry script");
+    fs::write(
+        root.join("handlers").join("log.ts"),
+        r#"
+            const label: string = "loaded";
+            oppw4.trace(label);
+        "#,
+    )
+    .expect("imported script");
+
+    let mut registry = BridgeRegistry::new();
+    register_js_bridge(&mut registry, Vec::new());
+
+    let lifecycle = registry
+        .load_supported_mod(BridgeLoadRequest {
+            mod_id: ModId::new("typescript_mod").expect("mod id"),
+            name: "Typescript Mod".to_string(),
+            source: BridgeModSource::Directory(root.clone()),
+            entry_file: "mod.ts".to_string(),
+            uses_plugins: Vec::new(),
+    })
+    .expect("load mod");
+
+    assert_eq!(lifecycle, ModLifecycle::BootOnce);
+    assert!(registry.drain_boot_mutations().is_empty());
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn module_selection_comes_from_registry_metadata() {
     REGISTER_CALLS.store(0, Ordering::SeqCst);
     REGISTER_MASK.store(0, Ordering::SeqCst);

@@ -147,10 +147,16 @@ fn typed_registry_schema_projects_event_helpers() {
             if (ctx.eventKey !== "sdk.runtime.player.character_changed") {
                 throw new Error("bad event key: " + ctx.eventKey);
             }
-            if (!ctx.payload || ctx.payload.characterId !== "whitebeard") {
+            if (!ctx.current_character || ctx.current_character.id !== "whitebeard") {
                 throw new Error("bad payload: " + ctx.payloadJson);
             }
-            oppw4.trace("typed player event " + ctx.payload.characterId);
+            if (ctx.previous_character !== null) {
+                throw new Error("previous_character should be null on first event");
+            }
+            if (ctx.active_character_ids[0] !== "whitebeard") {
+                throw new Error("bad active_character_ids");
+            }
+            oppw4.trace("typed player event " + ctx.current_character.id);
         });
         "#,
     )
@@ -159,12 +165,20 @@ fn typed_registry_schema_projects_event_helpers() {
     let mut registry = BridgeRegistry::new();
     register_js_bridge(
         &mut registry,
-        vec![schema_module(
-            "sdk_runtime",
-            "sdk.player",
-            player_schema(),
-            RegistryModuleLoad::Always,
-        )],
+        vec![
+            schema_module(
+                "sdk_runtime",
+                "sdk.player",
+                player_schema(),
+                RegistryModuleLoad::Always,
+            ),
+            schema_module(
+                "sdk_data",
+                "sdk.character",
+                character_schema(),
+                RegistryModuleLoad::Always,
+            ),
+        ],
     );
     let lifecycle = registry
         .load_supported_mod(BridgeLoadRequest {
@@ -179,7 +193,10 @@ fn typed_registry_schema_projects_event_helpers() {
     assert_eq!(lifecycle, ModLifecycle::EventDriven);
     let report = registry.dispatch_event(&EventEnvelope {
         key: EventKey::new("sdk.runtime.player.character_changed").expect("event key"),
-        payload_json: serde_json::json!({ "characterId": "whitebeard" })
+        payload_json: serde_json::json!({
+            "current_character_id": "whitebeard",
+            "active_character_ids": ["whitebeard"]
+        })
             .to_string()
             .into(),
     });

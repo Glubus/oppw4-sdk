@@ -1,7 +1,7 @@
 use std::{fs, path::Path};
 
-use crate::{report::Diagnostic, sources::is_js_file};
-use sdk_bridge::parse_mod_manifest;
+use crate::{report::Diagnostic, sources::is_script_file};
+use sdk_mod_loader::parse_mod_manifest;
 
 pub(crate) fn manifest_diagnostics(roots: &[std::path::PathBuf]) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
@@ -49,12 +49,12 @@ fn validate_manifest(root: &Path, manifest: &Path, diagnostics: &mut Vec<Diagnos
             "entry_missing",
             format!("entry file does not exist: {}", manifest_data.entry_file),
         ));
-    } else if !is_js_file(&entry) {
+    } else if !is_script_file(&entry) {
         diagnostics.push(Diagnostic::warning(
             manifest,
-            "entry_not_js",
+            "entry_not_script",
             format!(
-                "bridge-js analyzer expects a .js entry: {}",
+                "bridge-js accepts .js, .ts, .mjs and .mts entries: {}",
                 manifest_data.entry_file
             ),
         ));
@@ -88,11 +88,11 @@ mod tests {
             plugins = ["sdk_runtime"]
 
             [entry]
-            file = "main.js"
+            file = "main.ts"
             "#,
         )
         .expect("manifest");
-        fs::write(root.join("main.js"), "").expect("entry");
+        fs::write(root.join("main.ts"), "").expect("entry");
 
         let diagnostics = manifest_diagnostics(&[root.clone()]);
 
@@ -111,7 +111,7 @@ mod tests {
             id = "example"
 
             [entry]
-            file = "missing.js"
+            file = "missing.ts"
             "#,
         )
         .expect("manifest");
@@ -129,6 +129,6 @@ mod tests {
             .duration_since(SystemTime::UNIX_EPOCH)
             .expect("time")
             .as_nanos();
-        env::temp_dir().join(format!("oppw4-sdk-analyzer-{label}-{nanos}"))
+        env::temp_dir().join(format!("oppw4-sdkt-{label}-{nanos}"))
     }
 }

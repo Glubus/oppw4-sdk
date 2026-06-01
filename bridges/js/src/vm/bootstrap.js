@@ -177,6 +177,11 @@
     }
 
     function callTypedEventCallback(registryModuleList, schema, event, callback, ctx) {
+        if (String(schema.namespace) === "sdk" &&
+            String(schema.importName) === "player" &&
+            String(event.name) === "character_changed") {
+            return callback(freeze(projectCharacterChangedContext(registryModuleList, ctx)));
+        }
         let wrapped = false;
         let payload = null;
         const typedCtx = {
@@ -195,6 +200,66 @@
             },
         });
         return callback(freeze(typedCtx));
+    }
+
+    function projectCharacterChangedContext(registryModuleList, ctx) {
+        let payloadLoaded = false;
+        let payload = null;
+        const typedCtx = {
+            eventKey: ctx.eventKey,
+            payloadJson: ctx.payloadJson,
+            mod: ctx.mod,
+        };
+        Object.defineProperty(typedCtx, "payload", {
+            enumerable: true,
+            get() {
+                if (!payloadLoaded) {
+                    payload = ctx.payload;
+                    payloadLoaded = true;
+                }
+                return payload;
+            },
+        });
+        Object.defineProperty(typedCtx, "previous_character", {
+            enumerable: true,
+            get() {
+                const eventPayload = typedCtx.payload || {};
+                const characterId = eventPayload.previous_character_id;
+                return characterId ? resolveCharacter(registryModuleList, ctx.mod, characterId) : null;
+            },
+        });
+        Object.defineProperty(typedCtx, "current_character", {
+            enumerable: true,
+            get() {
+                const eventPayload = typedCtx.payload || {};
+                const characterId = eventPayload.current_character_id;
+                return characterId ? resolveCharacter(registryModuleList, ctx.mod, characterId) : null;
+            },
+        });
+        Object.defineProperty(typedCtx, "active_character_ids", {
+            enumerable: true,
+            get() {
+                const eventPayload = typedCtx.payload || {};
+                const ids = eventPayload.active_character_ids;
+                return Array.isArray(ids) ? freeze(ids.slice()) : freeze([]);
+            },
+        });
+        return typedCtx;
+    }
+
+    function resolveCharacter(registryModuleList, currentMod, characterId) {
+        const module = lookupPath("sdk.character");
+        if (!module || typeof module.find !== "function") {
+            return null;
+        }
+        const value = module.find(String(characterId));
+        return wrapRegistryValue(
+            registryModuleList,
+            currentMod,
+            { kind: "named", name: "sdk.Character" },
+            value,
+            { namespace: "sdk", importName: "character" },
+        );
     }
 
     function invokeRegistry(currentMod, qualifiedName, args) {
