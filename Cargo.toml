@@ -4,6 +4,7 @@ members = [
     "crates/hooks",
     "crates/host/abi",
     "crates/host/core",
+    "crates/mod-loader",
     "crates/sdk/api",
     "crates/rdb",
     "bridges/core",
@@ -41,6 +42,7 @@ plugin-abi = { path = "crates/host/abi" }
 sdk-bridge = { path = "bridges/core" }
 sdk-js-bridge = { path = "bridges/js" }
 plugin-host = { path = "crates/host/core" }
+sdk-mod-loader = { path = "crates/mod-loader" }
 plugin-sdk = { path = "crates/sdk/api" }
 rquickjs = { version = "0.11", features = ["loader", "parallel"] }
 serde = { version = "1", features = ["derive"] }

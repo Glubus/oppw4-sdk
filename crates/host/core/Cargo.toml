@@ -12,5 +12,6 @@ serde_json.workspace = true
 [target.'cfg(windows)'.dependencies]
 hooks.workspace = true
 sdk-bridge.workspace = true
+sdk-mod-loader.workspace = true
 struct-api.workspace = true
 tracing.workspace = true

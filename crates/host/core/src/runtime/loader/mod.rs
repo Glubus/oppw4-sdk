@@ -10,7 +10,10 @@ use std::{
 };
 
 use crate::log;
-use sdk_bridge::{BridgeRegistry, RegistryModuleDescriptor};
+use sdk_bridge::{
+    BridgeLoadRequest, BridgeModSource, BridgeRegistry, ModId, RegistryModuleDescriptor,
+};
+use sdk_mod_loader::{DiscoveredMod, ModSource};
 
 use super::logs;
 use plugin::LoadedPlugin;
@@ -61,7 +64,7 @@ fn remember_loaded_plugin(plugin: LoadedPlugin) {
 
 fn load_mods(game_root: &Path) {
     let mods_root = paths::mods_root(game_root);
-    let mods = sdk_bridge::discover_mods(&mods_root);
+    let mods = sdk_mod_loader::discover_mods(&mods_root);
     if mods.is_empty() {
         logs::write_mod(
             "plugin_host",
@@ -85,7 +88,16 @@ fn load_mods(game_root: &Path) {
                 mod_id, mod_entry.manifest.entry_file, mod_entry.manifest.uses_plugins
             ),
         );
-        match registry.load_supported_mod(mod_entry.into_load_request()) {
+        let request = match bridge_load_request(mod_entry) {
+            Ok(request) => request,
+            Err(error) => {
+                let line = format!("mod load request failed id={mod_id} error={error:?}");
+                log::write_line(format!("plugin host: {line}"));
+                logs::write_mod("plugin_host", &line);
+                continue;
+            }
+        };
+        match registry.load_supported_mod(request) {
             Ok(lifecycle) => {
                 loaded += 1;
                 for line in registry.drain_load_logs() {
@@ -112,6 +124,25 @@ fn load_mods(game_root: &Path) {
         "plugin_host",
         &format!("mods scanned={total} loaded={loaded}"),
     );
+}
+
+fn bridge_load_request(
+    mod_entry: DiscoveredMod,
+) -> Result<BridgeLoadRequest, sdk_bridge::BridgeError> {
+    Ok(BridgeLoadRequest {
+        mod_id: ModId::new(mod_entry.manifest.id)?,
+        name: mod_entry.manifest.name,
+        source: bridge_mod_source(mod_entry.source),
+        entry_file: mod_entry.manifest.entry_file,
+        uses_plugins: mod_entry.manifest.uses_plugins,
+    })
+}
+
+fn bridge_mod_source(source: ModSource) -> BridgeModSource {
+    match source {
+        ModSource::Directory(path) => BridgeModSource::Directory(path),
+        ModSource::Zip { path, root } => BridgeModSource::Zip { path, root },
+    }
 }
 
 pub(crate) fn register_registry_module(module: RegistryModuleDescriptor) -> i32 {

@@ -51,10 +51,11 @@ fn module_selection_comes_from_registry_metadata() {
     REGISTER_CALLS.store(0, Ordering::SeqCst);
     REGISTER_MASK.store(0, Ordering::SeqCst);
     let modules = vec![
-        metadata_module("core_api", "core.api", RegistryModuleLoad::Always),
-        metadata_module(
+        counted_module("core_api", "core.api", 1, RegistryModuleLoad::Always),
+        counted_module(
             "tool_api",
             "tool.api",
+            2,
             RegistryModuleLoad::WhenPluginRequested,
         ),
         metadata_module(
@@ -266,17 +267,15 @@ fn registry_api_exposes_selected_module_metadata() {
     .expect("script");
 
     let modules = vec![
-        counted_module("core_api", "core.api", 1, RegistryModuleLoad::Always),
-        counted_module(
+        metadata_module("core_api", "core.api", RegistryModuleLoad::Always),
+        metadata_module(
             "tool_api",
             "tool.api",
-            2,
             RegistryModuleLoad::WhenPluginRequested,
         ),
-        counted_module(
+        metadata_module(
             "unused_api",
             "unused.api",
-            4,
             RegistryModuleLoad::WhenPluginRequested,
         ),
     ];
