@@ -182,7 +182,7 @@ fn log_items(out: *mut i32, reward_context: u64, previous: *const i32, result: u
             result,
         ),
     );
-    signals::emit_json(host, signals::REWARD_ITEMS, &snapshot);
+    signals::emit_json(host, signals::REWARD_MEDALS, &snapshot);
 }
 
 pub(crate) fn latest_item_rewards() -> Vec<ItemRewardEntry> {

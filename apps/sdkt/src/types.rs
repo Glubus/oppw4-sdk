@@ -340,17 +340,17 @@ fn render_rewards_module() -> String {
     output.push_str("    crew_points: number | null;\n");
     output.push_str("    ranks: ReadonlyArray<RankGrade>;\n");
     output.push_str("  }\n\n");
-    output.push_str("  export interface RewardsItemsPayload {\n");
+    output.push_str("  export interface RewardsMedalsPayload {\n");
     output.push_str("    entries: ReadonlyArray<RewardItem>;\n");
     output.push_str("  }\n\n");
     output.push_str(
-        "  export interface RewardsItemsContext extends Oppw4EventContext<RewardsItemsPayload> {\n",
+        "  export interface RewardsMedalsContext extends Oppw4EventContext<RewardsMedalsPayload> {\n",
     );
     output.push_str("    entries: ReadonlyArray<RewardItem>;\n");
     output.push_str("  }\n\n");
     output.push_str("  export interface Rewards {\n");
     output.push_str("    on_event(callback: (ctx: RewardsEventContext) => void): string;\n");
-    output.push_str("    on_items(callback: (ctx: RewardsItemsContext) => void): string;\n");
+    output.push_str("    on_medals(callback: (ctx: RewardsMedalsContext) => void): string;\n");
     output.push_str("    on_commit(callback: (ctx: Oppw4EventContext<JsonObject>) => void): string;\n");
     output.push_str("  }\n\n");
     output.push_str("  export const rewards: Rewards;\n");
@@ -524,6 +524,9 @@ mod tests {
         assert!(rewards.contains("souls: ReadonlyArray<SoulReward>;"));
         assert!(rewards.contains("crew_points: number | null;"));
         assert!(rewards.contains("medals: ReadonlyArray<RewardItem>;"));
+        assert!(rewards.contains("export interface RewardsMedalsPayload"));
+        assert!(rewards.contains("export interface RewardsMedalsContext extends Oppw4EventContext<RewardsMedalsPayload>"));
+        assert!(rewards.contains("on_medals(callback: (ctx: RewardsMedalsContext) => void): string;"));
         assert!(!rewards.contains("RewardCommitSnapshot"));
 
         let rank = fs::read_to_string(types_root.join("rank.d.ts")).expect("rank");

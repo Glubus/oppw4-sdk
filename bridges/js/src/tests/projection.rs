@@ -316,11 +316,11 @@ fn typed_registry_schema_projects_rewards_contexts() {
                 throw new Error("bad reward ranks");
             }
         });
-        rewards.on_items((ctx) => {
+        rewards.on_medals((ctx) => {
             if (ctx.entries.length !== 1 || ctx.entries[0].item_id !== 77) {
-                throw new Error("bad rewards items");
+                throw new Error("bad rewards medals");
             }
-            oppw4.trace("typed rewards items " + ctx.entries[0].item_id);
+            oppw4.trace("typed rewards medals " + ctx.entries[0].item_id);
         });
         "#,
     )
@@ -356,7 +356,7 @@ fn typed_registry_schema_projects_rewards_contexts() {
     assert_eq!(rewards_report.errors, []);
 
     let items_report = registry.dispatch_event(&EventEnvelope {
-        key: EventKey::new("sdk.runtime.rewards.items").expect("event key"),
+        key: EventKey::new("sdk.runtime.rewards.medals").expect("event key"),
         payload_json: serde_json::json!({
             "entries": [{ "item_id": 77, "amount": 2, "is_new": true }]
         })
@@ -367,7 +367,7 @@ fn typed_registry_schema_projects_rewards_contexts() {
     assert_eq!(items_report.errors, []);
     assert_eq!(
         items_report.logs,
-        ["js trace mod=typed_rewards_contexts_mod typed rewards items 77"]
+        ["js trace mod=typed_rewards_contexts_mod typed rewards medals 77"]
     );
     let _ = fs::remove_dir_all(root);
 }

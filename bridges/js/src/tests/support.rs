@@ -199,8 +199,8 @@ pub(super) fn rewards_schema() -> RegistryModuleSchema {
             RegistryTypeRef::Json,
         ))
         .event(RegistryEventDescriptor::new(
-            "items",
-            "sdk.runtime.rewards.items",
+            "medals",
+            "sdk.runtime.rewards.medals",
             RegistryTypeRef::Json,
         ))
 }

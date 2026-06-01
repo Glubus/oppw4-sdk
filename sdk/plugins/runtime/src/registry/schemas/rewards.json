@@ -42,7 +42,7 @@
       ]
     },
     {
-      "name": "ItemRewardSnapshot",
+      "name": "MedalRewardSnapshot",
       "constructible": false,
       "fields": [
         { "name": "call", "type_ref": { "kind": "i64" } },
@@ -50,11 +50,11 @@
         { "name": "reward_context", "type_ref": { "kind": "i64" } },
         { "name": "previous", "type_ref": { "kind": "i64" } },
         { "name": "result", "type_ref": { "kind": "i64" } },
-        { "name": "entries", "type_ref": { "kind": "array", "inner": { "kind": "named", "name": "ItemRewardEntry" } } }
+        { "name": "entries", "type_ref": { "kind": "array", "inner": { "kind": "named", "name": "MedalRewardEntry" } } }
       ]
     },
     {
-      "name": "ItemRewardEntry",
+      "name": "MedalRewardEntry",
       "constructible": false,
       "fields": [
         { "name": "index", "type_ref": { "kind": "i64" } },
@@ -76,9 +76,9 @@
       "payload": { "kind": "named", "name": "RewardEvent" }
     },
     {
-      "name": "items",
-      "key": "sdk.runtime.rewards.items",
-      "payload": { "kind": "named", "name": "ItemRewardSnapshot" }
+      "name": "medals",
+      "key": "sdk.runtime.rewards.medals",
+      "payload": { "kind": "named", "name": "MedalRewardSnapshot" }
     }
   ]
 }

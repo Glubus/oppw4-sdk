@@ -11,7 +11,7 @@ pub(crate) const RANK_HELPER_CALL: &str = "sdk.runtime.rank.helper_call";
 pub(crate) const RESULT_STATE_SNAPSHOT: &str = "sdk.runtime.result_state.snapshot";
 pub(crate) const REWARD_COMMIT: &str = "sdk.runtime.rewards.commit";
 pub(crate) const REWARD_EVENT: &str = "sdk.runtime.rewards.event";
-pub(crate) const REWARD_ITEMS: &str = "sdk.runtime.rewards.items";
+pub(crate) const REWARD_MEDALS: &str = "sdk.runtime.rewards.medals";
 
 pub(crate) fn emit_json<T: Serialize>(host: &OwnedHostApi, signal: &str, payload: &T) {
     if !host.signals().has_listeners(signal) {

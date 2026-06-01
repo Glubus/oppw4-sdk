@@ -199,7 +199,7 @@
         }
         if (String(schema.namespace) === "sdk" &&
             String(schema.importName) === "rewards" &&
-            String(event.name) === "items") {
+            String(event.name) === "medals") {
             return callback(freeze(projectRewardsItemsContext(ctx)));
         }
         let wrapped = false;
