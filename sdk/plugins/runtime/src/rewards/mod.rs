@@ -25,3 +25,5 @@ impl RuntimeExposure for ItemRewardExposure {
         item_hook::install(host, config);
     }
 }
+
+pub(crate) use item_hook::{latest_item_rewards, ItemRewardEntry};

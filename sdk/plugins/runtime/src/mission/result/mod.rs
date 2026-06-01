@@ -36,3 +36,5 @@ impl RuntimeExposure for ResultStateExposure {
         state_hook::install(host, config);
     }
 }
+
+pub(crate) use state_hook::{latest_reward_context, ResultRewardContext};

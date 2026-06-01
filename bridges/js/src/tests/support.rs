@@ -175,6 +175,36 @@ pub(super) fn runtime_schema_with_mutation() -> RegistryModuleSchema {
     ))
 }
 
+pub(super) fn difficulty_schema() -> RegistryModuleSchema {
+    RegistryModuleSchema::new("sdk", "difficulty").event(RegistryEventDescriptor::new(
+        "applied",
+        "sdk.runtime.difficulty.event",
+        RegistryTypeRef::Json,
+    ))
+}
+
+pub(super) fn rank_schema() -> RegistryModuleSchema {
+    RegistryModuleSchema::new("sdk", "rank").event(RegistryEventDescriptor::new(
+        "result",
+        "sdk.runtime.rank.event",
+        RegistryTypeRef::Json,
+    ))
+}
+
+pub(super) fn rewards_schema() -> RegistryModuleSchema {
+    RegistryModuleSchema::new("sdk", "rewards")
+        .event(RegistryEventDescriptor::new(
+            "event",
+            "sdk.runtime.rewards.event",
+            RegistryTypeRef::Json,
+        ))
+        .event(RegistryEventDescriptor::new(
+            "items",
+            "sdk.runtime.rewards.items",
+            RegistryTypeRef::Json,
+        ))
+}
+
 pub(super) fn load_js_mod(
     registry: &mut BridgeRegistry,
     mod_id: &str,

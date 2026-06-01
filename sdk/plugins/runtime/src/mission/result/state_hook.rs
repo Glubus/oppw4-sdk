@@ -7,7 +7,7 @@ use std::{
     mem, panic,
     sync::{
         atomic::{AtomicUsize, Ordering},
-        Mutex, OnceLock,
+        Mutex, OnceLock, RwLock,
     },
 };
 
@@ -65,6 +65,16 @@ static LOG_COUNT: AtomicUsize = AtomicUsize::new(0);
 static MAX_LOGS: AtomicUsize = AtomicUsize::new(0);
 static MAX_EVENTS: AtomicUsize = AtomicUsize::new(0);
 static LAST_HASH: Mutex<u64> = Mutex::new(0);
+static LATEST_REWARD_CONTEXT: OnceLock<RwLock<Option<ResultRewardContext>>> = OnceLock::new();
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct ResultRewardContext {
+    pub(crate) count_rank: RankValue,
+    pub(crate) time_rank: RankValue,
+    pub(crate) merge_rank: RankValue,
+    pub(crate) final_rank: RankValue,
+    pub(crate) crew_points_total: u32,
+}
 
 pub(crate) fn install(host: OwnedHostApi, config: ResultStateProbeConfig) {
     if !config.enabled {
@@ -206,6 +216,7 @@ fn log_result_state(result_state: *mut u8) {
     else {
         return;
     };
+    store_reward_context(&snapshot);
     if !should_log(snapshot.hash()) {
         return;
     }
@@ -227,9 +238,38 @@ fn log_result_state(result_state: *mut u8) {
     publish_rank_result_event(host, &snapshot);
 }
 
+pub(crate) fn latest_reward_context() -> Option<ResultRewardContext> {
+    latest_reward_context_store()
+        .read()
+        .ok()
+        .and_then(|context| *context)
+}
+
+fn latest_reward_context_store() -> &'static RwLock<Option<ResultRewardContext>> {
+    LATEST_REWARD_CONTEXT.get_or_init(|| RwLock::new(None))
+}
+
+fn store_reward_context(snapshot: &snapshot::ResultStateSnapshot) {
+    let Ok(mut latest) = latest_reward_context_store().write() else {
+        return;
+    };
+    *latest = Some(ResultRewardContext {
+        count_rank: RankValue::from_slot(snapshot.count_rank.min(u32::from(u8::MAX)) as u8),
+        time_rank: RankValue::from_slot(snapshot.time_rank.min(u32::from(u8::MAX)) as u8),
+        merge_rank: RankValue::from_slot(snapshot.merge_rank.min(u32::from(u8::MAX)) as u8),
+        final_rank: RankValue::from_slot(snapshot.final_rank.min(u32::from(u8::MAX)) as u8),
+        crew_points_total: snapshot.crew_points[12],
+    });
+}
+
 fn publish_rank_result_event(host: &OwnedHostApi, snapshot: &snapshot::ResultStateSnapshot) {
     let mut event =
         RankResultEvent::new(rank_value_from_result_fields(snapshot.difficulty_or_rank))
+            .with_breakdown(
+                RankValue::from_slot(snapshot.count_rank.min(u32::from(u8::MAX)) as u8),
+                RankValue::from_slot(snapshot.time_rank.min(u32::from(u8::MAX)) as u8),
+                RankValue::from_slot(snapshot.merge_rank.min(u32::from(u8::MAX)) as u8),
+            )
             .with_mission_id(snapshot.mission_id);
 
     if let Ok(context) = read_rank_runtime_context() {
@@ -278,6 +318,12 @@ struct RankEventPayload {
     schema: &'static str,
     rank: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    count: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    time: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    merge: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     mission_id: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     mode: Option<String>,
@@ -290,6 +336,9 @@ impl From<&RankResultEvent> for RankEventPayload {
         Self {
             schema: "sdk.runtime.rank.event.v1",
             rank: event.rank.to_string(),
+            count: event.count_rank.map(|rank| rank.to_string()),
+            time: event.time_rank.map(|rank| rank.to_string()),
+            merge: event.merge_rank.map(|rank| rank.to_string()),
             mission_id: event.mission_id,
             mode: event
                 .difficulty
@@ -430,5 +479,19 @@ mod tests {
             rank_event_log(&event),
             "rank_event rank=S+ mission=35 mode=treasure_log difficulty=super_hard"
         );
+    }
+
+    #[test]
+    fn rank_event_payload_includes_breakdown() {
+        let event = RankResultEvent::new(RankValue::SPlus)
+            .with_breakdown(RankValue::A, RankValue::S, RankValue::SPlus)
+            .with_mission_id(35);
+
+        let json = serde_json::to_string(&RankEventPayload::from(&event)).expect("json");
+
+        assert!(json.contains(r#""rank":"S+""#));
+        assert!(json.contains(r#""count":"A""#));
+        assert!(json.contains(r#""time":"S""#));
+        assert!(json.contains(r#""merge":"S+""#));
     }
 }

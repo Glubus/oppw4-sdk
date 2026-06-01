@@ -2,7 +2,11 @@ use std::slice;
 
 use serde::Serialize;
 
-use crate::runtime::core::rewards::RewardCommitEvent;
+use crate::{
+    mission::result::latest_reward_context,
+    rewards::latest_item_rewards,
+    runtime::core::rewards::RewardCommitEvent,
+};
 
 use super::{RewardCommitSnapshot, REWARD_SLOT_COUNT};
 
@@ -60,10 +64,23 @@ pub(super) fn reward_event_log(call: usize, event: &RewardCommitEvent) -> String
 }
 
 pub(super) fn reward_event_payload(event: &RewardCommitEvent) -> RewardEventPayload {
+    let context = latest_reward_context();
     RewardEventPayload {
         schema: "sdk.runtime.rewards.event.v1",
         rank: event.rank.to_string(),
+        count: context.map(|context| context.count_rank.to_string()),
+        time: context.map(|context| context.time_rank.to_string()),
+        merge: context.map(|context| context.merge_rank.to_string()),
         berry: event.rewards.berry.map(|reward| reward.amount),
+        crew_points: context.map(|context| context.crew_points_total),
+        medals: latest_item_rewards()
+            .into_iter()
+            .map(|entry| RewardEventItem {
+                item_id: entry.item_id,
+                amount: entry.amount,
+                is_new: entry.is_new != 0,
+            })
+            .collect(),
     }
 }
 
@@ -72,7 +89,24 @@ pub(super) struct RewardEventPayload {
     schema: &'static str,
     rank: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    count: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    time: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    merge: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     berry: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    crew_points: Option<u32>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    medals: Vec<RewardEventItem>,
+}
+
+#[derive(Debug, Serialize)]
+pub(super) struct RewardEventItem {
+    item_id: i32,
+    amount: i32,
+    is_new: bool,
 }
 
 #[cfg(test)]

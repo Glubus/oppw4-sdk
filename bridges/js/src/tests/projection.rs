@@ -208,3 +208,166 @@ fn typed_registry_schema_projects_event_helpers() {
     );
     let _ = fs::remove_dir_all(root);
 }
+
+#[test]
+fn typed_registry_schema_projects_difficulty_and_rank_contexts() {
+    let root = temp_root("js-bridge-typed-runtime-contexts");
+    fs::create_dir_all(&root).expect("temp dir");
+    fs::write(
+        root.join("mod.js"),
+        r#"
+        import { difficulty, rank } from "sdk";
+        difficulty.on_applied((ctx) => {
+            if (ctx.mode !== "legend" || ctx.difficulty !== "hard") {
+                throw new Error("bad difficulty context");
+            }
+        });
+        rank.on_result((ctx) => {
+            if (ctx.rank.final !== "S+") {
+                throw new Error("bad final rank");
+            }
+            if (ctx.rank.count !== "A" || ctx.rank.time !== "S" || ctx.rank.merge !== "S+") {
+                throw new Error("bad rank breakdown");
+            }
+            if (ctx.mission.mode !== "legend" || ctx.mission.difficulty !== "hard") {
+                throw new Error("bad mission context");
+            }
+            oppw4.trace("typed rank result " + ctx.rank.final);
+        });
+        "#,
+    )
+    .expect("script");
+
+    let mut registry = BridgeRegistry::new();
+    register_js_bridge(
+        &mut registry,
+        vec![
+            schema_module(
+                "sdk_runtime",
+                "sdk.difficulty",
+                difficulty_schema(),
+                RegistryModuleLoad::Always,
+            ),
+            schema_module(
+                "sdk_runtime",
+                "sdk.rank",
+                rank_schema(),
+                RegistryModuleLoad::Always,
+            ),
+        ],
+    );
+    let lifecycle = load_js_mod(&mut registry, "typed_runtime_contexts_mod", "Typed Runtime Contexts Mod", &root);
+    assert_eq!(lifecycle, ModLifecycle::EventDriven);
+
+    let difficulty_report = registry.dispatch_event(&EventEnvelope {
+        key: EventKey::new("sdk.runtime.difficulty.event").expect("event key"),
+        payload_json: serde_json::json!({
+            "mission_id": 35,
+            "mode": "legend",
+            "difficulty": "hard"
+        })
+        .to_string()
+        .into(),
+    });
+    assert_eq!(difficulty_report.errors, []);
+
+    let rank_report = registry.dispatch_event(&EventEnvelope {
+        key: EventKey::new("sdk.runtime.rank.event").expect("event key"),
+        payload_json: serde_json::json!({
+            "rank": "S+",
+            "count": "A",
+            "time": "S",
+            "merge": "S+",
+            "mission_id": 35,
+            "mode": "legend",
+            "difficulty": "hard"
+        })
+        .to_string()
+        .into(),
+    });
+
+    assert_eq!(rank_report.errors, []);
+    assert_eq!(
+        rank_report.logs,
+        ["js trace mod=typed_runtime_contexts_mod typed rank result S+"]
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn typed_registry_schema_projects_rewards_contexts() {
+    let root = temp_root("js-bridge-typed-rewards-contexts");
+    fs::create_dir_all(&root).expect("temp dir");
+    fs::write(
+        root.join("mod.js"),
+        r#"
+        import { rewards } from "sdk";
+        rewards.on_event((ctx) => {
+            if (ctx.rank !== "S+" || ctx.berry !== 321) {
+                throw new Error("bad rewards event");
+            }
+            if (ctx.crew_points !== 180) {
+                throw new Error("bad crew_points");
+            }
+            if (ctx.medals.length !== 1 || ctx.medals[0].item_id !== 77) {
+                throw new Error("bad reward medals");
+            }
+            if (ctx.ranks.join(",") !== "A,S,S+,S+") {
+                throw new Error("bad reward ranks");
+            }
+        });
+        rewards.on_items((ctx) => {
+            if (ctx.entries.length !== 1 || ctx.entries[0].item_id !== 77) {
+                throw new Error("bad rewards items");
+            }
+            oppw4.trace("typed rewards items " + ctx.entries[0].item_id);
+        });
+        "#,
+    )
+    .expect("script");
+
+    let mut registry = BridgeRegistry::new();
+    register_js_bridge(
+        &mut registry,
+        vec![schema_module(
+            "sdk_runtime",
+            "sdk.rewards",
+            rewards_schema(),
+            RegistryModuleLoad::Always,
+        )],
+    );
+    let lifecycle = load_js_mod(&mut registry, "typed_rewards_contexts_mod", "Typed Rewards Contexts Mod", &root);
+    assert_eq!(lifecycle, ModLifecycle::EventDriven);
+
+    let rewards_report = registry.dispatch_event(&EventEnvelope {
+        key: EventKey::new("sdk.runtime.rewards.event").expect("event key"),
+        payload_json: serde_json::json!({
+            "count": "A",
+            "time": "S",
+            "merge": "S+",
+            "rank": "S+",
+            "berry": 321,
+            "crew_points": 180,
+            "medals": [{ "item_id": 77, "amount": 2, "is_new": true }]
+        })
+        .to_string()
+        .into(),
+    });
+    assert_eq!(rewards_report.errors, []);
+
+    let items_report = registry.dispatch_event(&EventEnvelope {
+        key: EventKey::new("sdk.runtime.rewards.items").expect("event key"),
+        payload_json: serde_json::json!({
+            "entries": [{ "item_id": 77, "amount": 2, "is_new": true }]
+        })
+        .to_string()
+        .into(),
+    });
+
+    assert_eq!(items_report.errors, []);
+    assert_eq!(
+        items_report.logs,
+        ["js trace mod=typed_rewards_contexts_mod typed rewards items 77"]
+    );
+    let _ = fs::remove_dir_all(root);
+}

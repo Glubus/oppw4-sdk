@@ -35,6 +35,9 @@
       "fields": [
         { "name": "schema", "type_ref": { "kind": "string" } },
         { "name": "rank", "type_ref": { "kind": "string" } },
+        { "name": "count", "type_ref": { "kind": "optional", "inner": { "kind": "string" } } },
+        { "name": "time", "type_ref": { "kind": "optional", "inner": { "kind": "string" } } },
+        { "name": "merge", "type_ref": { "kind": "optional", "inner": { "kind": "string" } } },
         { "name": "mission_id", "type_ref": { "kind": "optional", "inner": { "kind": "i64" } } },
         { "name": "mode", "type_ref": { "kind": "optional", "inner": { "kind": "string" } } },
         { "name": "difficulty", "type_ref": { "kind": "optional", "inner": { "kind": "string" } } }

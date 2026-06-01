@@ -34,3 +34,13 @@ oppw4.on("sdk.runtime.event", (ctx) => {
 ```
 
 Registry modules are discovered through the registry and installed by the bridge.
+
+Typed registry events can also project event-specific fields directly on `ctx`:
+
+```js
+import { player } from "sdk";
+
+player.on_character_changed((ctx) => {
+    oppw4.trace(ctx.current_character?.id ?? "none");
+});
+```

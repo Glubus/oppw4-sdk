@@ -13,6 +13,10 @@ pub(super) const CREW_POINT_BLOCK_OFFSET: usize = 0x498;
 pub(super) const CREW_POINT_BLOCK_WORDS: usize = 14;
 pub(super) const CREW_UNLOCK_WORDS: usize = 2;
 pub(super) const EVENT_WORDS: usize = 5;
+const COUNT_RANK_OFFSET: usize = 0x34;
+const TIME_RANK_OFFSET: usize = 0x38;
+const FINAL_RANK_OFFSET: usize = 0x3c;
+const MERGE_RANK_OFFSET: usize = 0x2a4;
 
 const MAX_CREW_UNLOCKS: usize = 32;
 
@@ -23,6 +27,10 @@ pub(super) struct ResultStateSnapshot {
     pub(super) unlock_flags: u32,
     pub(super) mission_id: u32,
     pub(super) difficulty_or_rank: [u32; 5],
+    pub(super) count_rank: u32,
+    pub(super) time_rank: u32,
+    pub(super) final_rank: u32,
+    pub(super) merge_rank: u32,
     pub(super) result_score: [u32; RESULT_SCORE_BLOCK_WORDS],
     pub(super) result_reward: [u32; RESULT_REWARD_BLOCK_WORDS],
     pub(super) result_copy: [u32; U32_BLOCK_WORDS],
@@ -57,6 +65,10 @@ impl ResultStateSnapshot {
             unlock_flags: read_u32(result_state, 0x24),
             mission_id: read_u32(result_state, 0x40),
             difficulty_or_rank: read_u32_block::<5>(result_state, 0x28),
+            count_rank: read_u32(result_state, COUNT_RANK_OFFSET),
+            time_rank: read_u32(result_state, TIME_RANK_OFFSET),
+            final_rank: read_u32(result_state, FINAL_RANK_OFFSET),
+            merge_rank: read_u32(result_state, MERGE_RANK_OFFSET),
             result_score: read_u32_block::<RESULT_SCORE_BLOCK_WORDS>(
                 result_state,
                 RESULT_SCORE_BLOCK_OFFSET,

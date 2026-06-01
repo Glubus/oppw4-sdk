@@ -24,7 +24,21 @@
       "fields": [
         { "name": "schema", "type_ref": { "kind": "string" } },
         { "name": "rank", "type_ref": { "kind": "string" } },
-        { "name": "berry", "type_ref": { "kind": "optional", "inner": { "kind": "i64" } } }
+        { "name": "count", "type_ref": { "kind": "optional", "inner": { "kind": "string" } } },
+        { "name": "time", "type_ref": { "kind": "optional", "inner": { "kind": "string" } } },
+        { "name": "merge", "type_ref": { "kind": "optional", "inner": { "kind": "string" } } },
+        { "name": "berry", "type_ref": { "kind": "optional", "inner": { "kind": "i64" } } },
+        { "name": "crew_points", "type_ref": { "kind": "optional", "inner": { "kind": "i64" } } },
+        { "name": "medals", "type_ref": { "kind": "array", "inner": { "kind": "named", "name": "RewardEventItem" } } }
+      ]
+    },
+    {
+      "name": "RewardEventItem",
+      "constructible": false,
+      "fields": [
+        { "name": "item_id", "type_ref": { "kind": "i64" } },
+        { "name": "amount", "type_ref": { "kind": "i64" } },
+        { "name": "is_new", "type_ref": { "kind": "bool" } }
       ]
     },
     {

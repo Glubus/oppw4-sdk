@@ -55,6 +55,9 @@ impl fmt::Display for RankValue {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct RankResultEvent {
     pub(crate) rank: RankValue,
+    pub(crate) count_rank: Option<RankValue>,
+    pub(crate) time_rank: Option<RankValue>,
+    pub(crate) merge_rank: Option<RankValue>,
     pub(crate) mission_id: Option<u32>,
     pub(crate) difficulty: Option<DifficultySnapshot>,
     pub(crate) player: PlayerSnapshot,
@@ -64,10 +67,25 @@ impl RankResultEvent {
     pub(crate) const fn new(rank: RankValue) -> Self {
         Self {
             rank,
+            count_rank: None,
+            time_rank: None,
+            merge_rank: None,
             mission_id: None,
             difficulty: None,
             player: PlayerSnapshot::new(),
         }
+    }
+
+    pub(crate) const fn with_breakdown(
+        mut self,
+        count_rank: RankValue,
+        time_rank: RankValue,
+        merge_rank: RankValue,
+    ) -> Self {
+        self.count_rank = Some(count_rank);
+        self.time_rank = Some(time_rank);
+        self.merge_rank = Some(merge_rank);
+        self
     }
 
     pub(crate) const fn with_mission_id(mut self, mission_id: u32) -> Self {

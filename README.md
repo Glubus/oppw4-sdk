@@ -195,7 +195,7 @@ Simple event mod:
 import { player } from "sdk";
 
 player.on_character_changed((ctx) => {
-    oppw4.trace(`player changed payload=${ctx.payloadJson}`);
+    oppw4.trace(`player changed current=${ctx.current_character?.id ?? "none"}`);
 });
 ```
 
@@ -211,7 +211,7 @@ import "./events/player.js";
 import { player } from "sdk";
 
 player.on_character_changed((ctx) => {
-    oppw4.trace(`active=${ctx.payload.activeCharacterIds.join(",")}`);
+    oppw4.trace(`active=${ctx.active_character_ids.join(",")}`);
 });
 ```
 

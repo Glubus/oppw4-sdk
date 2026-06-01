@@ -208,7 +208,12 @@ fn render_schema_module(schema: &RegistryModuleSchema) -> String {
 fn render_player_module() -> String {
     let mut output = String::new();
     output.push_str("declare module \"sdk\" {\n");
-    output.push_str("  export interface CharacterChangedEvent {\n");
+    output.push_str("  export interface CharacterChangedPayload {\n");
+    output.push_str("    previous_character_id?: string | null;\n");
+    output.push_str("    current_character_id: string;\n");
+    output.push_str("    active_character_ids: ReadonlyArray<string>;\n");
+    output.push_str("  }\n\n");
+    output.push_str("  export interface CharacterChangedContext extends Oppw4EventContext<CharacterChangedPayload> {\n");
     output.push_str("    previous_character: Character | null;\n");
     output.push_str("    current_character: Character | null;\n");
     output.push_str("    active_character_ids: ReadonlyArray<string>;\n");
@@ -216,7 +221,7 @@ fn render_player_module() -> String {
     output.push_str("  export interface Player {\n");
     output.push_str("    active_characters(): ReadonlyArray<string>;\n");
     output.push_str(
-        "    on_character_changed(callback: (ctx: Oppw4EventContext<CharacterChangedEvent>) => void): string;\n",
+        "    on_character_changed(callback: (ctx: CharacterChangedContext) => void): string;\n",
     );
     output.push_str("  }\n\n");
     output.push_str("  export const player: Player;\n");
@@ -227,14 +232,21 @@ fn render_player_module() -> String {
 fn render_difficulty_module() -> String {
     let mut output = String::new();
     output.push_str("declare module \"sdk\" {\n");
-    output.push_str("  export interface DifficultyAppliedEvent {\n");
+    output.push_str("  export interface DifficultyAppliedPayload {\n");
     output.push_str("    mission_id?: number | null;\n");
     output.push_str("    mode: string;\n");
     output.push_str("    difficulty: string;\n");
     output.push_str("  }\n\n");
+    output.push_str(
+        "  export interface DifficultyAppliedContext extends Oppw4EventContext<DifficultyAppliedPayload> {\n",
+    );
+    output.push_str("    mission_id: number | null;\n");
+    output.push_str("    mode: string | null;\n");
+    output.push_str("    difficulty: string | null;\n");
+    output.push_str("  }\n\n");
     output.push_str("  export interface Difficulty {\n");
     output.push_str(
-        "    on_applied(callback: (ctx: Oppw4EventContext<DifficultyAppliedEvent>) => void): string;\n",
+        "    on_applied(callback: (ctx: DifficultyAppliedContext) => void): string;\n",
     );
     output.push_str(
         "    on_snapshot(callback: (ctx: Oppw4EventContext<JsonObject>) => void): string;\n",
@@ -249,6 +261,15 @@ fn render_rank_module() -> String {
     let mut output = String::new();
     output.push_str("declare module \"sdk\" {\n");
     output.push_str("  export type RankGrade = string;\n\n");
+    output.push_str("  export interface RankResultPayload {\n");
+    output.push_str("    rank: RankGrade;\n");
+    output.push_str("    count?: RankGrade | null;\n");
+    output.push_str("    time?: RankGrade | null;\n");
+    output.push_str("    merge?: RankGrade | null;\n");
+    output.push_str("    mission_id?: number | null;\n");
+    output.push_str("    mode?: string | null;\n");
+    output.push_str("    difficulty?: string | null;\n");
+    output.push_str("  }\n\n");
     output.push_str("  export interface RankBreakdown {\n");
     output.push_str("    final: RankGrade;\n");
     output.push_str("    count?: RankGrade | null;\n");
@@ -260,12 +281,14 @@ fn render_rank_module() -> String {
     output.push_str("    mode?: string | null;\n");
     output.push_str("    difficulty?: string | null;\n");
     output.push_str("  }\n\n");
-    output.push_str("  export interface RankResultEvent {\n");
+    output.push_str(
+        "  export interface RankResultContext extends Oppw4EventContext<RankResultPayload> {\n",
+    );
     output.push_str("    rank: RankBreakdown;\n");
-    output.push_str("    mission?: RankMissionContext;\n");
+    output.push_str("    mission: RankMissionContext;\n");
     output.push_str("  }\n\n");
     output.push_str("  export interface Rank {\n");
-    output.push_str("    on_result(callback: (ctx: Oppw4EventContext<RankResultEvent>) => void): string;\n");
+    output.push_str("    on_result(callback: (ctx: RankResultContext) => void): string;\n");
     output.push_str("    on_snapshot(callback: (ctx: Oppw4EventContext<JsonObject>) => void): string;\n");
     output.push_str("    on_helper_call(callback: (ctx: Oppw4EventContext<JsonObject>) => void): string;\n");
     output.push_str("  }\n\n");
@@ -278,6 +301,14 @@ fn render_rewards_module() -> String {
     let mut output = String::new();
     output.push_str("declare module \"sdk\" {\n");
     output.push_str("  export type RankGrade = string;\n\n");
+    output.push_str("  export interface RewardsEventPayload {\n");
+    output.push_str("    rank: RankGrade;\n");
+    output.push_str("    count?: RankGrade | null;\n");
+    output.push_str("    time?: RankGrade | null;\n");
+    output.push_str("    merge?: RankGrade | null;\n");
+    output.push_str("    berry?: number | null;\n");
+    output.push_str("    crew_points?: number | null;\n");
+    output.push_str("  }\n\n");
     output.push_str("  export interface SoulReward {\n");
     output.push_str("    soul_id: string;\n");
     output.push_str("    count: number;\n");
@@ -285,6 +316,11 @@ fn render_rewards_module() -> String {
     output.push_str("  export interface MedalReward {\n");
     output.push_str("    medal_id: string;\n");
     output.push_str("    count: number;\n");
+    output.push_str("  }\n\n");
+    output.push_str("  export interface RewardItem {\n");
+    output.push_str("    item_id: number;\n");
+    output.push_str("    amount: number;\n");
+    output.push_str("    is_new: boolean;\n");
     output.push_str("  }\n\n");
     output.push_str("  export interface RewardsEvent {\n");
     output.push_str("    rank: RankGrade;\n");
@@ -294,17 +330,27 @@ fn render_rewards_module() -> String {
     output.push_str("    crew_points?: number | null;\n");
     output.push_str("    ranks?: ReadonlyArray<RankGrade>;\n");
     output.push_str("  }\n\n");
-    output.push_str("  export interface RewardItem {\n");
-    output.push_str("    item_id: number;\n");
-    output.push_str("    amount: number;\n");
-    output.push_str("    is_new: boolean;\n");
+    output.push_str(
+        "  export interface RewardsEventContext extends Oppw4EventContext<RewardsEventPayload> {\n",
+    );
+    output.push_str("    rank: RankGrade | null;\n");
+    output.push_str("    berry: number | null;\n");
+    output.push_str("    souls: ReadonlyArray<SoulReward>;\n");
+    output.push_str("    medals: ReadonlyArray<RewardItem>;\n");
+    output.push_str("    crew_points: number | null;\n");
+    output.push_str("    ranks: ReadonlyArray<RankGrade>;\n");
     output.push_str("  }\n\n");
-    output.push_str("  export interface RewardsItemsEvent {\n");
+    output.push_str("  export interface RewardsItemsPayload {\n");
+    output.push_str("    entries: ReadonlyArray<RewardItem>;\n");
+    output.push_str("  }\n\n");
+    output.push_str(
+        "  export interface RewardsItemsContext extends Oppw4EventContext<RewardsItemsPayload> {\n",
+    );
     output.push_str("    entries: ReadonlyArray<RewardItem>;\n");
     output.push_str("  }\n\n");
     output.push_str("  export interface Rewards {\n");
-    output.push_str("    on_event(callback: (ctx: Oppw4EventContext<RewardsEvent>) => void): string;\n");
-    output.push_str("    on_items(callback: (ctx: Oppw4EventContext<RewardsItemsEvent>) => void): string;\n");
+    output.push_str("    on_event(callback: (ctx: RewardsEventContext) => void): string;\n");
+    output.push_str("    on_items(callback: (ctx: RewardsItemsContext) => void): string;\n");
     output.push_str("    on_commit(callback: (ctx: Oppw4EventContext<JsonObject>) => void): string;\n");
     output.push_str("  }\n\n");
     output.push_str("  export const rewards: Rewards;\n");
@@ -457,6 +503,9 @@ mod tests {
         assert!(character.contains("export const character: CharacterNamespace;"));
 
         let player = fs::read_to_string(types_root.join("player.d.ts")).expect("player");
+        assert!(player.contains("export interface CharacterChangedPayload"));
+        assert!(player.contains("current_character_id: string;"));
+        assert!(player.contains("export interface CharacterChangedContext extends Oppw4EventContext<CharacterChangedPayload>"));
         assert!(player.contains("previous_character: Character | null;"));
         assert!(player.contains("current_character: Character | null;"));
         assert!(player.contains("active_character_ids: ReadonlyArray<string>;"));
@@ -465,19 +514,36 @@ mod tests {
         assert!(sdk.contains("export default sdk;"));
 
         let rewards = fs::read_to_string(types_root.join("rewards.d.ts")).expect("rewards");
-        assert!(rewards.contains("export interface RewardsEvent"));
-        assert!(rewards.contains("berry?: number | null;"));
-        assert!(rewards.contains("souls?: ReadonlyArray<SoulReward>;"));
+        assert!(rewards.contains("export interface RewardsEventPayload"));
+        assert!(rewards.contains("count?: RankGrade | null;"));
+        assert!(rewards.contains("time?: RankGrade | null;"));
+        assert!(rewards.contains("merge?: RankGrade | null;"));
         assert!(rewards.contains("crew_points?: number | null;"));
+        assert!(rewards.contains("export interface RewardsEventContext extends Oppw4EventContext<RewardsEventPayload>"));
+        assert!(rewards.contains("berry: number | null;"));
+        assert!(rewards.contains("souls: ReadonlyArray<SoulReward>;"));
+        assert!(rewards.contains("crew_points: number | null;"));
+        assert!(rewards.contains("medals: ReadonlyArray<RewardItem>;"));
         assert!(!rewards.contains("RewardCommitSnapshot"));
 
         let rank = fs::read_to_string(types_root.join("rank.d.ts")).expect("rank");
+        assert!(rank.contains("export interface RankResultPayload"));
+        assert!(rank.contains("count?: RankGrade | null;"));
+        assert!(rank.contains("time?: RankGrade | null;"));
+        assert!(rank.contains("merge?: RankGrade | null;"));
+        assert!(rank.contains("export interface RankResultContext extends Oppw4EventContext<RankResultPayload>"));
         assert!(rank.contains("export interface RankBreakdown"));
         assert!(rank.contains("final: RankGrade;"));
         assert!(rank.contains("count?: RankGrade | null;"));
         assert!(rank.contains("time?: RankGrade | null;"));
         assert!(rank.contains("merge?: RankGrade | null;"));
-        assert!(rank.contains("mission?: RankMissionContext;"));
+        assert!(rank.contains("mission: RankMissionContext;"));
+
+        let difficulty =
+            fs::read_to_string(types_root.join("difficulty.d.ts")).expect("difficulty");
+        assert!(difficulty.contains("export interface DifficultyAppliedPayload"));
+        assert!(difficulty.contains("export interface DifficultyAppliedContext extends Oppw4EventContext<DifficultyAppliedPayload>"));
+        assert!(difficulty.contains("mode: string | null;"));
 
         let index = fs::read_to_string(types_root.join("index.d.ts")).expect("index");
         assert!(index.contains("reference path=\"./character.d.ts\""));

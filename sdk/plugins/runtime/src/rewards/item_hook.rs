@@ -4,7 +4,7 @@ use std::{
     mem, panic, slice,
     sync::{
         atomic::{AtomicUsize, Ordering},
-        OnceLock,
+        OnceLock, RwLock,
     },
 };
 
@@ -39,6 +39,7 @@ static TRAMPOLINE: AtomicUsize = AtomicUsize::new(0);
 static LOG_COUNT: AtomicUsize = AtomicUsize::new(0);
 static MAX_LOGS: AtomicUsize = AtomicUsize::new(0);
 static MAX_ENTRIES: AtomicUsize = AtomicUsize::new(0);
+static LATEST_ITEM_REWARDS: OnceLock<RwLock<Vec<ItemRewardEntry>>> = OnceLock::new();
 
 #[derive(Debug, Serialize)]
 struct ItemRewardSnapshot {
@@ -51,11 +52,11 @@ struct ItemRewardSnapshot {
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
-struct ItemRewardEntry {
-    index: usize,
-    amount: i32,
-    item_id: i32,
-    is_new: i32,
+pub(crate) struct ItemRewardEntry {
+    pub(crate) index: usize,
+    pub(crate) amount: i32,
+    pub(crate) item_id: i32,
+    pub(crate) is_new: i32,
 }
 
 pub(crate) fn install(host: OwnedHostApi, config: ItemRewardProbeConfig) {
@@ -168,6 +169,7 @@ fn log_items(out: *mut i32, reward_context: u64, previous: *const i32, result: u
         words,
         max_entries,
     );
+    store_latest_entries(&snapshot.entries);
     let entries = format::entries_log(&snapshot.entries);
     let _ = host.log().write(
         PLUGIN_ID,
@@ -181,4 +183,22 @@ fn log_items(out: *mut i32, reward_context: u64, previous: *const i32, result: u
         ),
     );
     signals::emit_json(host, signals::REWARD_ITEMS, &snapshot);
+}
+
+pub(crate) fn latest_item_rewards() -> Vec<ItemRewardEntry> {
+    latest_item_rewards_store()
+        .read()
+        .map(|entries| entries.clone())
+        .unwrap_or_default()
+}
+
+fn latest_item_rewards_store() -> &'static RwLock<Vec<ItemRewardEntry>> {
+    LATEST_ITEM_REWARDS.get_or_init(|| RwLock::new(Vec::new()))
+}
+
+fn store_latest_entries(entries: &[ItemRewardEntry]) {
+    let Ok(mut latest) = latest_item_rewards_store().write() else {
+        return;
+    };
+    *latest = entries.to_vec();
 }

@@ -8,11 +8,15 @@ use super::snapshot::{
 impl ResultStateSnapshot {
     pub(super) fn format(&self, call: usize) -> String {
         format!(
-            "result_state_probe call={call} ptr=0x{:x} state={} mission={} rank_fields=[{}] flags=0x{:x} result_score_named={} result_reward_named={} result_copy=[{}] crew_points=[{}] crew_points_named={} source_rewards=[{}] soul_counter={} character_rewards=[{}] character_totals=[{}] crew_unlock_count={} crew_unlocks={} event_count={} events={}",
+            "result_state_probe call={call} ptr=0x{:x} state={} mission={} rank_fields=[{}] rank_breakdown=count:{} time:{} final:{} merge:{} flags=0x{:x} result_score_named={} result_reward_named={} result_copy=[{}] crew_points=[{}] crew_points_named={} source_rewards=[{}] soul_counter={} character_rewards=[{}] character_totals=[{}] crew_unlock_count={} crew_unlocks={} event_count={} events={}",
             self.address,
             self.state,
             self.mission_id,
             format_array(&self.difficulty_or_rank),
+            self.count_rank,
+            self.time_rank,
+            self.final_rank,
+            self.merge_rank,
             self.unlock_flags,
             format_offset_block(&self.result_score, RESULT_SCORE_BLOCK_OFFSET),
             format_offset_block(&self.result_reward, RESULT_REWARD_BLOCK_OFFSET),

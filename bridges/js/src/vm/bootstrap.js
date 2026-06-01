@@ -182,6 +182,26 @@
             String(event.name) === "character_changed") {
             return callback(freeze(projectCharacterChangedContext(registryModuleList, ctx)));
         }
+        if (String(schema.namespace) === "sdk" &&
+            String(schema.importName) === "difficulty" &&
+            String(event.name) === "applied") {
+            return callback(freeze(projectDifficultyAppliedContext(ctx)));
+        }
+        if (String(schema.namespace) === "sdk" &&
+            String(schema.importName) === "rank" &&
+            String(event.name) === "result") {
+            return callback(freeze(projectRankResultContext(ctx)));
+        }
+        if (String(schema.namespace) === "sdk" &&
+            String(schema.importName) === "rewards" &&
+            String(event.name) === "event") {
+            return callback(freeze(projectRewardsEventContext(ctx)));
+        }
+        if (String(schema.namespace) === "sdk" &&
+            String(schema.importName) === "rewards" &&
+            String(event.name) === "items") {
+            return callback(freeze(projectRewardsItemsContext(ctx)));
+        }
         let wrapped = false;
         let payload = null;
         const typedCtx = {
@@ -245,6 +265,127 @@
             },
         });
         return typedCtx;
+    }
+
+    function projectDifficultyAppliedContext(ctx) {
+        let payloadLoaded = false;
+        let payload = null;
+        const typedCtx = {
+            eventKey: ctx.eventKey,
+            payloadJson: ctx.payloadJson,
+            mod: ctx.mod,
+        };
+        Object.defineProperty(typedCtx, "payload", payloadProperty(() => {
+            if (!payloadLoaded) {
+                payload = ctx.payload || {};
+                payloadLoaded = true;
+            }
+            return payload;
+        }));
+        Object.defineProperty(typedCtx, "mission_id", valueProperty(() => typedCtx.payload.mission_id ?? null));
+        Object.defineProperty(typedCtx, "mode", valueProperty(() => typedCtx.payload.mode ?? null));
+        Object.defineProperty(typedCtx, "difficulty", valueProperty(() => typedCtx.payload.difficulty ?? null));
+        return typedCtx;
+    }
+
+    function projectRankResultContext(ctx) {
+        let payloadLoaded = false;
+        let payload = null;
+        const typedCtx = {
+            eventKey: ctx.eventKey,
+            payloadJson: ctx.payloadJson,
+            mod: ctx.mod,
+        };
+        Object.defineProperty(typedCtx, "payload", payloadProperty(() => {
+            if (!payloadLoaded) {
+                payload = ctx.payload || {};
+                payloadLoaded = true;
+            }
+            return payload;
+        }));
+        Object.defineProperty(typedCtx, "rank", valueProperty(() => freeze({
+            final: typedCtx.payload.rank ?? "unknown",
+            count: typedCtx.payload.count ?? null,
+            time: typedCtx.payload.time ?? null,
+            merge: typedCtx.payload.merge ?? null,
+        })));
+        Object.defineProperty(typedCtx, "mission", valueProperty(() => freeze({
+            mission_id: typedCtx.payload.mission_id ?? null,
+            mode: typedCtx.payload.mode ?? null,
+            difficulty: typedCtx.payload.difficulty ?? null,
+        })));
+        return typedCtx;
+    }
+
+    function projectRewardsEventContext(ctx) {
+        let payloadLoaded = false;
+        let payload = null;
+        const typedCtx = {
+            eventKey: ctx.eventKey,
+            payloadJson: ctx.payloadJson,
+            mod: ctx.mod,
+        };
+        Object.defineProperty(typedCtx, "payload", payloadProperty(() => {
+            if (!payloadLoaded) {
+                payload = ctx.payload || {};
+                payloadLoaded = true;
+            }
+            return payload;
+        }));
+        Object.defineProperty(typedCtx, "rank", valueProperty(() => typedCtx.payload.rank ?? null));
+        Object.defineProperty(typedCtx, "berry", valueProperty(() => typedCtx.payload.berry ?? null));
+        Object.defineProperty(typedCtx, "souls", valueProperty(() => freeze([])));
+        Object.defineProperty(typedCtx, "crew_points", valueProperty(() => typedCtx.payload.crew_points ?? null));
+        Object.defineProperty(typedCtx, "medals", valueProperty(() => {
+            const medals = typedCtx.payload.medals;
+            return Array.isArray(medals) ? freeze(medals.slice()) : freeze([]);
+        }));
+        Object.defineProperty(typedCtx, "ranks", valueProperty(() => {
+            const ranks = [
+                typedCtx.payload.count,
+                typedCtx.payload.time,
+                typedCtx.payload.merge,
+                typedCtx.payload.rank,
+            ].filter((value) => value != null);
+            return freeze(ranks);
+        }));
+        return typedCtx;
+    }
+
+    function projectRewardsItemsContext(ctx) {
+        let payloadLoaded = false;
+        let payload = null;
+        const typedCtx = {
+            eventKey: ctx.eventKey,
+            payloadJson: ctx.payloadJson,
+            mod: ctx.mod,
+        };
+        Object.defineProperty(typedCtx, "payload", payloadProperty(() => {
+            if (!payloadLoaded) {
+                payload = ctx.payload || {};
+                payloadLoaded = true;
+            }
+            return payload;
+        }));
+        Object.defineProperty(typedCtx, "entries", valueProperty(() => {
+            const entries = typedCtx.payload.entries;
+            return Array.isArray(entries) ? freeze(entries.slice()) : freeze([]);
+        }));
+        return typedCtx;
+    }
+
+    function payloadProperty(getter) {
+        return {
+            enumerable: true,
+            get: getter,
+        };
+    }
+
+    function valueProperty(getter) {
+        return {
+            enumerable: true,
+            get: getter,
+        };
     }
 
     function resolveCharacter(registryModuleList, currentMod, characterId) {
