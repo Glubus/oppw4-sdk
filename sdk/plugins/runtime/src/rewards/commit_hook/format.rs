@@ -3,8 +3,7 @@ use std::slice;
 use serde::Serialize;
 
 use crate::{
-    mission::result::latest_reward_context,
-    rewards::latest_item_rewards,
+    mission::result::latest_reward_context, rewards::latest_item_rewards,
     runtime::core::rewards::RewardCommitEvent,
 };
 

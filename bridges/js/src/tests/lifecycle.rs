@@ -59,8 +59,8 @@ fn js_bridge_loads_typescript_sources() {
             source: BridgeModSource::Directory(root.clone()),
             entry_file: "mod.ts".to_string(),
             uses_plugins: Vec::new(),
-    })
-    .expect("load mod");
+        })
+        .expect("load mod");
 
     assert_eq!(lifecycle, ModLifecycle::BootOnce);
     assert!(registry.drain_boot_mutations().is_empty());

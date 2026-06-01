@@ -1,0 +1,9 @@
+[mod]
+id = "mission_rewards_double"
+name = "Mission Rewards Double"
+
+[uses]
+plugins = ["sdk_runtime"]
+
+[entry]
+file = "main.js"

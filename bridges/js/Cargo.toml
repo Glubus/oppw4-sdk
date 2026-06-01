@@ -14,6 +14,7 @@ swc_ecma_visit = "23"
 rquickjs.workspace = true
 sdk-bridge.workspace = true
 sdk-js-analyzer.workspace = true
+serde.workspace = true
 serde_json.workspace = true
 zip.workspace = true
 

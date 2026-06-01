@@ -47,14 +47,31 @@
     function createHandlerDispatcher(handlerStore, currentMod) {
         return (handlerRefs, eventKey, payloadJson) => {
             const ctx = createEventContext(eventKey, payloadJson, currentMod);
+            const mutations = [];
             for (const handlerRef of handlerRefs || []) {
                 const callback = handlerStore[String(handlerRef)];
                 if (typeof callback !== "function") {
                     throw new Error("js handler is not registered: " + handlerRef);
                 }
-                callback(ctx);
+                const result = callback(ctx);
+                collectMutations(mutations, result);
             }
+            return JSON.stringify(mutations);
         };
+    }
+
+    function collectMutations(target, result) {
+        if (!result || !Array.isArray(result.mutations)) {
+            return;
+        }
+        for (const mutation of result.mutations) {
+            if (mutation && mutation.key && mutation.payload !== undefined) {
+                target.push({
+                    key: String(mutation.key),
+                    payload: mutation.payload,
+                });
+            }
+        }
     }
 
     function createEventContext(eventKey, payloadJson, currentMod) {
@@ -201,6 +218,18 @@
             String(schema.importName) === "rewards" &&
             String(event.name) === "medals") {
             return callback(freeze(projectRewardsItemsContext(ctx)));
+        }
+        if (String(schema.namespace) === "sdk" &&
+            String(schema.importName) === "mission" &&
+            String(event.name) === "rewards") {
+            const typedCtx = projectMissionRewardsContext(ctx);
+            callback(freeze(typedCtx));
+            return {
+                mutations: typedCtx.mutations.map((mutation) => freeze({
+                    key: "sdk.runtime.rewards.berry.set_total",
+                    payload: { total: mutation.total },
+                })),
+            };
         }
         let wrapped = false;
         let payload = null;
@@ -372,6 +401,60 @@
             return Array.isArray(entries) ? freeze(entries.slice()) : freeze([]);
         }));
         return typedCtx;
+    }
+
+    function projectMissionRewardsContext(ctx) {
+        let payloadLoaded = false;
+        let payload = null;
+        const mutations = [];
+        const typedCtx = {
+            eventKey: ctx.eventKey,
+            payloadJson: ctx.payloadJson,
+            mod: ctx.mod,
+            mutations,
+        };
+        Object.defineProperty(typedCtx, "payload", payloadProperty(() => {
+            if (!payloadLoaded) {
+                payload = ctx.payload || {};
+                payloadLoaded = true;
+            }
+            return payload;
+        }));
+        Object.defineProperty(typedCtx, "rank", valueProperty(() => typedCtx.payload.rank ?? null));
+        Object.defineProperty(typedCtx, "rewards", valueProperty(() => createMissionRewardsView(typedCtx, mutations)));
+        return typedCtx;
+    }
+
+    function createMissionRewardsView(ctx, mutations) {
+        const berry = createBerryRewardView(ctx, mutations);
+        return {
+            berry,
+            medals: Array.isArray(ctx.payload.medals) ? freeze(ctx.payload.medals.slice()) : freeze([]),
+            crew_points: ctx.payload.crew_points ?? null,
+        };
+    }
+
+    function createBerryRewardView(ctx, mutations) {
+        let total = Number(ctx.payload.berry ?? 0);
+        return {
+            get total() {
+                return total;
+            },
+            set_total(value) {
+                const next = Number(value);
+                if (!Number.isFinite(next) || next < 0) {
+                    throw new Error("berry total must be a non-negative finite number");
+                }
+                total = Math.trunc(next);
+                ctx.payload.berry = total;
+                invokeRegistry(ctx.mod, "sdk.mission.set_reward_berry_total", [total]);
+                mutations.push(freeze({
+                    kind: "berry.set_total",
+                    total,
+                }));
+                return total;
+            },
+        };
     }
 
     function payloadProperty(getter) {

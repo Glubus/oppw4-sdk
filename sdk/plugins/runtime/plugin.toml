@@ -26,4 +26,4 @@ provides = [
 ]
 
 [registry]
-modules = ["sdk.player"]
+modules = ["sdk.player", "sdk.difficulty", "sdk.rank", "sdk.rewards", "sdk.mission"]

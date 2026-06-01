@@ -78,7 +78,13 @@ const SDK_SERVICES: &[SdkService] = &[
             "game.mission.rewards",
             "runtime.fx",
         ],
-        registry_modules: &["sdk.player", "sdk.difficulty", "sdk.rank", "sdk.rewards"],
+        registry_modules: &[
+            "sdk.player",
+            "sdk.difficulty",
+            "sdk.rank",
+            "sdk.rewards",
+            "sdk.mission",
+        ],
     },
     SdkService {
         id: "sdk_debug",

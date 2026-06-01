@@ -197,8 +197,8 @@ fn typed_registry_schema_projects_event_helpers() {
             "current_character_id": "whitebeard",
             "active_character_ids": ["whitebeard"]
         })
-            .to_string()
-            .into(),
+        .to_string()
+        .into(),
     });
 
     assert_eq!(report.errors, []);
@@ -256,7 +256,12 @@ fn typed_registry_schema_projects_difficulty_and_rank_contexts() {
             ),
         ],
     );
-    let lifecycle = load_js_mod(&mut registry, "typed_runtime_contexts_mod", "Typed Runtime Contexts Mod", &root);
+    let lifecycle = load_js_mod(
+        &mut registry,
+        "typed_runtime_contexts_mod",
+        "Typed Runtime Contexts Mod",
+        &root,
+    );
     assert_eq!(lifecycle, ModLifecycle::EventDriven);
 
     let difficulty_report = registry.dispatch_event(&EventEnvelope {
@@ -336,7 +341,12 @@ fn typed_registry_schema_projects_rewards_contexts() {
             RegistryModuleLoad::Always,
         )],
     );
-    let lifecycle = load_js_mod(&mut registry, "typed_rewards_contexts_mod", "Typed Rewards Contexts Mod", &root);
+    let lifecycle = load_js_mod(
+        &mut registry,
+        "typed_rewards_contexts_mod",
+        "Typed Rewards Contexts Mod",
+        &root,
+    );
     assert_eq!(lifecycle, ModLifecycle::EventDriven);
 
     let rewards_report = registry.dispatch_event(&EventEnvelope {
@@ -368,6 +378,95 @@ fn typed_registry_schema_projects_rewards_contexts() {
     assert_eq!(
         items_report.logs,
         ["js trace mod=typed_rewards_contexts_mod typed rewards medals 77"]
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn typed_registry_schema_projects_mission_rewards_mutator_context() {
+    let root = temp_root("js-bridge-typed-mission-rewards-context");
+    fs::create_dir_all(&root).expect("temp dir");
+    fs::write(
+        root.join("mod.js"),
+        r#"
+        import { mission } from "sdk";
+        if (typeof mission.on_rewards !== "function") {
+            throw new Error("mission.on_rewards projection missing");
+        }
+        mission.on_rewards((ctx) => {
+            if (ctx.rewards.berry.total !== 321) {
+                throw new Error("bad berry total: " + ctx.rewards.berry.total);
+            }
+            ctx.rewards.berry.set_total(ctx.rewards.berry.total * 2);
+            if (ctx.rewards.berry.total !== 642) {
+                throw new Error("berry total should update locally");
+            }
+            if (ctx.mutations.length !== 1 || ctx.mutations[0].kind !== "berry.set_total") {
+                throw new Error("missing berry mutation");
+            }
+            oppw4.trace("mission rewards berry " + ctx.rewards.berry.total);
+        });
+        "#,
+    )
+    .expect("script");
+
+    let mut registry = BridgeRegistry::new();
+    MISSION_BERRY_TOTALS
+        .get_or_init(|| std::sync::Mutex::new(Vec::new()))
+        .lock()
+        .expect("mission berry totals")
+        .clear();
+    register_js_bridge(
+        &mut registry,
+        vec![schema_module_with_invoke(
+            "sdk_runtime",
+            "sdk.mission",
+            mission_schema(),
+            RegistryModuleLoad::Always,
+            mission_invoke,
+        )],
+    );
+    let lifecycle = load_js_mod(
+        &mut registry,
+        "typed_mission_rewards_context_mod",
+        "Typed Mission Rewards Context Mod",
+        &root,
+    );
+    assert_eq!(lifecycle, ModLifecycle::EventDriven);
+
+    let report = registry.dispatch_event(&EventEnvelope {
+        key: EventKey::new("sdk.runtime.rewards.event").expect("event key"),
+        payload_json: serde_json::json!({
+            "rank": "S+",
+            "berry": 321,
+            "crew_points": 180,
+            "medals": [{ "item_id": 77, "amount": 2, "is_new": true }]
+        })
+        .to_string()
+        .into(),
+    });
+
+    assert_eq!(report.errors, []);
+    assert_eq!(report.mutations.len(), 1);
+    assert_eq!(
+        report.mutations[0].key.as_str(),
+        "sdk.runtime.rewards.berry.set_total"
+    );
+    assert_eq!(
+        report.mutations[0].payload_json,
+        serde_json::json!({ "total": 642 }).to_string()
+    );
+    assert_eq!(
+        *MISSION_BERRY_TOTALS
+            .get()
+            .expect("mission berry totals")
+            .lock()
+            .expect("mission berry totals"),
+        vec![642]
+    );
+    assert_eq!(
+        report.logs,
+        ["js trace mod=typed_mission_rewards_context_mod mission rewards berry 642"]
     );
     let _ = fs::remove_dir_all(root);
 }

@@ -26,4 +26,5 @@ impl RuntimeExposure for ItemRewardExposure {
     }
 }
 
+pub(crate) use commit_hook::request_berry_total;
 pub(crate) use item_hook::{latest_item_rewards, ItemRewardEntry};

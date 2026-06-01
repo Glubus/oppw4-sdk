@@ -1,3 +1,4 @@
+mod mission;
 mod player;
 mod schemas;
 
@@ -31,6 +32,11 @@ const RUNTIME_MODULES: &[RuntimeModule] = &[
         name: "sdk.rewards",
         schema_json: schemas::REWARDS_SCHEMA_JSON,
         invoke: None,
+    },
+    RuntimeModule {
+        name: "sdk.mission",
+        schema_json: schemas::MISSION_SCHEMA_JSON,
+        invoke: Some(mission::invoke),
     },
 ];
 

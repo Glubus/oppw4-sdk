@@ -97,7 +97,10 @@ fn publish_character_changed(previous: &PlayerSnapshot, current: &PlayerSnapshot
     else {
         return;
     };
-    let previous_character_id = previous.active_character_ids.first().map(CharacterId::as_str);
+    let previous_character_id = previous
+        .active_character_ids
+        .first()
+        .map(CharacterId::as_str);
     let payload = CharacterChangedPayload {
         previous_character_id,
         current_character_id,

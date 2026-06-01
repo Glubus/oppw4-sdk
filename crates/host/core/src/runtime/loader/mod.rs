@@ -82,7 +82,6 @@ fn load_mods(game_root: &Path) {
         log::write_line("plugin host: bridge registry is not initialized");
         return;
     };
-    let mut registry = registry.lock().expect("bridge registry lock");
     let total = mods.len();
     let mut loaded = 0usize;
     log_sdk_status(format!("mods loaded {loaded}/{total}"));
@@ -104,10 +103,16 @@ fn load_mods(game_root: &Path) {
                 continue;
             }
         };
-        match registry.load_supported_mod(request) {
+        let (load_result, load_logs) = {
+            let mut registry = registry.lock().expect("bridge registry lock");
+            let result = registry.load_supported_mod(request);
+            let logs = registry.drain_load_logs();
+            (result, logs)
+        };
+        match load_result {
             Ok(lifecycle) => {
                 loaded += 1;
-                for line in registry.drain_load_logs() {
+                for line in load_logs {
                     log::write_line(format!("plugin host: mod log id={mod_id} {line}"));
                     logs::write_mod(&mod_id, &line);
                 }
@@ -117,7 +122,7 @@ fn load_mods(game_root: &Path) {
                 log_sdk_status(format!("mods loaded {loaded}/{total}"));
             }
             Err(error) => {
-                for line in registry.drain_load_logs() {
+                for line in load_logs {
                     log::write_line(format!("plugin host: mod log id={mod_id} {line}"));
                     logs::write_mod(&mod_id, &line);
                 }
@@ -132,7 +137,10 @@ fn load_mods(game_root: &Path) {
         "plugin_host",
         &format!("mods scanned={total} loaded={loaded}"),
     );
-    log_mod_conflicts(&registry);
+    if let Some(registry) = BRIDGES.get() {
+        let registry = registry.lock().expect("bridge registry lock");
+        log_mod_conflicts(&registry);
+    }
 }
 
 fn bridge_load_request(

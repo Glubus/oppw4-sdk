@@ -1,10 +1,7 @@
 use std::{fs, io, io::Read, path::Path};
 
 use sdk_bridge::{BridgeModContext, BridgeModSource};
-use swc_common::{
-    sync::Lrc,
-    FileName, Globals, Mark, SourceMap, GLOBALS,
-};
+use swc_common::{sync::Lrc, FileName, Globals, Mark, SourceMap, GLOBALS};
 use swc_ecma_ast::EsVersion;
 use swc_ecma_codegen::to_code_default;
 use swc_ecma_parser::{parse_file_as_program, EsSyntax, Syntax, TsSyntax};
@@ -29,7 +26,10 @@ pub(super) fn transpile_script(source_name: &str, source: &str) -> Result<String
     }
 
     let cm: Lrc<SourceMap> = Default::default();
-    let fm = cm.new_source_file(FileName::Custom(source_name.to_string()).into(), source.to_string());
+    let fm = cm.new_source_file(
+        FileName::Custom(source_name.to_string()).into(),
+        source.to_string(),
+    );
     let syntax = syntax_for(source_name);
     let mut recovered_errors = Vec::new();
     let mut program = parse_file_as_program(

@@ -4,8 +4,11 @@ use rquickjs::{
     CatchResultExt, Context, Ctx, Error, Module, Runtime,
 };
 use sdk_bridge::{BridgeAnalysisReport, BridgeModContext};
-use std::{collections::{HashMap, HashSet}, path::Path};
 use std::sync::mpsc;
+use std::{
+    collections::{HashMap, HashSet},
+    path::Path,
+};
 
 use crate::{
     module::JsModuleRef,

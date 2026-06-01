@@ -108,7 +108,8 @@ impl RuntimeAdapter for JsBridge {
             };
         };
         match vm.dispatch(handler, event) {
-            Ok(()) => BridgeDispatchReport {
+            Ok(mutations) => BridgeDispatchReport {
+                mutations,
                 logs: vm.drain_logs(),
                 vm_batch_count: 1,
                 ..BridgeDispatchReport::default()
@@ -143,7 +144,8 @@ impl RuntimeAdapter for JsBridge {
             };
             report.vm_batch_count += 1;
             match vm.dispatch_many(&mod_handlers, event) {
-                Ok(()) => {
+                Ok(mutations) => {
+                    report.mutations.extend(mutations);
                     let logs = vm.drain_logs();
                     report.logs.extend(logs.iter().cloned());
                     report

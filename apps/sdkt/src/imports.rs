@@ -77,12 +77,7 @@ fn module_path_exists(path: &Path) -> bool {
             }
         }
     }
-    for index_name in [
-        "index.js",
-        "index.ts",
-        "index.mjs",
-        "index.mts",
-    ] {
+    for index_name in ["index.js", "index.ts", "index.mjs", "index.mts"] {
         if path.join(index_name).is_file() {
             return true;
         }

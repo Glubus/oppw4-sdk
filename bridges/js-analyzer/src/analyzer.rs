@@ -50,7 +50,10 @@ impl Analyzer<'_, '_> {
                 else {
                     continue;
                 };
-                let after_equals = skip_ws(self.source, skip_ts_type_annotation(self.source, after_name));
+                let after_equals = skip_ws(
+                    self.source,
+                    skip_ts_type_annotation(self.source, after_name),
+                );
                 if !self.source[after_equals..].starts_with('=') {
                     continue;
                 }
@@ -178,7 +181,11 @@ impl Analyzer<'_, '_> {
 
 fn skip_ts_type_annotation(source: &str, start: usize) -> usize {
     let mut index = skip_ws(source, start);
-    if !source.as_bytes().get(index).is_some_and(|byte| *byte == b':') {
+    if !source
+        .as_bytes()
+        .get(index)
+        .is_some_and(|byte| *byte == b':')
+    {
         return index;
     }
     index += 1;

@@ -1110,6 +1110,7 @@ dependencies = [
  "rquickjs",
  "sdk-bridge",
  "sdk-js-analyzer",
+ "serde",
  "serde_json",
  "swc_common",
  "swc_ecma_ast",
