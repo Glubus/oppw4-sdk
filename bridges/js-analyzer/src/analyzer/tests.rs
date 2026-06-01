@@ -91,6 +91,18 @@ fn declared_replace_costume_method_suppresses_registry_warning() {
     assert_eq!(report.effects.len(), 1);
 }
 
+#[test]
+fn variable_receiver_borrows_character_binding() {
+    let character_vars = HashMap::from([("zoro".to_string(), "roronoa_zoro".to_string())]);
+
+    let character = character_from_receiver(&character_vars, Some("zoro"), 0, 1);
+
+    assert!(matches!(
+        character,
+        CharacterReceiver::Static(std::borrow::Cow::Borrowed("roronoa_zoro"))
+    ));
+}
+
 fn module_with_method(method_name: &str) -> sdk_bridge::RegistryModuleDescriptor {
     sdk_bridge::RegistryModuleDescriptor::builder("test", "sdk.character")
         .schema(

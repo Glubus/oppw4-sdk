@@ -6,9 +6,9 @@ use sdk_bridge::{
     RegistryTypeRef,
 };
 
-use crate::module::JsModule;
+use crate::module::JsModuleRef;
 
-pub(super) fn install(ctx: Ctx<'_>, modules: &[JsModule]) -> rquickjs::Result<()> {
+pub(super) fn install(ctx: Ctx<'_>, modules: &[JsModuleRef<'_>]) -> rquickjs::Result<()> {
     let modules_json = serde_json::Value::Array(
         modules
             .iter()
@@ -17,7 +17,7 @@ pub(super) fn install(ctx: Ctx<'_>, modules: &[JsModule]) -> rquickjs::Result<()
                     "providerId": module.plugin_id,
                     "name": module.module_name,
                     "load": module_load_label(module.load),
-                    "schema": module.schema.as_ref().map(schema_json),
+                    "schema": module.schema.map(schema_json),
                 })
             })
             .collect(),

@@ -6,7 +6,10 @@ use sdk_bridge::{
     HandlerDescriptor, ModId, RegistryModuleDescriptor, RuntimeAdapter,
 };
 
-use crate::{module::JsModule, vm};
+use crate::{
+    module::{JsModule, JsModuleRef},
+    vm,
+};
 
 pub struct JsBridge {
     modules: Vec<JsModule>,
@@ -67,7 +70,7 @@ impl RuntimeAdapter for JsBridge {
     }
 
     fn load_mod(&mut self, context: &BridgeModContext) -> BridgeLoadReport {
-        let modules = modules_for_context(&context.modules);
+        let modules = module_refs_for_context(&context.modules);
         match vm::load(context, &modules) {
             Ok(vm) => {
                 let handlers = vm.handler_descriptors().to_vec();
@@ -186,19 +189,35 @@ fn handlers_by_mod<'a>(
     grouped
 }
 
-fn modules_for_context(descriptors: &[RegistryModuleDescriptor]) -> Vec<JsModule> {
+fn module_refs_for_context(descriptors: &[RegistryModuleDescriptor]) -> Vec<JsModuleRef<'_>> {
     descriptors
         .iter()
-        .filter_map(|descriptor| {
-            Some(JsModule {
-                plugin_id: descriptor.provider_id.clone(),
-                module_name: descriptor.module_name.clone(),
-                context: descriptor.module_context,
-                register: descriptor.install?,
-                load: descriptor.load,
-                schema: descriptor.schema.clone(),
-                invoke: descriptor.invoke.clone(),
-            })
-        })
+        .filter_map(JsModuleRef::from_descriptor)
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sdk_bridge::RegistryModuleDescriptor;
+
+    unsafe extern "system" fn install_stub(
+        _module_context: *mut std::ffi::c_void,
+        _js: *mut std::ffi::c_void,
+    ) -> i32 {
+        0
+    }
+
+    #[test]
+    fn module_refs_for_context_borrows_registry_descriptors() {
+        let descriptors = [RegistryModuleDescriptor::builder("sdk", "sdk.character")
+            .install(install_stub)
+            .build()];
+
+        let modules = module_refs_for_context(&descriptors);
+
+        assert_eq!(modules.len(), 1);
+        assert_eq!(modules[0].plugin_id, "sdk");
+        assert_eq!(modules[0].module_name, "sdk.character");
+    }
 }

@@ -5,18 +5,18 @@ use rquickjs::{
 };
 use sdk_bridge::{BridgeAnalysisReport, BridgeModContext};
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, Mutex};
+use std::sync::mpsc;
 
 use crate::{
-    module::JsModule,
+    module::JsModuleRef,
     vm::{self, error::StringContext},
 };
 
-pub fn load(context: &BridgeModContext, modules: &[JsModule]) -> Result<vm::JsVm, String> {
+pub fn load(context: &BridgeModContext, modules: &[JsModuleRef<'_>]) -> Result<vm::JsVm, String> {
     let runtime = Runtime::new().context("js runtime create failed")?;
     install_module_loader(&runtime, context, modules);
     let js_context = Context::full(&runtime).context("js context create failed")?;
-    let logs = Arc::new(Mutex::new(Vec::new()));
+    let (logs, log_receiver) = mpsc::channel();
 
     let source = vm::source::read_entry_script(context).context("js entry read failed")?;
     let analysis = analyze_source(context, &source);
@@ -39,7 +39,13 @@ pub fn load(context: &BridgeModContext, modules: &[JsModule]) -> Result<vm::JsVm
         handlers.descriptors()
     })?;
 
-    Ok(vm::JsVm::new(runtime, js_context, handlers, logs, analysis))
+    Ok(vm::JsVm::new(
+        runtime,
+        js_context,
+        handlers,
+        log_receiver,
+        analysis,
+    ))
 }
 
 fn analyze_source(context: &BridgeModContext, source: &str) -> BridgeAnalysisReport {
@@ -50,7 +56,11 @@ fn analyze_source(context: &BridgeModContext, source: &str) -> BridgeAnalysisRep
     }
 }
 
-fn install_module_loader(runtime: &Runtime, context: &BridgeModContext, modules: &[JsModule]) {
+fn install_module_loader(
+    runtime: &Runtime,
+    context: &BridgeModContext,
+    modules: &[JsModuleRef<'_>],
+) {
     let namespace_modules = vm::modules::builtin_namespace_modules(modules)
         .into_iter()
         .collect::<HashMap<_, _>>();

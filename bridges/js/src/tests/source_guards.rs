@@ -31,3 +31,18 @@ fn bridge_sources_do_not_hardcode_domain_modules() {
         }
     }
 }
+
+#[test]
+fn js_vm_sources_do_not_use_arc_mutex_for_callback_queues() {
+    let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let vm_root = manifest_dir.join("src").join("vm");
+
+    for source_file in rust_sources_under(&vm_root) {
+        let source = fs::read_to_string(&source_file).expect("source file");
+        assert!(
+            !source.contains("Arc<Mutex"),
+            "callback queue mutex found in {}",
+            source_file.display()
+        );
+    }
+}

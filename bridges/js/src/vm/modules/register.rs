@@ -2,9 +2,12 @@ use std::ffi::c_void;
 
 use rquickjs::Ctx;
 
-use crate::{module::JsModule, vm::error};
+use crate::{module::JsModuleRef, vm::error};
 
-pub(super) fn register_plugin_module(ctx: Ctx<'_>, module: &JsModule) -> rquickjs::Result<()> {
+pub(super) fn register_plugin_module(
+    ctx: Ctx<'_>,
+    module: &JsModuleRef<'_>,
+) -> rquickjs::Result<()> {
     let result = unsafe {
         (module.register)(
             module.context as *mut c_void,

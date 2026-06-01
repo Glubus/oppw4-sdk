@@ -4,18 +4,18 @@ mod namespace;
 mod register;
 mod trace;
 
-use std::sync::{Arc, Mutex};
+use std::sync::mpsc::Sender;
 
 use rquickjs::Ctx;
 use sdk_bridge::ModId;
 
-use crate::module::JsModule;
+use crate::module::JsModuleRef;
 
 pub(super) fn install(
     ctx: Ctx<'_>,
     mod_id: &ModId,
-    modules: &[JsModule],
-    logs: Arc<Mutex<Vec<String>>>,
+    modules: &[JsModuleRef<'_>],
+    logs: Sender<String>,
 ) -> rquickjs::Result<()> {
     log_contract_errors(mod_id, modules, &logs);
     trace::install(ctx.clone(), mod_id, logs)?;
@@ -27,20 +27,17 @@ pub(super) fn install(
     Ok(())
 }
 
-pub(super) fn builtin_namespace_modules(modules: &[JsModule]) -> Vec<(String, String)> {
+pub(super) fn builtin_namespace_modules(modules: &[JsModuleRef<'_>]) -> Vec<(String, String)> {
     namespace::builtin_namespace_modules(modules)
 }
 
-fn log_contract_errors(mod_id: &ModId, modules: &[JsModule], logs: &Arc<Mutex<Vec<String>>>) {
-    let Ok(mut logs) = logs.lock() else {
-        return;
-    };
+fn log_contract_errors(mod_id: &ModId, modules: &[JsModuleRef<'_>], logs: &Sender<String>) {
     for module in modules {
-        let Some(schema) = &module.schema else {
+        let Some(schema) = module.schema else {
             continue;
         };
         if let Err(error) = schema.validate_contract() {
-            logs.push(format!(
+            let _ = logs.send(format!(
                 "registry contract warning mod={} module={} error={error}",
                 mod_id.as_str(),
                 module.module_name

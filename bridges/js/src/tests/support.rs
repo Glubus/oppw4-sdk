@@ -45,22 +45,6 @@ pub(super) fn counted_module(
     }
 }
 
-pub(super) fn metadata_module(
-    plugin_id: &str,
-    module_name: &str,
-    load: RegistryModuleLoad,
-) -> JsModule {
-    JsModule {
-        plugin_id: plugin_id.to_string(),
-        module_name: module_name.to_string(),
-        context: 0,
-        register: noop_register,
-        load,
-        schema: None,
-        invoke: None,
-    }
-}
-
 pub(super) fn schema_module(
     plugin_id: &str,
     module_name: &str,

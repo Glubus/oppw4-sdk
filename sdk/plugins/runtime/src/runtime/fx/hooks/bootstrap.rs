@@ -17,7 +17,7 @@ pub(crate) fn install_deferred(api: OwnedHostApi, state: SharedFxState) -> i32 {
         log::write_line("fx_director deferred install already started");
         return 0;
     }
-    let plugin = state.lock().expect("fx state lock").plugin_config();
+    let plugin = state.plugin_config();
     let delay = plugin.install_delay_ms;
     let worker_api = WorkerApi::new(api, state);
     let builder = thread::Builder::new().name("oppw4_fx_director".to_string());

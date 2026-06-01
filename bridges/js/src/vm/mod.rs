@@ -9,7 +9,7 @@ mod source;
 pub use loader::load;
 
 use sdk_bridge::{BridgeAnalysisReport, EventEnvelope, HandlerDescriptor};
-use std::sync::{Arc, Mutex};
+use std::sync::mpsc::Receiver;
 
 use self::error::StringContext;
 
@@ -17,7 +17,7 @@ pub struct JsVm {
     runtime: rquickjs::Runtime,
     context: rquickjs::Context,
     handler_descriptors: Vec<HandlerDescriptor>,
-    logs: Arc<Mutex<Vec<String>>>,
+    logs: Receiver<String>,
     analysis: BridgeAnalysisReport,
 }
 
@@ -26,7 +26,7 @@ impl JsVm {
         runtime: rquickjs::Runtime,
         context: rquickjs::Context,
         handler_descriptors: Vec<HandlerDescriptor>,
-        logs: Arc<Mutex<Vec<String>>>,
+        logs: Receiver<String>,
         analysis: BridgeAnalysisReport,
     ) -> Self {
         Self {
@@ -47,10 +47,7 @@ impl JsVm {
     }
 
     pub fn drain_logs(&self) -> Vec<String> {
-        self.logs
-            .lock()
-            .map(|mut logs| std::mem::take(&mut *logs))
-            .unwrap_or_default()
+        self.logs.try_iter().collect()
     }
 
     pub fn dispatch(

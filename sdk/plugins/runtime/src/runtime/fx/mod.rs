@@ -12,7 +12,7 @@ pub fn initialize(host: HostApi<'_>) -> PluginResult<()> {
     log::initialize(host);
     config::register_schema(host);
     let shared_config = mods::load_config(host);
-    let plugin = shared_config.lock().expect("fx state lock").plugin_config();
+    let plugin = shared_config.plugin_config();
     log::write_line(format!(
         "fx_director init trigger={:?} hotkey_vk=0x{:02x} observe_effect_ids={} observe_character_probe={} install_delay_ms={} refresh_interval_ms={}",
         plugin.trigger,

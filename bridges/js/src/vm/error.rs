@@ -13,10 +13,6 @@ pub(super) fn js_debug(
     js(from, to, format!("{prefix}: {error:?}"))
 }
 
-pub(super) fn lock_poisoned(name: &str) -> rquickjs::Error {
-    js("Rust", "Mutex", format!("{name} lock poisoned"))
-}
-
 pub(super) trait StringContext<T> {
     fn context(self, message: &str) -> Result<T, String>;
 }

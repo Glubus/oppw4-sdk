@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    borrow::Cow,
+    collections::{HashMap, HashSet},
+};
 
 use sdk_bridge::{
     analysis_warning_at, BridgeAnalysisWarning, BridgeModEffect, BridgeSourceSpan,
@@ -78,7 +81,22 @@ impl Analyzer<'_, '_> {
             method_name.len(),
         );
         let receiver = receiver_before(self.source, method_start);
-        let character = self.character_from_receiver(receiver, method_start, method_name.len());
+        let character = match character_from_receiver(
+            &self.character_vars,
+            receiver,
+            method_start,
+            method_name.len(),
+        ) {
+            CharacterReceiver::Static(character) => Some(character),
+            CharacterReceiver::Dynamic {
+                message,
+                offset,
+                length,
+            } => {
+                self.warning_at("dynamic_character", message, offset, length);
+                None
+            }
+        };
         let args_start = skip_ws(self.source, method_start + method_name.len());
         if !self.source[args_start..].starts_with('(') {
             return;
@@ -122,64 +140,7 @@ impl Analyzer<'_, '_> {
             return;
         };
         let patch = &args[patch_start + 1..patch_end];
-        self.collect_costume_patch_effects(character.as_deref(), &costume, patch);
-    }
-
-    fn character_from_receiver(
-        &mut self,
-        receiver: Option<&str>,
-        method_start: usize,
-        method_len: usize,
-    ) -> Option<String> {
-        let Some(receiver) = receiver.map(str::trim).filter(|value| !value.is_empty()) else {
-            self.warning_at(
-                "dynamic_character",
-                "replace_costume receiver is not statically readable",
-                method_start,
-                method_len,
-            );
-            return None;
-        };
-        if let Some(character) = self.character_vars.get(receiver) {
-            return Some(character.clone());
-        }
-        if let Some((character, _)) = parse_character_get(receiver, 0) {
-            return Some(character);
-        }
-        self.warning_at(
-            "dynamic_character",
-            "replace_costume character is dynamic or unknown",
-            method_start.saturating_sub(receiver.len()),
-            receiver.len().max(1),
-        );
-        None
-    }
-
-    fn collect_costume_patch_effects(
-        &mut self,
-        character: Option<&str>,
-        costume: &str,
-        patch: &str,
-    ) {
-        if let Some(model) = string_property(patch, "model") {
-            self.report
-                .effects
-                .push(BridgeModEffect::replace_costume_asset(
-                    character, costume, "model", model,
-                ));
-        }
-        if let Some(textures) = object_property(patch, "textures") {
-            for (name, file) in string_properties(textures) {
-                self.report
-                    .effects
-                    .push(BridgeModEffect::replace_costume_asset(
-                        character,
-                        costume,
-                        format!("texture.{name}"),
-                        file,
-                    ));
-            }
-        }
+        collect_costume_patch_effects(&mut self.report, character.as_deref(), &costume, patch);
     }
 
     fn warn_if_replace_costume_is_not_declared(
@@ -212,6 +173,64 @@ impl Analyzer<'_, '_> {
             message,
             source_span_at(self.source, offset, length),
         ));
+    }
+}
+
+enum CharacterReceiver<'a> {
+    Static(Cow<'a, str>),
+    Dynamic {
+        message: &'static str,
+        offset: usize,
+        length: usize,
+    },
+}
+
+fn character_from_receiver<'a>(
+    character_vars: &'a HashMap<String, String>,
+    receiver: Option<&str>,
+    method_start: usize,
+    method_len: usize,
+) -> CharacterReceiver<'a> {
+    let Some(receiver) = receiver.map(str::trim).filter(|value| !value.is_empty()) else {
+        return CharacterReceiver::Dynamic {
+            message: "replace_costume receiver is not statically readable",
+            offset: method_start,
+            length: method_len,
+        };
+    };
+    if let Some(character) = character_vars.get(receiver) {
+        return CharacterReceiver::Static(Cow::Borrowed(character));
+    }
+    if let Some((character, _)) = parse_character_get(receiver, 0) {
+        return CharacterReceiver::Static(Cow::Owned(character));
+    }
+    CharacterReceiver::Dynamic {
+        message: "replace_costume character is dynamic or unknown",
+        offset: method_start.saturating_sub(receiver.len()),
+        length: receiver.len().max(1),
+    }
+}
+
+fn collect_costume_patch_effects(
+    report: &mut JsAnalysisReport,
+    character: Option<&str>,
+    costume: &str,
+    patch: &str,
+) {
+    if let Some(model) = string_property(patch, "model") {
+        report.effects.push(BridgeModEffect::replace_costume_asset(
+            character, costume, "model", model,
+        ));
+    }
+    if let Some(textures) = object_property(patch, "textures") {
+        for (name, file) in string_properties(textures) {
+            report.effects.push(BridgeModEffect::replace_costume_asset(
+                character,
+                costume,
+                format!("texture.{name}"),
+                file,
+            ));
+        }
     }
 }
 

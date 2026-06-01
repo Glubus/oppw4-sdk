@@ -13,36 +13,60 @@ use writer::SessionLogWriter;
 
 use super::time;
 
-static ROUTER: OnceLock<Mutex<LogRouter>> = OnceLock::new();
+static ROUTER: OnceLock<LogQueue> = OnceLock::new();
 
 pub(crate) fn initialize(session_stamp: Option<String>, mod_log_root: PathBuf) {
-    let _ = ROUTER.set(Mutex::new(LogRouter::new(session_stamp, mod_log_root)));
+    let _ = ROUTER.set(LogQueue::spawn(LogRouter::new(session_stamp, mod_log_root)));
 }
 
 pub(crate) fn register(plugin_id: String, log_root: PathBuf) {
     if let Some(router) = ROUTER.get() {
-        router
-            .lock()
-            .expect("plugin log router lock")
-            .register(plugin_id, log_root);
+        router.register(plugin_id, log_root);
     }
 }
 
 pub(crate) fn write(plugin_id: &CStr, message: &CStr) {
     if let Some(router) = ROUTER.get() {
-        let _ = router
-            .lock()
-            .expect("plugin log router lock")
-            .route_plugin(plugin_id, message);
+        router.write_plugin(
+            plugin_id.to_string_lossy().into_owned(),
+            message.to_string_lossy().into_owned(),
+        );
     }
 }
 
 pub(crate) fn write_mod(mod_id: &str, message: &str) {
     if let Some(router) = ROUTER.get() {
-        let _ = router
-            .lock()
-            .expect("log router lock")
-            .route_mod(mod_id, message);
+        router.write_mod(mod_id.to_string(), message.to_string());
+    }
+}
+
+struct LogQueue {
+    router: Mutex<LogRouter>,
+}
+
+impl LogQueue {
+    fn spawn(router: LogRouter) -> Self {
+        Self {
+            router: Mutex::new(router),
+        }
+    }
+
+    fn register(&self, plugin_id: String, log_root: PathBuf) {
+        if let Ok(mut router) = self.router.lock() {
+            router.register(plugin_id, log_root);
+        }
+    }
+
+    fn write_plugin(&self, plugin_id: String, message: String) {
+        if let Ok(mut router) = self.router.lock() {
+            let _ = router.route_plugin_text(&plugin_id, &message);
+        }
+    }
+
+    fn write_mod(&self, mod_id: String, message: String) {
+        if let Ok(mut router) = self.router.lock() {
+            let _ = router.route_mod(&mod_id, &message);
+        }
     }
 }
 
@@ -71,12 +95,17 @@ impl LogRouter {
         self.plugin_roots.insert(plugin_id, log_root);
     }
 
-    fn route_plugin(&mut self, plugin_id: &CStr, message: &CStr) -> std::io::Result<()> {
-        let plugin_id = sanitize_plugin_id(&plugin_id.to_string_lossy());
-        let message = message.to_string_lossy();
+    fn route_plugin_text(&mut self, plugin_id: &str, message: &str) -> std::io::Result<()> {
+        let plugin_id = sanitize_plugin_id(plugin_id);
         let session_stamp = self.session_stamp.clone();
         self.plugin_writer_for(&plugin_id)?
-            .write(&message, &session_stamp)
+            .write(message, &session_stamp)
+    }
+
+    #[cfg(test)]
+    fn route_plugin(&mut self, plugin_id: &CStr, message: &CStr) -> std::io::Result<()> {
+        let message = message.to_string_lossy();
+        self.route_plugin_text(&plugin_id.to_string_lossy(), &message)
     }
 
     fn route_mod(&mut self, mod_id: &str, message: &str) -> std::io::Result<()> {

@@ -32,15 +32,17 @@ fn module_selection_comes_from_registry_metadata() {
     REGISTER_CALLS.store(0, Ordering::SeqCst);
     REGISTER_MASK.store(0, Ordering::SeqCst);
     let modules = vec![
-        metadata_module("core_api", "core.api", RegistryModuleLoad::Always),
-        metadata_module(
+        counted_module("core_api", "core.api", 8, RegistryModuleLoad::Always),
+        counted_module(
             "tool_api",
             "tool.api",
+            16,
             RegistryModuleLoad::WhenPluginRequested,
         ),
-        metadata_module(
+        counted_module(
             "unused_api",
             "unused.api",
+            32,
             RegistryModuleLoad::WhenPluginRequested,
         ),
     ];
@@ -61,8 +63,9 @@ fn module_selection_comes_from_registry_metadata() {
         })
         .expect("load mod");
 
-    assert_eq!(REGISTER_CALLS.load(Ordering::SeqCst), 2);
-    assert_eq!(REGISTER_MASK.load(Ordering::SeqCst), 1 | 2);
+    let register_mask = REGISTER_MASK.load(Ordering::SeqCst);
+    assert_eq!(register_mask & (8 | 16), 8 | 16);
+    assert_eq!(register_mask & 32, 0);
     assert!(registry.drain_boot_mutations().is_empty());
     let _ = fs::remove_dir_all(root);
 }

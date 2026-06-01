@@ -47,9 +47,7 @@ impl WorkerApi {
     }
 
     fn load_config(&self) -> Option<FxInstallPlan> {
-        self.state
-            .as_ref()
-            .and_then(|state| state.lock().ok().and_then(|state| state.install_plan()))
+        self.state.as_ref().and_then(|state| state.install_plan())
     }
 
     fn active_character(&self) -> Option<plugin_sdk::Oppw4ActiveCharacter> {

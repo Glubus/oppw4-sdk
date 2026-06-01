@@ -1,10 +1,10 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use plugin_sdk::HostApi;
 
 use crate::runtime::fx::config::{load_plugin_config, CycleConfig, FxConfig, PluginConfig};
 
-pub(crate) type SharedFxState = Arc<Mutex<FxRuntimeState>>;
+pub(crate) type SharedFxState = Arc<FxRuntimeState>;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub(crate) struct FxInstallPlan {
@@ -43,5 +43,17 @@ impl FxRuntimeState {
 }
 
 pub(crate) fn load_config(host: HostApi<'_>) -> SharedFxState {
-    Arc::new(Mutex::new(FxRuntimeState::new(load_plugin_config(host))))
+    Arc::new(FxRuntimeState::new(load_plugin_config(host)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn shared_fx_state_reads_plan_without_locking() {
+        let state = SharedFxState::new(FxRuntimeState::new(PluginConfig::default()));
+
+        assert!(state.install_plan().is_some());
+    }
 }

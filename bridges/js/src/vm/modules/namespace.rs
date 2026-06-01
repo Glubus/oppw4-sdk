@@ -1,9 +1,9 @@
-use crate::module::JsModule;
+use crate::module::JsModuleRef;
 
-pub(super) fn builtin_namespace_modules(modules: &[JsModule]) -> Vec<(String, String)> {
+pub(super) fn builtin_namespace_modules(modules: &[JsModuleRef<'_>]) -> Vec<(String, String)> {
     let mut namespaces = modules
         .iter()
-        .filter_map(|module| module.schema.as_ref())
+        .filter_map(|module| module.schema)
         .map(|schema| schema.namespace.as_str())
         .filter(|namespace| is_js_identifier(namespace))
         .collect::<Vec<_>>();
@@ -21,10 +21,10 @@ pub(super) fn builtin_namespace_modules(modules: &[JsModule]) -> Vec<(String, St
         .collect()
 }
 
-fn namespace_module_source(namespace: &str, modules: &[JsModule]) -> String {
+fn namespace_module_source(namespace: &str, modules: &[JsModuleRef<'_>]) -> String {
     let mut imports = modules
         .iter()
-        .filter_map(|module| module.schema.as_ref())
+        .filter_map(|module| module.schema)
         .filter(|schema| schema.namespace == namespace && is_js_identifier(&schema.import_name))
         .map(|schema| schema.import_name.as_str())
         .collect::<Vec<_>>();

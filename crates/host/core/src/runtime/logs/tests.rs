@@ -9,6 +9,19 @@ use plugin_abi::cstring_lossy;
 use super::LogRouter;
 
 #[test]
+fn global_log_router_is_not_guarded_by_a_mutex() {
+    let source = fs::read_to_string(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("src")
+            .join("runtime")
+            .join("logs.rs"),
+    )
+    .expect("logs source");
+
+    assert!(!source.contains("OnceLock<Mutex<LogRouter>>"));
+}
+
+#[test]
 fn plugin_logs_are_routed_to_registered_plugin_folder() {
     let root = temp_root("plugin-log-routing");
     let mut router = LogRouter::new(

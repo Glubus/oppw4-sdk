@@ -5,9 +5,9 @@ use std::{
 
 use rquickjs::{prelude::Func, Ctx};
 
-use crate::{module::JsModule, module::JsModuleInvoke, vm::error};
+use crate::{module::JsModuleInvoke, module::JsModuleRef, vm::error};
 
-pub(super) fn install(ctx: Ctx<'_>, modules: &[JsModule]) -> rquickjs::Result<()> {
+pub(super) fn install(ctx: Ctx<'_>, modules: &[JsModuleRef<'_>]) -> rquickjs::Result<()> {
     let table = Arc::new(RegistryInvokeTable::new(modules));
     ctx.globals().set(
         "__oppw4_registry_invoke",
@@ -33,14 +33,14 @@ struct RegistryFunctionBinding {
 }
 
 impl RegistryInvokeTable {
-    fn new(modules: &[JsModule]) -> Self {
+    fn new(modules: &[JsModuleRef<'_>]) -> Self {
         let mut table = Self {
             modules: HashSet::new(),
             functions: HashSet::new(),
             bound: HashMap::new(),
         };
         for module in modules {
-            let Some(schema) = module.schema.as_ref() else {
+            let Some(schema) = module.schema else {
                 continue;
             };
             let module_key = module_key(&schema.namespace, &schema.import_name);
@@ -49,12 +49,12 @@ impl RegistryInvokeTable {
                 let qualified_name =
                     qualified_function_name(&schema.namespace, &schema.import_name, &function.name);
                 table.functions.insert(qualified_name.clone());
-                if let Some(invoke) = module.invoke.as_ref() {
+                if let Some(invoke) = module.invoke {
                     table.bound.insert(
                         qualified_name,
                         RegistryFunctionBinding {
                             function_name: function.name.clone(),
-                            invoke: invoke.clone(),
+                            invoke: Arc::clone(invoke),
                         },
                     );
                 }
