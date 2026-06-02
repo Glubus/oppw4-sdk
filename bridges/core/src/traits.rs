@@ -1,6 +1,6 @@
 use crate::{
     BridgeDispatchLog, BridgeDispatchReport, BridgeId, BridgeLoadReport, BridgeLoadRequest,
-    BridgeModContext, EventEnvelope, HandlerDescriptor, ModId,
+    BridgeModContext, BridgeQueryReport, EventEnvelope, HandlerDescriptor, ModId,
 };
 
 pub trait RuntimeAdapter: Send {
@@ -39,6 +39,8 @@ pub trait RuntimeAdapter: Send {
         }
         report
     }
+
+    fn query(&mut self, handler: &HandlerDescriptor, event: &EventEnvelope) -> BridgeQueryReport;
 
     fn unload_mod(&mut self, mod_id: &ModId);
 }

@@ -1,3 +1,5 @@
+use std::sync::{OnceLock, RwLock};
+
 /// Current game mode associated with a difficulty snapshot.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub(crate) enum DifficultyMode {
@@ -80,6 +82,8 @@ pub(crate) struct DifficultyApplyEvent {
     pub(crate) snapshot: DifficultySnapshot,
 }
 
+static LATEST_DIFFICULTY_SNAPSHOT: OnceLock<RwLock<Option<DifficultySnapshot>>> = OnceLock::new();
+
 impl DifficultyApplyEvent {
     pub(crate) const fn new(snapshot: DifficultySnapshot) -> Self {
         Self { snapshot }
@@ -99,6 +103,23 @@ impl DifficultySnapshot {
         self.mission_id = Some(mission_id);
         self
     }
+}
+
+pub(crate) fn latest_snapshot() -> Option<DifficultySnapshot> {
+    latest_snapshot_store()
+        .read()
+        .ok()
+        .and_then(|snapshot| snapshot.clone())
+}
+
+pub(crate) fn update_snapshot(snapshot: DifficultySnapshot) {
+    if let Ok(mut latest) = latest_snapshot_store().write() {
+        *latest = Some(snapshot);
+    }
+}
+
+fn latest_snapshot_store() -> &'static RwLock<Option<DifficultySnapshot>> {
+    LATEST_DIFFICULTY_SNAPSHOT.get_or_init(|| RwLock::new(None))
 }
 
 #[cfg(test)]
@@ -129,5 +150,16 @@ mod tests {
         let event = DifficultyApplyEvent::new(snapshot.clone());
 
         assert_eq!(event.snapshot, snapshot);
+    }
+
+    #[test]
+    fn latest_snapshot_updates_source_of_truth() {
+        let snapshot =
+            DifficultySnapshot::new(DifficultyMode::new("free_log"), DifficultyId::new("normal"))
+                .with_mission_id(12);
+
+        update_snapshot(snapshot.clone());
+
+        assert_eq!(latest_snapshot(), Some(snapshot));
     }
 }

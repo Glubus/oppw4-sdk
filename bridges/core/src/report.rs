@@ -21,8 +21,26 @@ pub struct BridgeDispatchReport {
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct BridgeQueryReport {
+    pub result_json: Option<String>,
+    pub logs: Vec<String>,
+    pub mod_logs: Vec<BridgeDispatchLog>,
+    pub errors: Vec<BridgeDispatchError>,
+    pub vm_batch_count: usize,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct RegistryDispatchReport {
     pub mutations: Vec<MutationEnvelope>,
+    pub logs: Vec<String>,
+    pub mod_logs: Vec<BridgeDispatchLog>,
+    pub errors: Vec<BridgeDispatchError>,
+    pub metrics: RegistryDispatchMetrics,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct RegistryQueryReport {
+    pub result_json: Option<String>,
     pub logs: Vec<String>,
     pub mod_logs: Vec<BridgeDispatchLog>,
     pub errors: Vec<BridgeDispatchError>,

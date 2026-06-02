@@ -146,16 +146,13 @@ pub(crate) fn install(
         );
     }
 
-    if config.enabled {
-        install_time_hook(&host);
-    }
+    install_time_hook(&host);
 
-    if config.count_enabled {
-        install_count_hook(&host);
-    } else if legacy_shift_requested {
+    install_count_hook(&host);
+    if !config.count_enabled && legacy_shift_requested {
         let _ = host.log().write(
             PLUGIN_ID,
-            "rank_runtime count threshold shift requested but count hook is disabled; no rank count patch installed",
+            "rank_runtime count threshold shift requested while count diagnostics are disabled; installing count hook for runtime patch compatibility",
         );
     }
 
@@ -300,13 +297,23 @@ extern "system" fn time_rank_detour(row: usize, value: f32, _unused: usize, call
     }
 
     let original: TimeRankFn = unsafe { mem::transmute(original) };
-    let result = original(row, value);
+    let original_result = original(row, value);
+
+    let override_result =
+        panic::catch_unwind(|| query_time_rank(caller, row, value, original_result))
+            .ok()
+            .flatten();
 
     let _ = panic::catch_unwind(|| {
-        log_time_rank(caller, row, value, result);
+        log_time_rank(
+            caller,
+            row,
+            value,
+            override_result.unwrap_or(original_result),
+        );
     });
 
-    result
+    override_result.unwrap_or(original_result)
 }
 
 extern "system" fn count_rank_detour(row: usize, value: u32, divisor: f32, caller: usize) -> u8 {
@@ -320,13 +327,24 @@ extern "system" fn count_rank_detour(row: usize, value: u32, divisor: f32, calle
     });
 
     let original: CountRankFn = unsafe { mem::transmute(original) };
-    let result = original(row, value, divisor);
+    let original_result = original(row, value, divisor);
+
+    let override_result =
+        panic::catch_unwind(|| query_count_rank(caller, row, value, divisor, original_result))
+            .ok()
+            .flatten();
 
     let _ = panic::catch_unwind(|| {
-        log_count_rank(caller, row, value, divisor, result);
+        log_count_rank(
+            caller,
+            row,
+            value,
+            divisor,
+            override_result.unwrap_or(original_result),
+        );
     });
 
-    result
+    override_result.unwrap_or(original_result)
 }
 
 extern "system" fn merge_rank_detour(
@@ -517,6 +535,86 @@ fn apply_count_threshold_shift(row: usize) {
                 ),
             );
         }
+    }
+}
+
+fn query_time_rank(caller: usize, row: usize, value: f32, original_result: u8) -> Option<u8> {
+    let host = HOST.get()?;
+    if !host.signals().has_listeners(signals::RANK_CALC_TIME) {
+        return None;
+    }
+    let snapshot = RankHelperRow::read(row, 0)?;
+    let caller_label = caller_label(caller);
+    let payload =
+        RankHelperCallSignal::time(caller, caller_label, row, value, original_result, snapshot);
+    query_rank_override(host, signals::RANK_CALC_TIME, &payload)
+}
+
+fn query_count_rank(
+    caller: usize,
+    row: usize,
+    value: u32,
+    divisor: f32,
+    original_result: u8,
+) -> Option<u8> {
+    let host = HOST.get()?;
+    if !host.signals().has_listeners(signals::RANK_CALC_COUNT) {
+        return None;
+    }
+    let snapshot = RankHelperRow::read(row, 1)?;
+    let normalized = if divisor == 0.0 {
+        0
+    } else {
+        ((value as f32) / divisor) as u32
+    };
+    let caller_label = caller_label(caller);
+    let payload = RankHelperCallSignal::count(
+        caller,
+        caller_label,
+        row,
+        value,
+        divisor,
+        normalized,
+        original_result,
+        snapshot,
+    );
+    query_rank_override(host, signals::RANK_CALC_COUNT, &payload)
+}
+
+fn query_rank_override<T: Serialize>(host: &OwnedHostApi, signal: &str, payload: &T) -> Option<u8> {
+    let bytes = serde_json::to_vec(payload).ok()?;
+    let json = match host.signals().query_json(signal, &bytes) {
+        Ok(Some(json)) => json,
+        Ok(None) => return None,
+        Err(error) => {
+            let _ = host.log().write(
+                PLUGIN_ID,
+                format!("rank calc query failed signal={signal} error={error}"),
+            );
+            return None;
+        }
+    };
+    match serde_json::from_str::<String>(&json) {
+        Ok(rank) => parse_rank_override(&rank),
+        Err(error) => {
+            let _ = host.log().write(
+                PLUGIN_ID,
+                format!("rank calc query returned invalid json signal={signal} error={error}"),
+            );
+            None
+        }
+    }
+}
+
+fn parse_rank_override(rank: &str) -> Option<u8> {
+    match rank.trim().to_ascii_uppercase().as_str() {
+        "S+" => Some(5),
+        "S" => Some(4),
+        "A" => Some(3),
+        "B" => Some(2),
+        "C" => Some(1),
+        "D" => Some(0),
+        _ => None,
     }
 }
 

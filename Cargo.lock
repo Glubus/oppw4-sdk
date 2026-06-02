@@ -825,6 +825,8 @@ dependencies = [
  "oppw4-data",
  "plugin-sdk",
  "sdk-bridge",
+ "sdk-runtime-schema",
+ "sdk-schema",
  "serde",
  "serde_json",
  "toml",
@@ -925,6 +927,7 @@ dependencies = [
  "flate2",
  "hooks",
  "plugin-abi",
+ "sdk-schema",
  "serde",
  "serde_json",
  "toml",
@@ -1090,6 +1093,7 @@ checksum = "e1cf6437eb19a8f4a6cc0f7dca544973b0b78843adbfeb3683d1a94a0024a294"
 name = "sdk-bridge"
 version = "0.1.0"
 dependencies = [
+ "sdk-schema",
  "serde",
  "serde_json",
 ]
@@ -1139,6 +1143,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "sdk-runtime-schema"
+version = "0.1.0"
+dependencies = [
+ "sdk-schema",
+]
+
+[[package]]
 name = "sdk-schema"
 version = "0.1.0"
 dependencies = [
@@ -1163,6 +1174,8 @@ dependencies = [
  "sdk-bridge",
  "sdk-js-analyzer",
  "sdk-mod-loader",
+ "sdk-runtime-schema",
+ "sdk-schema",
  "serde",
  "serde_json",
  "toml",

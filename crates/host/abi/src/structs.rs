@@ -3,7 +3,7 @@ use std::ffi::{c_char, c_void};
 use super::ffi::{
     HostActiveCharacterFn, HostDebugEnabledFn, HostEmitSignalFn, HostForEachPluginModFn,
     HostForEachPluginModZipFn, HostGameStatusFn, HostHasSignalListenersFn, HostLogFn,
-    HostModuleBaseFn, HostPatchLinkDataRowFn, HostReadMemoryFn,
+    HostModuleBaseFn, HostPatchLinkDataRowFn, HostQuerySignalFn, HostReadMemoryFn,
     HostRegisterActiveCharacterProviderFn, HostRegisterConfigSchemaFn, HostRegisterFileProviderFn,
     HostRegisterGameStatusProviderFn, HostRegisterLinkDataProviderFn,
     HostRegisterRdbPatchProviderFn, HostRegisterRdbServiceFn, HostRegisterRdbVirtualProviderFn,
@@ -47,6 +47,7 @@ pub struct Oppw4PluginApi {
     pub register_rdb_virtual_provider: Option<HostRegisterRdbVirtualProviderFn>,
     pub subscribe_signal: Option<HostSubscribeSignalFn>,
     pub emit_signal: Option<HostEmitSignalFn>,
+    pub query_signal: Option<HostQuerySignalFn>,
     pub register_config_schema: Option<HostRegisterConfigSchemaFn>,
     pub has_signal_listeners: Option<HostHasSignalListenersFn>,
 }

@@ -1,6 +1,6 @@
 use std::{ffi::c_void, fmt, sync::Arc};
 
-use super::schema::RegistryModuleSchema;
+use sdk_schema::RegistryModuleSchema;
 
 pub type RuntimeModuleInstallFn =
     unsafe extern "system" fn(module_context: *mut c_void, runtime_context: *mut c_void) -> i32;

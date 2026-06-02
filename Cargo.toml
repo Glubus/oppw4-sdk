@@ -7,6 +7,7 @@ members = [
     "crates/mod-loader",
     "crates/sdk-schema",
     "crates/sdk-schema-derive",
+    "crates/sdk-runtime-schema",
     "crates/sdk/api",
     "crates/rdb",
     "bridges/core",
@@ -47,6 +48,7 @@ plugin-abi = { path = "crates/host/abi" }
 sdk-mod-loader = { path = "crates/mod-loader" }
 sdk-schema = { path = "crates/sdk-schema" }
 sdk-schema-derive = { path = "crates/sdk-schema-derive" }
+sdk-runtime-schema = { path = "crates/sdk-runtime-schema" }
 sdk-bridge = { path = "bridges/core" }
 sdk-js-analyzer = { path = "bridges/js-analyzer" }
 sdk-js-bridge = { path = "bridges/js" }

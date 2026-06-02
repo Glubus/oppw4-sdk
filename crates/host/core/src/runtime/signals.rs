@@ -118,6 +118,63 @@ pub(crate) unsafe extern "system" fn host_has_signal_listeners(
     }
 }
 
+pub(crate) unsafe extern "system" fn host_query_signal(
+    host_context: *mut c_void,
+    signal_utf8: *const c_char,
+    payload: *const u8,
+    payload_len: usize,
+    out_json: *mut u8,
+    out_json_len: *mut usize,
+) -> i32 {
+    let context = match context_from_raw(host_context) {
+        Ok(context) => context,
+        Err(code) => return code,
+    };
+    if let Err(code) = context.require_capability(CAP_SIGNALS_EMIT) {
+        return code;
+    }
+    let Some(signal) = signal_name(signal_utf8) else {
+        return -1;
+    };
+    if payload.is_null() && payload_len != 0 {
+        return -2;
+    }
+    if out_json_len.is_null() {
+        return -23;
+    }
+    let payload_json: std::sync::Arc<str> = if payload_len == 0 {
+        std::sync::Arc::from("{}")
+    } else {
+        let bytes = unsafe { std::slice::from_raw_parts(payload, payload_len) };
+        match std::str::from_utf8(bytes) {
+            Ok(value) => std::sync::Arc::from(value),
+            Err(_) => return -26,
+        }
+    };
+    let result = loader::query_event(EventEnvelope {
+        key: match EventKey::new(&signal) {
+            Ok(key) => key,
+            Err(_) => return -1,
+        },
+        payload_json,
+    });
+    let Some(json) = result else {
+        unsafe { *out_json_len = 0 };
+        return 0;
+    };
+    let bytes = json.as_bytes();
+    let requested = unsafe { *out_json_len };
+    if out_json.is_null() || requested < bytes.len() {
+        unsafe { *out_json_len = bytes.len() };
+        return -46;
+    }
+    unsafe {
+        std::ptr::copy_nonoverlapping(bytes.as_ptr(), out_json, bytes.len());
+        *out_json_len = bytes.len();
+    }
+    0
+}
+
 pub(crate) fn emit_host_json(signal: &str, payload: serde_json::Value) {
     let Ok(bytes) = serde_json::to_vec(&payload) else {
         return;

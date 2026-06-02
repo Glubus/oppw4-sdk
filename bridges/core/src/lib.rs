@@ -31,7 +31,7 @@ pub use registry::dispatch::HandlerConflict;
 pub use registry::BridgeRegistry;
 pub use report::{
     BridgeDispatchError, BridgeDispatchLog, BridgeDispatchReport, BridgeLoadReport,
-    RegistryDispatchMetrics, RegistryDispatchReport,
+    BridgeQueryReport, RegistryDispatchMetrics, RegistryDispatchReport, RegistryQueryReport,
 };
 pub use traits::RuntimeAdapter;
 

@@ -3,6 +3,7 @@ use std::ffi::c_void;
 use plugin_abi::{
     Oppw4PluginApi, Oppw4RegistryModule, Oppw4RegistryModuleInstallFn, Oppw4RegistryModuleInvokeFn,
 };
+use sdk_schema::RegistryModuleSchema;
 
 use crate::{api::r#unsafe, cstring_lossy, error::PluginError, PluginResult};
 
@@ -72,5 +73,27 @@ impl<'api> RegistryService<'api> {
             invoke,
         };
         self.register_module(&module)
+    }
+
+    pub fn register_module_descriptor_with_generated_schema(
+        self,
+        plugin_id: &str,
+        module_name: &str,
+        module_context: *mut c_void,
+        install: Oppw4RegistryModuleInstallFn,
+        schema: &RegistryModuleSchema,
+        invoke: Option<Oppw4RegistryModuleInvokeFn>,
+    ) -> PluginResult<()> {
+        let schema_json = serde_json::to_string(schema).map_err(|error| {
+            PluginError::from(format!("failed to serialize registry schema: {error}"))
+        })?;
+        self.register_module_descriptor_with_schema(
+            plugin_id,
+            module_name,
+            module_context,
+            install,
+            Some(&schema_json),
+            invoke,
+        )
     }
 }

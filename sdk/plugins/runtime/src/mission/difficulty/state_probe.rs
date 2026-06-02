@@ -14,8 +14,9 @@ use crate::{
     mission::difficulty::reward_row::{read_reward_row_dump, RewardRowDump},
     runtime::{
         core::difficulty::{
-            DifficultyApplyEvent, DifficultyId as CoreDifficultyId,
-            DifficultyMode as CoreDifficultyMode, DifficultySnapshot as CoreDifficultySnapshot,
+            update_snapshot as update_core_snapshot, DifficultyApplyEvent,
+            DifficultyId as CoreDifficultyId, DifficultyMode as CoreDifficultyMode,
+            DifficultySnapshot as CoreDifficultySnapshot,
         },
         probe::{snapshot_interval, PLUGIN_ID},
         signals,
@@ -117,6 +118,7 @@ fn log_snapshot(host: &OwnedHostApi, snapshot: snapshot::DifficultySnapshot) {
 
 fn publish_difficulty_event(host: &OwnedHostApi, snapshot: snapshot::DifficultySnapshot) {
     let event = DifficultyApplyEvent::new(core_snapshot_from_probe(snapshot));
+    update_core_snapshot(event.snapshot.clone());
     let _ = host.log().write(PLUGIN_ID, difficulty_event_log(&event));
     signals::emit_json(
         host,

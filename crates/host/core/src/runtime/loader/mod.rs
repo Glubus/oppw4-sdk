@@ -268,6 +268,40 @@ pub(crate) fn dispatch_event(event: EventEnvelope) -> i32 {
     0
 }
 
+pub(crate) fn query_event(event: EventEnvelope) -> Option<String> {
+    let Some(registry) = BRIDGES.get() else {
+        return None;
+    };
+    let mut registry = registry.lock().expect("bridge registry lock");
+    let report = registry.query_event(&event);
+    for log_entry in report.mod_logs {
+        log::write_line(format!(
+            "plugin host: query log key={} {}",
+            event.key.as_str(),
+            log_entry.message
+        ));
+        logs::write_mod(log_entry.mod_id.as_str(), &log_entry.message);
+    }
+    for line in report.logs {
+        log::write_line(format!(
+            "plugin host: query log key={} {line}",
+            event.key.as_str()
+        ));
+    }
+    for error in report.errors {
+        let line = format!(
+            "query dispatch failed key={} mod={} bridge={} error={}",
+            event.key.as_str(),
+            error.mod_id.as_str(),
+            error.bridge_id.as_str(),
+            error.message
+        );
+        log::write_line(format!("plugin host: {line}"));
+        logs::write_mod(error.mod_id.as_str(), &line);
+    }
+    report.result_json
+}
+
 pub(crate) fn has_event_handlers(signal: &str) -> bool {
     let Ok(key) = EventKey::new(signal) else {
         return false;

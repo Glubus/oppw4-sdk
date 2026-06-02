@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::{
     BridgeDispatchError, BridgeId, BridgeModEffect, EffectConflict, EventEnvelope, EventKey,
-    HandlerDescriptor, ModId, RegistryDispatchReport,
+    HandlerDescriptor, ModId, RegistryDispatchReport, RegistryQueryReport,
 };
 
 use super::BridgeRegistry;
@@ -86,6 +86,41 @@ impl BridgeRegistry {
             report.logs.extend(bridge_report.logs);
             report.mod_logs.extend(bridge_report.mod_logs);
             report.errors.extend(bridge_report.errors);
+        }
+        report.metrics.dispatch_us = started.elapsed().as_micros();
+        report
+    }
+
+    pub fn query_event(&mut self, event: &EventEnvelope) -> RegistryQueryReport {
+        let started = std::time::Instant::now();
+        let handlers = self
+            .handlers_by_event
+            .get(&event.key)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        let mut report = RegistryQueryReport::default();
+        report.metrics.payload_bytes = event.payload_json.len();
+        report.metrics.handler_count = handlers.len();
+
+        for handler in handlers {
+            let Some(bridge) = self.bridges.get_mut(&handler.bridge_id) else {
+                report.errors.push(BridgeDispatchError {
+                    mod_id: handler.mod_id.clone(),
+                    bridge_id: handler.bridge_id.clone(),
+                    message: "runtime adapter is not registered".to_string(),
+                });
+                continue;
+            };
+            report.metrics.bridge_batch_count += 1;
+            let bridge_report = bridge.query(handler, event);
+            report.metrics.vm_batch_count += bridge_report.vm_batch_count.max(1);
+            report.logs.extend(bridge_report.logs.iter().cloned());
+            report.mod_logs.extend(bridge_report.mod_logs);
+            report.errors.extend(bridge_report.errors);
+            if bridge_report.result_json.is_some() {
+                report.result_json = bridge_report.result_json;
+                break;
+            }
         }
         report.metrics.dispatch_us = started.elapsed().as_micros();
         report

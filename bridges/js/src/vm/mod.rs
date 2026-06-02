@@ -90,6 +90,28 @@ impl JsVm {
                 .and_then(|json| parse_mutations(&source_mod, &json))
         })
     }
+
+    pub fn query(
+        &self,
+        handler: &HandlerDescriptor,
+        event: &EventEnvelope,
+    ) -> Result<Option<String>, String> {
+        let _keep_runtime_alive = &self.runtime;
+        self.context.with(|ctx| {
+            let query = ctx
+                .globals()
+                .get::<_, rquickjs::Function>("__oppw4_query_handlers")
+                .context("js query lookup failed")?;
+            query
+                .call::<_, String>((
+                    vec![handler.handler_ref.as_str().to_string()],
+                    event.key.as_str().to_string(),
+                    event.payload_json.as_ref(),
+                ))
+                .context("js query call failed")
+                .map(|json| (!json.trim().is_empty()).then_some(json))
+        })
+    }
 }
 
 #[derive(Deserialize)]

@@ -236,6 +236,95 @@ fn invalid_json_payload_is_reported_as_js_dispatch_error() {
 }
 
 #[test]
+fn query_returns_rank_override_from_js_handler() {
+    let root = temp_root("js-bridge-query-rank-override");
+    fs::create_dir_all(&root).expect("temp dir");
+    fs::write(
+        root.join("mod.js"),
+        r#"
+        import { rank } from "sdk";
+
+        rank.on_calc_count((ctx) => {
+            if (ctx.payload.value_u32 !== 1250) {
+                throw new Error("bad count payload");
+            }
+            return "S+";
+        });
+        "#,
+    )
+    .expect("script");
+
+    let mut registry = BridgeRegistry::new();
+    register_js_bridge(
+        &mut registry,
+        vec![schema_module(
+            "sdk",
+            "sdk.rank",
+            rank_schema(),
+            RegistryModuleLoad::Always,
+        )],
+    );
+    load_js_mod(&mut registry, "rank_query_mod", "Rank Query", &root);
+
+    let report = registry.query_event(&EventEnvelope {
+        key: EventKey::new("sdk.runtime.rank.calc_count").expect("event key"),
+        payload_json: serde_json::json!({ "value_u32": 1250 }).to_string().into(),
+    });
+
+    assert_eq!(report.errors, []);
+    assert_eq!(report.result_json.as_deref(), Some(r#""S+""#));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn snapshot_module_projects_runtime_state_as_properties() {
+    let root = temp_root("js-bridge-snapshot-module");
+    fs::create_dir_all(&root).expect("temp dir");
+    fs::write(
+        root.join("mod.js"),
+        r#"
+        import { snapshot } from "sdk";
+
+        if (snapshot.mission.id !== 35 || snapshot.mission.mode !== "free_log") {
+            throw new Error("bad snapshot mission");
+        }
+        if (snapshot.difficulty.key !== "hard") {
+            throw new Error("bad snapshot difficulty");
+        }
+        if (snapshot.player.active_character_ids[0] !== "zoro") {
+            throw new Error("bad snapshot player");
+        }
+        "#,
+    )
+    .expect("script");
+
+    let mut registry = BridgeRegistry::new();
+    register_js_bridge(
+        &mut registry,
+        vec![schema_module_with_invoke(
+            "sdk",
+            "sdk.snapshot",
+            snapshot_schema(),
+            RegistryModuleLoad::Always,
+            snapshot_invoke,
+        )],
+    );
+
+    let lifecycle = registry
+        .load_supported_mod(BridgeLoadRequest {
+            mod_id: ModId::new("snapshot_mod").expect("mod id"),
+            name: "Snapshot Mod".to_string(),
+            source: BridgeModSource::Directory(root.clone()),
+            entry_file: "mod.js".to_string(),
+            uses_plugins: Vec::new(),
+        })
+        .expect("load mod");
+
+    assert_eq!(lifecycle, ModLifecycle::BootOnce);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn invalid_json_payload_is_lazy_when_payload_is_not_read() {
     let root = temp_root("js-bridge-invalid-json-lazy");
     fs::create_dir_all(&root).expect("temp dir");

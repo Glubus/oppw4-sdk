@@ -59,6 +59,7 @@ pub const fn null_api() -> Oppw4PluginApi {
         register_rdb_virtual_provider: None,
         subscribe_signal: None,
         emit_signal: None,
+        query_signal: None,
         register_config_schema: None,
         has_signal_listeners: None,
     }

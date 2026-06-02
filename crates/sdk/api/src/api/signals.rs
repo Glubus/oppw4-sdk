@@ -51,6 +51,25 @@ impl<'api> SignalService<'api> {
         host_code_result("emit_signal", code)
     }
 
+    pub fn query_json(self, signal: &str, payload: &[u8]) -> PluginResult<Option<String>> {
+        let query = self
+            .abi
+            .query_signal
+            .ok_or(PluginError::MissingHostFunction("query_signal"))?;
+        let signal = cstring_lossy(signal);
+        let json =
+            super::r#unsafe::query_signal(self.abi.host_context, query, signal.as_c_str(), payload)
+                .map_err(|code| PluginError::HostCallFailed {
+                    operation: "query_signal",
+                    code,
+                })?;
+        if json.trim().is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(json))
+        }
+    }
+
     pub fn has_listeners(self, signal: &str) -> bool {
         let Some(has_listeners) = self.abi.has_signal_listeners else {
             return true;
@@ -115,6 +134,32 @@ mod tests {
         0
     }
 
+    unsafe extern "system" fn query_signal(
+        _host_context: *mut c_void,
+        _signal_utf8: *const c_char,
+        _payload: *const u8,
+        _payload_len: usize,
+        out_json: *mut u8,
+        out_json_len: *mut usize,
+    ) -> i32 {
+        let response = br#""S+""#;
+        if out_json_len.is_null() {
+            return -1;
+        }
+        if unsafe { *out_json_len } < response.len() {
+            unsafe { *out_json_len = response.len() };
+            return -46;
+        }
+        if out_json.is_null() {
+            return -2;
+        }
+        unsafe {
+            std::ptr::copy_nonoverlapping(response.as_ptr(), out_json, response.len());
+            *out_json_len = response.len();
+        }
+        0
+    }
+
     unsafe extern "system" fn signal_callback(
         _subscriber_context: *mut c_void,
         _signal_utf8: *const c_char,
@@ -165,5 +210,15 @@ mod tests {
         api.has_signal_listeners = Some(has_signal_listeners);
 
         assert!(!SignalService::new(&api).has_listeners("runtime.loaded"));
+    }
+
+    #[test]
+    fn signal_service_queries_json() {
+        let mut api = null_api();
+        api.query_signal = Some(query_signal);
+
+        let result = SignalService::new(&api).query_json("sdk.runtime.rank.calc_count", br#"{}"#);
+
+        assert_eq!(result, Ok(Some(r#""S+""#.to_string())));
     }
 }

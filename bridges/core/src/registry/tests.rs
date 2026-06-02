@@ -1,8 +1,8 @@
 use crate::{
     BridgeAnalysisReport, BridgeDispatchReport, BridgeId, BridgeLoadReport, BridgeLoadRequest,
-    BridgeModContext, BridgeModEffect, BridgeModSource, EventEnvelope, EventKey, HandlerDescriptor,
-    HandlerRef, ModId, ModLifecycle, MutationEnvelope, MutationKey, RegistryModuleDescriptor,
-    RegistryModuleLoad, RuntimeAdapter,
+    BridgeModContext, BridgeModEffect, BridgeModSource, BridgeQueryReport, EventEnvelope, EventKey,
+    HandlerDescriptor, HandlerRef, ModId, ModLifecycle, MutationEnvelope, MutationKey,
+    RegistryModuleDescriptor, RegistryModuleLoad, RuntimeAdapter,
 };
 
 use super::*;
@@ -140,6 +140,38 @@ fn has_handlers_is_false_for_unknown_events() {
 }
 
 #[test]
+fn query_event_returns_first_non_null_handler_result() {
+    let mut registry = BridgeRegistry::new();
+    let bridge_id = bridge_id("fake");
+    let event_key = event_key("sdk.runtime.rank.calc_count");
+    registry.register_runtime(FakeBridge::new("fake"));
+    registry
+        .register_loaded_mod(
+            mod_id("calc_mod"),
+            bridge_id.clone(),
+            BridgeLoadReport {
+                handlers: vec![HandlerDescriptor {
+                    mod_id: mod_id("calc_mod"),
+                    bridge_id,
+                    event_key: event_key.clone(),
+                    handler_ref: HandlerRef::new("rank_override").expect("handler"),
+                }],
+                ..BridgeLoadReport::default()
+            },
+        )
+        .expect("calc mod");
+
+    let report = registry.query_event(&EventEnvelope {
+        key: event_key,
+        payload_json: "{}".to_string().into(),
+    });
+
+    assert_eq!(report.errors, []);
+    assert_eq!(report.result_json.as_deref(), Some(r#""S+""#));
+    assert_eq!(report.logs, ["query:rank_override"]);
+}
+
+#[test]
 fn handler_conflicts_report_multiple_mods_on_same_event() {
     let mut registry = BridgeRegistry::new();
     let bridge_id = bridge_id("fake");
@@ -273,6 +305,16 @@ impl RuntimeAdapter for FakeBridge {
         BridgeDispatchReport {
             logs: vec![format!("dispatch:{}", handler.handler_ref.as_str())],
             ..BridgeDispatchReport::default()
+        }
+    }
+
+    fn query(&mut self, handler: &HandlerDescriptor, _event: &EventEnvelope) -> BridgeQueryReport {
+        BridgeQueryReport {
+            result_json: (handler.handler_ref.as_str() == "rank_override")
+                .then(|| r#""S+""#.to_string()),
+            logs: vec![format!("query:{}", handler.handler_ref.as_str())],
+            vm_batch_count: 1,
+            ..BridgeQueryReport::default()
         }
     }
 

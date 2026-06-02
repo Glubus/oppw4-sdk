@@ -144,6 +144,26 @@ impl<'api> PluginContext<'api> {
             invoke,
         )
     }
+
+    pub fn register_registry_module_with_generated_schema_and_optional_invoke(
+        self,
+        module_name: &str,
+        module_context: *mut std::ffi::c_void,
+        install: plugin_abi::Oppw4RegistryModuleInstallFn,
+        schema: &sdk_schema::RegistryModuleSchema,
+        invoke: Option<plugin_abi::Oppw4RegistryModuleInvokeFn>,
+    ) -> PluginResult<()> {
+        self.host
+            .registry()
+            .register_module_descriptor_with_generated_schema(
+                self.plugin_id,
+                module_name,
+                module_context,
+                install,
+                schema,
+                invoke,
+            )
+    }
 }
 
 #[cfg(test)]

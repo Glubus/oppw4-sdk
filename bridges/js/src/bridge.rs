@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 
 use sdk_bridge::{
     BridgeDispatchError, BridgeDispatchLog, BridgeDispatchReport, BridgeError, BridgeId,
-    BridgeLoadReport, BridgeLoadRequest, BridgeModContext, BridgeRegistry, EventEnvelope,
-    HandlerDescriptor, ModId, RegistryModuleDescriptor, RuntimeAdapter,
+    BridgeLoadReport, BridgeLoadRequest, BridgeModContext, BridgeQueryReport, BridgeRegistry,
+    EventEnvelope, HandlerDescriptor, ModId, RegistryModuleDescriptor, RuntimeAdapter,
 };
 
 use crate::{
@@ -168,6 +168,35 @@ impl RuntimeAdapter for JsBridge {
             }
         }
         report
+    }
+
+    fn query(&mut self, handler: &HandlerDescriptor, event: &EventEnvelope) -> BridgeQueryReport {
+        let Some(vm) = self.vms.get(&handler.mod_id) else {
+            return BridgeQueryReport {
+                errors: vec![BridgeDispatchError {
+                    mod_id: handler.mod_id.clone(),
+                    bridge_id: handler.bridge_id.clone(),
+                    message: "js vm is not loaded".to_string(),
+                }],
+                ..BridgeQueryReport::default()
+            };
+        };
+        match vm.query(handler, event) {
+            Ok(result_json) => BridgeQueryReport {
+                result_json,
+                logs: vm.drain_logs(),
+                vm_batch_count: 1,
+                ..BridgeQueryReport::default()
+            },
+            Err(error) => BridgeQueryReport {
+                errors: vec![BridgeDispatchError {
+                    mod_id: handler.mod_id.clone(),
+                    bridge_id: handler.bridge_id.clone(),
+                    message: error,
+                }],
+                ..BridgeQueryReport::default()
+            },
+        }
     }
 
     fn unload_mod(&mut self, mod_id: &ModId) {

@@ -210,12 +210,72 @@ pub(super) fn difficulty_schema() -> RegistryModuleSchema {
     ))
 }
 
+pub(super) fn snapshot_schema() -> RegistryModuleSchema {
+    RegistryModuleSchema::new("sdk", "snapshot")
+        .function(RegistryFunctionDescriptor::new(
+            "mission",
+            RegistryTypeRef::Named {
+                name: "SnapshotMission".to_string(),
+            },
+        ))
+        .function(RegistryFunctionDescriptor::new(
+            "difficulty",
+            RegistryTypeRef::Named {
+                name: "SnapshotDifficulty".to_string(),
+            },
+        ))
+        .function(RegistryFunctionDescriptor::new(
+            "player",
+            RegistryTypeRef::Named {
+                name: "SnapshotPlayer".to_string(),
+            },
+        ))
+        .type_descriptor(
+            RegistryTypeDescriptor::new("SnapshotMission")
+                .field(
+                    "id",
+                    RegistryTypeRef::Optional {
+                        inner: Box::new(RegistryTypeRef::I64),
+                    },
+                )
+                .field(
+                    "mode",
+                    RegistryTypeRef::Optional {
+                        inner: Box::new(RegistryTypeRef::String),
+                    },
+                ),
+        )
+        .type_descriptor(RegistryTypeDescriptor::new("SnapshotDifficulty").field(
+            "key",
+            RegistryTypeRef::Optional {
+                inner: Box::new(RegistryTypeRef::String),
+            },
+        ))
+        .type_descriptor(RegistryTypeDescriptor::new("SnapshotPlayer").field(
+            "active_character_ids",
+            RegistryTypeRef::Array {
+                inner: Box::new(RegistryTypeRef::String),
+            },
+        ))
+}
+
 pub(super) fn rank_schema() -> RegistryModuleSchema {
-    RegistryModuleSchema::new("sdk", "rank").event(RegistryEventDescriptor::new(
-        "result",
-        "sdk.runtime.rank.event",
-        RegistryTypeRef::Json,
-    ))
+    RegistryModuleSchema::new("sdk", "rank")
+        .event(RegistryEventDescriptor::new(
+            "result",
+            "sdk.runtime.rank.event",
+            RegistryTypeRef::Json,
+        ))
+        .event(RegistryEventDescriptor::new(
+            "calc_count",
+            "sdk.runtime.rank.calc_count",
+            RegistryTypeRef::Json,
+        ))
+        .event(RegistryEventDescriptor::new(
+            "calc_time",
+            "sdk.runtime.rank.calc_time",
+            RegistryTypeRef::Json,
+        ))
 }
 
 pub(super) fn rewards_schema() -> RegistryModuleSchema {
@@ -248,6 +308,25 @@ pub(super) fn mission_invoke(function_name: &str, args_json: &str) -> Result<Str
         .expect("mission berry totals")
         .push(total);
     Ok("null".to_string())
+}
+
+pub(super) fn snapshot_invoke(function_name: &str, _args_json: &str) -> Result<String, String> {
+    match function_name {
+        "mission" => Ok(serde_json::json!({
+            "id": 35,
+            "mode": "free_log",
+        })
+        .to_string()),
+        "difficulty" => Ok(serde_json::json!({
+            "key": "hard",
+        })
+        .to_string()),
+        "player" => Ok(serde_json::json!({
+            "active_character_ids": ["zoro"],
+        })
+        .to_string()),
+        _ => Err(format!("unsupported function: {function_name}")),
+    }
 }
 
 pub(super) fn mission_schema() -> RegistryModuleSchema {

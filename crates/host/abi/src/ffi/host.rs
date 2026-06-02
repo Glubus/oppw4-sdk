@@ -128,6 +128,14 @@ pub type HostEmitSignalFn = unsafe extern "system" fn(
     payload: *const u8,
     payload_len: usize,
 ) -> i32;
+pub type HostQuerySignalFn = unsafe extern "system" fn(
+    host_context: *mut c_void,
+    signal_utf8: *const c_char,
+    payload: *const u8,
+    payload_len: usize,
+    out_json: *mut u8,
+    out_json_len: *mut usize,
+) -> i32;
 pub type HostHasSignalListenersFn =
     unsafe extern "system" fn(host_context: *mut c_void, signal_utf8: *const c_char) -> i32;
 pub type HostRegisterConfigSchemaFn =

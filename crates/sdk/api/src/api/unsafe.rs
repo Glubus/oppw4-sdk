@@ -4,7 +4,7 @@ use crate::{PluginError, PluginModInfo, PluginResult};
 use plugin_abi::{
     optional_cstr, HostActiveCharacterFn, HostDebugEnabledFn, HostEmitSignalFn,
     HostForEachPluginModFn, HostForEachPluginModZipFn, HostGameStatusFn, HostHasSignalListenersFn,
-    HostLogFn, HostModuleBaseFn, HostPatchLinkDataRowFn, HostReadMemoryFn,
+    HostLogFn, HostModuleBaseFn, HostPatchLinkDataRowFn, HostQuerySignalFn, HostReadMemoryFn,
     HostRegisterConfigSchemaFn, HostRegisterFileProviderFn, HostRegisterRegistryModuleFn,
     HostReplaceLinkDataEntryFn, HostRequireCapabilityFn, HostScanMemoryFn, HostSignalCallbackFn,
     HostSubscribeSignalFn, HostWriteMemoryFn, Oppw4ActiveCharacter, Oppw4ConfigSchema,
@@ -144,6 +144,49 @@ pub(super) fn has_signal_listeners(
     signal: &CStr,
 ) -> i32 {
     unsafe { has_listeners(host_context, signal.as_ptr()) }
+}
+
+pub(super) fn query_signal(
+    host_context: *mut c_void,
+    query: HostQuerySignalFn,
+    signal: &CStr,
+    payload: &[u8],
+) -> Result<String, i32> {
+    let mut out = vec![0u8; 64 * 1024];
+    let mut written_len = out.len();
+    let code = unsafe {
+        query(
+            host_context,
+            signal.as_ptr(),
+            payload.as_ptr(),
+            payload.len(),
+            out.as_mut_ptr(),
+            &mut written_len,
+        )
+    };
+    if code == -46 && written_len > out.len() {
+        out.resize(written_len, 0);
+        let retry = unsafe {
+            query(
+                host_context,
+                signal.as_ptr(),
+                payload.as_ptr(),
+                payload.len(),
+                out.as_mut_ptr(),
+                &mut written_len,
+            )
+        };
+        if retry != 0 {
+            return Err(retry);
+        }
+    } else if code != 0 {
+        return Err(code);
+    }
+    if written_len > out.len() {
+        return Err(-46);
+    }
+    out.truncate(written_len);
+    String::from_utf8(out).map_err(|_| -26)
 }
 
 pub(super) fn game_status(
