@@ -110,6 +110,16 @@
     }
 
     function callTypedEventCallback(registryModuleList, schema, event, callback, ctx) {
+        const generatedResult = generatedCallTypedEventCallback(
+            registryModuleList,
+            schema,
+            event,
+            callback,
+            ctx
+        );
+        if (generatedResult !== undefined) {
+            return generatedResult;
+        }
         if (
             String(schema.namespace) === "sdk" &&
             String(schema.importName) === "player" &&

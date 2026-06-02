@@ -38,41 +38,17 @@
     }
 
     function createSchemaModule(registryModuleList, currentMod, schema) {
-        if (String(schema.namespace) === "sdk" && String(schema.importName) === "snapshot") {
-            return createSnapshotModule(registryModuleList, currentMod, schema);
+        const generatedModule = generatedCreateSchemaModule(
+            registryModuleList,
+            currentMod,
+            schema
+        );
+        if (generatedModule) {
+            return generatedModule;
         }
         const moduleObject = Object.create(null);
         installSchemaFunctions(moduleObject, registryModuleList, currentMod, schema);
         installSchemaEvents(moduleObject, registryModuleList, currentMod, schema);
-        defineSchema(moduleObject, schema);
-        return moduleObject;
-    }
-
-    function createSnapshotModule(registryModuleList, currentMod, schema) {
-        const moduleObject = Object.create(null);
-        for (const fn of schema.functions || []) {
-            const name = String(fn.name || "");
-            if (!name || (fn.params || []).length !== 0) {
-                continue;
-            }
-            Object.defineProperty(moduleObject, name, {
-                enumerable: true,
-                get() {
-                    const result = invokeRegistry(
-                        currentMod,
-                        `${schema.namespace}.${schema.importName}.${name}`,
-                        []
-                    );
-                    return wrapRegistryValue(
-                        registryModuleList,
-                        currentMod,
-                        fn.returns,
-                        result,
-                        schema
-                    );
-                },
-            });
-        }
         defineSchema(moduleObject, schema);
         return moduleObject;
     }

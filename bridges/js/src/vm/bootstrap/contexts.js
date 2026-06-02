@@ -121,6 +121,74 @@
         return typedCtx;
     }
 
+    function projectRankCalcContext(ctx, kind) {
+        let payloadLoaded = false;
+        let payload = null;
+        const typedCtx = {
+            eventKey: ctx.eventKey,
+            payloadJson: ctx.payloadJson,
+            mod: ctx.mod,
+            kind,
+        };
+        Object.defineProperty(
+            typedCtx,
+            "vanilla_rank",
+            valueProperty(() => {
+                const eventPayload = rankCalcPayload();
+                return eventPayload.result_label ?? null;
+            })
+        );
+        Object.defineProperty(
+            typedCtx,
+            "count",
+            valueProperty(() => {
+                if (kind !== "count") {
+                    return null;
+                }
+                const eventPayload = rankCalcPayload();
+                return Number(eventPayload.value_u32 ?? 0);
+            })
+        );
+        Object.defineProperty(
+            typedCtx,
+            "time_seconds",
+            valueProperty(() => {
+                if (kind !== "time") {
+                    return null;
+                }
+                const eventPayload = rankCalcPayload();
+                const value = Number(eventPayload.value_f32 ?? 0);
+                return Number.isFinite(value) ? value : null;
+            })
+        );
+        Object.defineProperty(
+            typedCtx,
+            "mission",
+            valueProperty(() => snapshotModule().mission ?? freeze({ id: null, mode: null }))
+        );
+        Object.defineProperty(
+            typedCtx,
+            "difficulty",
+            valueProperty(() => snapshotModule().difficulty ?? freeze({ key: null }))
+        );
+        Object.defineProperty(
+            typedCtx,
+            "player",
+            valueProperty(() =>
+                snapshotModule().player ?? freeze({ active_character_ids: freeze([]) })
+            )
+        );
+        return typedCtx;
+
+        function rankCalcPayload() {
+            if (!payloadLoaded) {
+                payload = ctx.payload || {};
+                payloadLoaded = true;
+            }
+            return payload;
+        }
+    }
+
     function projectRewardsEventContext(ctx) {
         let payloadLoaded = false;
         let payload = null;
@@ -279,4 +347,13 @@
             value,
             { namespace: "sdk", importName: "character" }
         );
+    }
+
+    function snapshotModule() {
+        const snapshot = lookupPath("sdk.snapshot");
+        return snapshot || freeze({
+            mission: freeze({ id: null, mode: null }),
+            difficulty: freeze({ key: null }),
+            player: freeze({ active_character_ids: freeze([]) }),
+        });
     }

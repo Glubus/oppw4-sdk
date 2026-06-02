@@ -242,11 +242,26 @@ fn query_returns_rank_override_from_js_handler() {
     fs::write(
         root.join("mod.js"),
         r#"
-        import { rank } from "sdk";
+        import { rank, snapshot } from "sdk";
 
         rank.on_calc_count((ctx) => {
-            if (ctx.payload.value_u32 !== 1250) {
+            if (ctx.kind !== "count") {
+                throw new Error("bad calc kind");
+            }
+            if (ctx.count !== 1250) {
                 throw new Error("bad count payload");
+            }
+            if (ctx.mission.id !== 35 || ctx.mission.mode !== "free_log") {
+                throw new Error("bad calc mission");
+            }
+            if (ctx.difficulty.key !== "hard") {
+                throw new Error("bad calc difficulty");
+            }
+            if (ctx.player.active_character_ids[0] !== "zoro") {
+                throw new Error("bad calc player");
+            }
+            if (snapshot.mission.id !== 35 || snapshot.difficulty.key !== "hard") {
+                throw new Error("bad runtime snapshot");
             }
             return "S+";
         });
@@ -257,12 +272,16 @@ fn query_returns_rank_override_from_js_handler() {
     let mut registry = BridgeRegistry::new();
     register_js_bridge(
         &mut registry,
-        vec![schema_module(
-            "sdk",
-            "sdk.rank",
-            rank_schema(),
-            RegistryModuleLoad::Always,
-        )],
+        vec![
+            schema_module("sdk", "sdk.rank", rank_schema(), RegistryModuleLoad::Always),
+            schema_module_with_invoke(
+                "sdk",
+                "sdk.snapshot",
+                snapshot_schema(),
+                RegistryModuleLoad::Always,
+                snapshot_invoke,
+            ),
+        ],
     );
     load_js_mod(&mut registry, "rank_query_mod", "Rank Query", &root);
 

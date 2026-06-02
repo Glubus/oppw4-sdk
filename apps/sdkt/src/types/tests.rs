@@ -86,7 +86,13 @@ fn installs_split_types_inside_project_root() {
     assert!(rank.contains("time?: RankGrade | null;"));
     assert!(rank.contains("merge?: RankGrade | null;"));
     assert!(rank.contains("mission: RankMissionContext;"));
-    assert!(rank.contains("export interface RankCalcPayload"));
+    assert!(rank.contains("export interface RankCalcContext"));
+    assert!(rank.contains("kind: \"count\" | \"time\";"));
+    assert!(rank.contains("count?: number | null;"));
+    assert!(rank.contains("time_seconds?: number | null;"));
+    assert!(rank.contains("mission: RankCalcMission;"));
+    assert!(rank.contains("difficulty: RankCalcDifficulty;"));
+    assert!(rank.contains("player: RankCalcPlayer;"));
     assert!(rank.contains(
         "on_calc_count(callback: (ctx: RankCalcContext) => RankGrade | null | undefined): string;"
     ));

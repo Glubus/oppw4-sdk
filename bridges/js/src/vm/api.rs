@@ -15,6 +15,8 @@ const BOOTSTRAP_JS: &str = concat!(
     "\n",
     include_str!("bootstrap/wrap.js"),
     "\n",
+    include_str!(concat!(env!("OUT_DIR"), "/generated_runtime_projection.js")),
+    "\n",
     include_str!("bootstrap/extensions.js"),
     "\n",
     include_str!("bootstrap/end.js"),
