@@ -81,6 +81,7 @@ fn method_json(method: &RegistryMethodDescriptor) -> serde_json::Value {
     serde_json::json!({
         "name": method.name,
         "function": method.function,
+        "mutation": method.mutation,
         "returns": type_ref_json(&method.returns),
     })
 }

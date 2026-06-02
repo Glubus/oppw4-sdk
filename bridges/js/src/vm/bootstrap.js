@@ -1,6 +1,7 @@
 (() => {
     const freeze = Object.freeze;
     const handlers = Object.create(null);
+    const activeMutationCollectors = [];
     const mod = createModInfo();
     const modules = registryModules();
     const namespaces = installSchemaModules(modules, mod);
@@ -53,11 +54,27 @@
                 if (typeof callback !== "function") {
                     throw new Error("js handler is not registered: " + handlerRef);
                 }
-                const result = callback(ctx);
+                const result = withMutationCollector(mutations, () => callback(ctx));
                 collectMutations(mutations, result);
             }
             return JSON.stringify(mutations);
         };
+    }
+
+    function withMutationCollector(target, callback) {
+        activeMutationCollectors.push(target);
+        try {
+            return callback();
+        } finally {
+            activeMutationCollectors.pop();
+        }
+    }
+
+    function currentMutationCollector() {
+        if (activeMutationCollectors.length === 0) {
+            return null;
+        }
+        return activeMutationCollectors[activeMutationCollectors.length - 1];
     }
 
     function collectMutations(target, result) {
@@ -567,7 +584,7 @@
 
     function installExtensionMethod(registryModuleList, currentMod, value, extension) {
         const methodName = String(extension.method.name || "");
-        if (!canInstallMethod(value, methodName, extension.method.function)) {
+        if (!canInstallMethod(value, methodName, extensionMethodKind(extension.method))) {
             return;
         }
         Object.defineProperty(value, methodName, extensionProperty(registryModuleList, currentMod, value, extension));
@@ -584,9 +601,20 @@
 
     function extensionFunction(registryModuleList, currentMod, value, extension) {
         return freeze(function registryExtensionMethod(...args) {
-            const name = extensionQualifiedName(extension);
-            const result = invokeRegistry(currentMod, name, [value, ...args]);
-            return wrapRegistryValue(registryModuleList, currentMod, extension.method.returns, result, extension.schema);
+            if (extension.method.function) {
+                const name = extensionQualifiedName(extension);
+                const result = invokeRegistry(currentMod, name, [value, ...args]);
+                return wrapRegistryValue(registryModuleList, currentMod, extension.method.returns, result, extension.schema);
+            }
+            if (extension.method.mutation) {
+                const collector = currentMutationCollector();
+                if (!collector) {
+                    throw new Error(`mutation method ${String(extension.method.name)} requires an active event dispatch`);
+                }
+                collector.push(extensionMutationEnvelope(value, extension, args));
+                return undefined;
+            }
+            throw new Error(`extension method ${String(extension.method.name)} is missing function or mutation binding`);
         });
     }
 
@@ -594,8 +622,54 @@
         return `${extension.schema.namespace}.${extension.schema.importName}.${String(extension.method.function)}`;
     }
 
-    function canInstallMethod(value, methodName, functionName) {
-        return methodName && functionName && !Object.prototype.hasOwnProperty.call(value, methodName);
+    function extensionMethodKind(method) {
+        if (method.function) {
+            return "function";
+        }
+        if (method.mutation) {
+            return "mutation";
+        }
+        return "";
+    }
+
+    function canInstallMethod(value, methodName, kind) {
+        return methodName && kind && !Object.prototype.hasOwnProperty.call(value, methodName);
+    }
+
+    function extensionMutationEnvelope(target, extension, args) {
+        const mutation = mutationContractFor(extension);
+        if (!mutation || !mutation.key) {
+            throw new Error(`missing mutation contract for extension method ${String(extension.method.name)}`);
+        }
+        return freeze({
+            key: String(mutation.key),
+            payload: buildMutationPayload(target, extension, mutation, args),
+        });
+    }
+
+    function mutationContractFor(extension) {
+        const name = String(extension.method.mutation || "");
+        return (extension.schema.mutations || []).find((mutation) => String(mutation.name || "") === name) || null;
+    }
+
+    function buildMutationPayload(target, extension, mutation, args) {
+        const payloadType = mutation.payload;
+        if (payloadType && String(payloadType.kind || "") === "named") {
+            const payloadDescriptor = namedTypeDescriptor(extension.schema, String(payloadType.name || ""));
+            if (payloadDescriptor) {
+                const valueFields = (payloadDescriptor.fields || []).filter((field) => String(field.name || "") !== "target");
+                if (valueFields.length === 1) {
+                    return {
+                        target,
+                        [String(valueFields[0].name || "value")]: args[0],
+                    };
+                }
+            }
+        }
+        if (args.length === 1 && args[0] && typeof args[0] === "object" && !Array.isArray(args[0])) {
+            return args[0];
+        }
+        throw new Error(`cannot build payload for mutation method ${String(extension.method.name)}`);
     }
 
     function extensionMethodsFor(registryModuleList, targetType) {
@@ -619,6 +693,14 @@
     function namedType(schema, name) {
         const raw = String(name);
         return raw.includes(".") ? raw : `${String(schema.namespace)}.${raw}`;
+    }
+
+    function namedTypeDescriptor(schema, name) {
+        const raw = String(name);
+        return (schema.types || []).find((type) =>
+            String(type.name || "") === raw ||
+            `${String(schema.namespace)}.${String(type.name || "")}` === raw
+        ) || null;
     }
 
     function createRegistry() {

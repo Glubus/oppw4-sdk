@@ -15,3 +15,6 @@ sdk-mod-loader.workspace = true
 sdk-bridge.workspace = true
 struct-api.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+sdk-bridge.workspace = true

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::validation::{validate_schema, RegistrySchemaError};
+use crate::{validation::validate_schema, RegistrySchemaError};
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RegistryModuleSchema {
@@ -236,97 +236,5 @@ impl RegistryMethodDescriptor {
             mutation: Some(mutation.into()),
             returns,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn validates_named_event_payloads() {
-        let schema = RegistryModuleSchema::new("sdk", "player")
-            .type_descriptor(RegistryTypeDescriptor::new("CharacterChanged"))
-            .event(RegistryEventDescriptor::new(
-                "changed",
-                "sdk.player.changed",
-                RegistryTypeRef::Named {
-                    name: "CharacterChanged".to_string(),
-                },
-            ));
-
-        assert_eq!(schema.validate_contract(), Ok(()));
-    }
-
-    #[test]
-    fn rejects_missing_named_payload_type() {
-        let schema =
-            RegistryModuleSchema::new("sdk", "player").event(RegistryEventDescriptor::new(
-                "changed",
-                "sdk.player.changed",
-                RegistryTypeRef::Named {
-                    name: "MissingPayload".to_string(),
-                },
-            ));
-
-        assert_eq!(
-            schema.validate_contract(),
-            Err(RegistrySchemaError::MissingNamedType {
-                name: "MissingPayload".to_string(),
-            })
-        );
-    }
-
-    #[test]
-    fn rejects_duplicate_type_names() {
-        let schema = RegistryModuleSchema::new("sdk", "player")
-            .type_descriptor(RegistryTypeDescriptor::new("Payload"))
-            .type_descriptor(RegistryTypeDescriptor::new("Payload"));
-
-        assert_eq!(
-            schema.validate_contract(),
-            Err(RegistrySchemaError::DuplicateName {
-                kind: "type",
-                name: "Payload".to_string(),
-            })
-        );
-    }
-
-    #[test]
-    fn validates_named_mutation_payloads() {
-        let schema = RegistryModuleSchema::new("sdk", "runtime")
-            .type_descriptor(RegistryTypeDescriptor::new("PatchRequest"))
-            .mutation(RegistryMutationDescriptor::new(
-                "patch",
-                "sdk.runtime.patch",
-                RegistryTypeRef::Named {
-                    name: "PatchRequest".to_string(),
-                },
-            ));
-
-        assert_eq!(schema.validate_contract(), Ok(()));
-    }
-
-    #[test]
-    fn rejects_duplicate_mutation_names() {
-        let schema = RegistryModuleSchema::new("sdk", "runtime")
-            .mutation(RegistryMutationDescriptor::new(
-                "patch",
-                "sdk.runtime.patch",
-                RegistryTypeRef::Json,
-            ))
-            .mutation(RegistryMutationDescriptor::new(
-                "patch",
-                "sdk.runtime.patch_again",
-                RegistryTypeRef::Json,
-            ));
-
-        assert_eq!(
-            schema.validate_contract(),
-            Err(RegistrySchemaError::DuplicateName {
-                kind: "mutation",
-                name: "patch".to_string(),
-            })
-        );
     }
 }

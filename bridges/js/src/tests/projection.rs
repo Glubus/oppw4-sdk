@@ -133,6 +133,92 @@ fn typed_registry_schema_projects_type_extensions() {
 }
 
 #[test]
+fn typed_registry_schema_projects_mutation_extensions() {
+    let root = temp_root("js-bridge-typed-registry-mutation-extensions");
+    fs::create_dir_all(&root).expect("temp dir");
+    fs::write(
+        root.join("mod.js"),
+        r#"
+        import { player, character } from "sdk";
+        player.on_character_changed(() => {
+            const zoro = character.find("zoro");
+            if (!zoro || typeof zoro.set_total !== "function") {
+                throw new Error("character mutation extension missing");
+            }
+            zoro.set_total(42);
+            const modules = oppw4.registry.modules();
+            const mutationModule = modules.find((module) => module.name === "sdk.character_mutation");
+            const method = mutationModule?.schema?.extensions?.[0]?.methods?.[0];
+            if (!method || method.mutation !== "set_total" || method.function !== null) {
+                throw new Error("bad mutation method metadata: " + JSON.stringify(method));
+            }
+        });
+        "#,
+    )
+    .expect("script");
+
+    let mut registry = BridgeRegistry::new();
+    register_js_bridge(
+        &mut registry,
+        vec![
+            schema_module(
+                "sdk_data",
+                "sdk.character",
+                character_schema(),
+                RegistryModuleLoad::Always,
+            ),
+            schema_module(
+                "sdk_runtime",
+                "sdk.player",
+                player_schema(),
+                RegistryModuleLoad::Always,
+            ),
+            schema_module(
+                "sdk_runtime",
+                "sdk.character_mutation",
+                character_set_total_schema(),
+                RegistryModuleLoad::Always,
+            ),
+        ],
+    );
+    let lifecycle = load_js_mod(
+        &mut registry,
+        "typed_registry_mutation_extensions_mod",
+        "Typed Registry Mutation Extensions Mod",
+        &root,
+    );
+    assert_eq!(lifecycle, ModLifecycle::EventDriven);
+
+    let report = registry.dispatch_event(&EventEnvelope {
+        key: EventKey::new("sdk.runtime.player.character_changed").expect("event key"),
+        payload_json: serde_json::json!({
+            "current_character_id": "zoro",
+            "active_character_ids": ["zoro"]
+        })
+        .to_string()
+        .into(),
+    });
+
+    assert_eq!(report.errors, []);
+    assert_eq!(report.mutations.len(), 1);
+    assert_eq!(report.mutations[0].key.as_str(), "sdk.character.set_total");
+    assert_eq!(
+        report.mutations[0].payload_json,
+        serde_json::json!({
+            "target": {
+                "id": "zoro",
+                "name": "Roronoa Zoro",
+                "movesetLinkdataEntry": 69,
+            },
+            "value": 42,
+        })
+        .to_string()
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn typed_registry_schema_projects_event_helpers() {
     let root = temp_root("js-bridge-typed-registry-events");
     fs::create_dir_all(&root).expect("temp dir");

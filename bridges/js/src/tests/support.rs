@@ -160,6 +160,32 @@ pub(super) fn moveset_schema() -> RegistryModuleSchema {
         )
 }
 
+pub(super) fn character_set_total_schema() -> RegistryModuleSchema {
+    RegistryModuleSchema::new("sdk", "character_mutation")
+        .type_descriptor(
+            RegistryTypeDescriptor::new("CharacterSetTotalPayload")
+                .field(
+                    "target",
+                    RegistryTypeRef::Named {
+                        name: "Character".to_string(),
+                    },
+                )
+                .field("value", RegistryTypeRef::I64),
+        )
+        .mutation(RegistryMutationDescriptor::new(
+            "set_total",
+            "sdk.character.set_total",
+            RegistryTypeRef::Named {
+                name: "CharacterSetTotalPayload".to_string(),
+            },
+        ))
+        .extension(
+            RegistryTypeExtensionDescriptor::new("sdk.Character").method(
+                RegistryMethodDescriptor::mutation("set_total", "set_total", RegistryTypeRef::Void),
+            ),
+        )
+}
+
 pub(super) fn player_schema() -> RegistryModuleSchema {
     RegistryModuleSchema::new("sdk", "player").event(RegistryEventDescriptor::new(
         "character_changed",

@@ -1139,6 +1139,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "sdk-schema"
+version = "0.1.0"
+dependencies = [
+ "sdk-schema-derive",
+ "serde",
+]
+
+[[package]]
+name = "sdk-schema-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "sdkt"
 version = "0.1.0"
 dependencies = [

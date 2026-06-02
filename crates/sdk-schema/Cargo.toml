@@ -1,0 +1,9 @@
+[package]
+name = "sdk-schema"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+sdk-schema-derive.workspace = true
+serde.workspace = true

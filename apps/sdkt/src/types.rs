@@ -1,7 +1,8 @@
 use std::{fs, path::Path};
 
 use sdk_bridge::{
-    RegistryFunctionDescriptor, RegistryModuleSchema, RegistryTypeDescriptor, RegistryTypeRef,
+    RegistryFunctionDescriptor, RegistryMethodDescriptor, RegistryModuleSchema,
+    RegistryMutationDescriptor, RegistryTypeDescriptor, RegistryTypeRef,
 };
 
 const TYPES_DIR: &str = ".sdkt/types/oppw4";
@@ -188,7 +189,7 @@ fn render_schema_module(schema: &RegistryModuleSchema) -> String {
     output.push_str("declare module \"sdk\" {\n");
 
     for type_descriptor in &schema.types {
-        output.push_str(&render_type_descriptor(type_descriptor, 2));
+        output.push_str(&render_type_descriptor(schema, type_descriptor, 2));
         output.push('\n');
     }
 
@@ -410,7 +411,11 @@ fn render_mission_module() -> String {
     output
 }
 
-fn render_type_descriptor(type_descriptor: &RegistryTypeDescriptor, indent: usize) -> String {
+fn render_type_descriptor(
+    schema: &RegistryModuleSchema,
+    type_descriptor: &RegistryTypeDescriptor,
+    indent: usize,
+) -> String {
     let mut output = String::new();
     let padding = " ".repeat(indent);
     output.push_str(&format!(
@@ -424,6 +429,14 @@ fn render_type_descriptor(type_descriptor: &RegistryTypeDescriptor, indent: usiz
             field.name,
             render_type_ref(&field.type_ref)
         ));
+    }
+    for method in extension_methods_for_type(schema, &type_descriptor.name) {
+        output.push_str(&render_extension_method_descriptor(
+            schema,
+            method,
+            indent + 2,
+        ));
+        output.push('\n');
     }
     output.push_str(&format!("{padding}}}\n"));
     output
@@ -452,6 +465,85 @@ fn render_event_descriptor(event: &sdk_bridge::RegistryEventDescriptor, indent: 
         event.name,
         render_type_ref(&event.payload)
     )
+}
+
+fn extension_methods_for_type<'a>(
+    schema: &'a RegistryModuleSchema,
+    type_name: &str,
+) -> Vec<&'a RegistryMethodDescriptor> {
+    let qualified_name = format!("{}.{}", schema.namespace, type_name);
+    schema
+        .extensions
+        .iter()
+        .filter(|extension| {
+            extension.target_type == type_name || extension.target_type == qualified_name
+        })
+        .flat_map(|extension| extension.methods.iter())
+        .collect()
+}
+
+fn render_extension_method_descriptor(
+    schema: &RegistryModuleSchema,
+    method: &RegistryMethodDescriptor,
+    indent: usize,
+) -> String {
+    let params = extension_method_params(schema, method)
+        .into_iter()
+        .map(|(name, type_ref)| format!("{name}: {}", render_type_ref(&type_ref)))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!(
+        "{}{}({}): {};",
+        " ".repeat(indent),
+        method.name,
+        params,
+        render_type_ref(&method.returns)
+    )
+}
+
+fn extension_method_params(
+    schema: &RegistryModuleSchema,
+    method: &RegistryMethodDescriptor,
+) -> Vec<(String, RegistryTypeRef)> {
+    if let Some(function_name) = &method.function {
+        if let Some(function) = schema.functions.iter().find(|f| &f.name == function_name) {
+            return function
+                .params
+                .iter()
+                .skip(1)
+                .map(|param| (param.name.clone(), param.type_ref.clone()))
+                .collect();
+        }
+    }
+    if let Some(mutation_name) = &method.mutation {
+        if let Some(mutation) = schema.mutations.iter().find(|m| &m.name == mutation_name) {
+            return mutation_params(schema, mutation);
+        }
+    }
+    Vec::new()
+}
+
+fn mutation_params(
+    schema: &RegistryModuleSchema,
+    mutation: &RegistryMutationDescriptor,
+) -> Vec<(String, RegistryTypeRef)> {
+    match &mutation.payload {
+        RegistryTypeRef::Named { name } => {
+            let descriptor = schema.types.iter().find(|ty| {
+                ty.name == *name || format!("{}.{}", schema.namespace, ty.name) == *name
+            });
+            if let Some(descriptor) = descriptor {
+                return descriptor
+                    .fields
+                    .iter()
+                    .filter(|field| field.name != "target")
+                    .map(|field| (field.name.clone(), field.type_ref.clone()))
+                    .collect();
+            }
+            vec![("payload".to_string(), mutation.payload.clone())]
+        }
+        _ => vec![("payload".to_string(), mutation.payload.clone())],
+    }
 }
 
 fn render_type_ref(type_ref: &RegistryTypeRef) -> String {
@@ -537,6 +629,9 @@ mod tests {
     use std::{fs, time::SystemTime};
 
     use super::*;
+    use sdk_bridge::{
+        RegistryMethodDescriptor, RegistryMutationDescriptor, RegistryTypeExtensionDescriptor,
+    };
 
     #[test]
     fn installs_split_types_inside_project_root() {
@@ -625,6 +720,60 @@ mod tests {
         assert!(index.contains("reference path=\"./character.d.ts\""));
 
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn renders_extension_methods_from_functions_and_mutations() {
+        let schema = RegistryModuleSchema::new("sdk", "character")
+            .function(
+                RegistryFunctionDescriptor::new("replace", RegistryTypeRef::Json)
+                    .param(
+                        "target",
+                        RegistryTypeRef::Named {
+                            name: "Character".to_string(),
+                        },
+                    )
+                    .param("payload", RegistryTypeRef::String),
+            )
+            .type_descriptor(
+                RegistryTypeDescriptor::new("Character")
+                    .field("id", RegistryTypeRef::String)
+                    .field("total", RegistryTypeRef::I64),
+            )
+            .type_descriptor(
+                RegistryTypeDescriptor::new("CharacterSetTotalPayload")
+                    .field(
+                        "target",
+                        RegistryTypeRef::Named {
+                            name: "Character".to_string(),
+                        },
+                    )
+                    .field("value", RegistryTypeRef::I64),
+            )
+            .mutation(RegistryMutationDescriptor::new(
+                "set_total",
+                "sdk.character.set_total",
+                RegistryTypeRef::Named {
+                    name: "CharacterSetTotalPayload".to_string(),
+                },
+            ))
+            .extension(
+                RegistryTypeExtensionDescriptor::new("sdk.Character")
+                    .method(RegistryMethodDescriptor::new(
+                        "replace_movesets",
+                        "replace",
+                        RegistryTypeRef::Json,
+                    ))
+                    .method(RegistryMethodDescriptor::mutation(
+                        "set_total",
+                        "set_total",
+                        RegistryTypeRef::Void,
+                    )),
+            );
+
+        let rendered = render_schema_module(&schema);
+        assert!(rendered.contains("replace_movesets(payload: string): JsonValue;"));
+        assert!(rendered.contains("set_total(value: number): void;"));
     }
 
     fn temp_root(label: &str) -> std::path::PathBuf {
