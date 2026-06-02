@@ -139,10 +139,19 @@ mod tests {
 
     #[test]
     fn latest_snapshot_updates_source_of_truth() {
+        let _lock = test_snapshot_lock();
         let snapshot = PlayerSnapshot::new().with_active_character("runtime:1");
 
         update_snapshot(snapshot.clone());
 
         assert_eq!(latest_snapshot(), snapshot);
     }
+}
+
+#[cfg(test)]
+pub(crate) fn test_snapshot_lock() -> std::sync::MutexGuard<'static, ()> {
+    static LOCK: OnceLock<std::sync::Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| std::sync::Mutex::new(()))
+        .lock()
+        .expect("player snapshot test lock")
 }

@@ -14,6 +14,7 @@ pub(crate) const RESULT_STATE_SNAPSHOT: &str = "sdk.runtime.result_state.snapsho
 pub(crate) const REWARD_COMMIT: &str = "sdk.runtime.rewards.commit";
 pub(crate) const REWARD_EVENT: &str = "sdk.runtime.rewards.event";
 pub(crate) const REWARD_MEDALS: &str = "sdk.runtime.rewards.medals";
+pub(crate) const REWARD_BERRY_SET_TOTAL: &str = "sdk.runtime.rewards.berry.set_total";
 
 pub(crate) fn emit_json<T: Serialize>(host: &OwnedHostApi, signal: &str, payload: &T) {
     if !host.signals().has_listeners(signal) {

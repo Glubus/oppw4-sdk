@@ -7,6 +7,7 @@ mod loader_services;
 mod logs;
 mod manifest;
 mod mods;
+mod mutations;
 mod rdb;
 mod signals;
 mod time;

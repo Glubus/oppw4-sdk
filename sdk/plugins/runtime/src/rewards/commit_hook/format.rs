@@ -3,11 +3,11 @@ use std::slice;
 use serde::Serialize;
 
 use crate::{
-    mission::result::latest_reward_context, rewards::latest_item_rewards,
+    mission::result::latest_reward_context, rewards::apply, rewards::latest_item_rewards,
     runtime::core::rewards::RewardCommitEvent,
 };
 
-use super::{RewardCommitSnapshot, REWARD_SLOT_COUNT};
+use super::RewardCommitSnapshot;
 
 pub(super) fn snapshot(
     call: usize,
@@ -18,7 +18,7 @@ pub(super) fn snapshot(
     bonus_a: i32,
     bonus_b: i32,
 ) -> RewardCommitSnapshot {
-    let slots = unsafe { slice::from_raw_parts(reward_out.cast_const(), REWARD_SLOT_COUNT) };
+    let slots = unsafe { slice::from_raw_parts(reward_out.cast_const(), apply::REWARD_SLOT_COUNT) };
     RewardCommitSnapshot {
         call,
         reward_out: reward_out as usize,
@@ -27,7 +27,7 @@ pub(super) fn snapshot(
         rank_or_mode,
         bonus_a,
         bonus_b,
-        slots: slots.try_into().unwrap_or([0; REWARD_SLOT_COUNT]),
+        slots: slots.try_into().unwrap_or([0; apply::REWARD_SLOT_COUNT]),
     }
 }
 

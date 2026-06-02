@@ -179,14 +179,21 @@ pub(crate) fn emit_host_json(signal: &str, payload: serde_json::Value) {
     let Ok(bytes) = serde_json::to_vec(&payload) else {
         return;
     };
-    emit_host_bytes(signal, &bytes);
+    let _ = emit_host_bytes(signal, &bytes);
+}
+
+pub(crate) fn emit_mutation_json(signal: &str, payload: serde_json::Value) -> i32 {
+    let Ok(bytes) = serde_json::to_vec(&payload) else {
+        return -26;
+    };
+    emit_host_bytes(signal, &bytes)
 }
 
 fn registry() -> &'static Mutex<HashMap<String, Vec<SignalSubscriber>>> {
     SIGNALS.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
-fn has_signal_subscribers(signal: &str) -> bool {
+pub(crate) fn has_signal_subscribers(signal: &str) -> bool {
     registry()
         .lock()
         .map(|signals| {
@@ -197,23 +204,23 @@ fn has_signal_subscribers(signal: &str) -> bool {
         .unwrap_or(true)
 }
 
-fn emit_host_bytes(signal: &str, payload: &[u8]) {
+fn emit_host_bytes(signal: &str, payload: &[u8]) -> i32 {
     let signal = signal.trim().to_ascii_lowercase();
     if signal.is_empty() {
-        return;
+        return -1;
     }
     let subscribers = {
         let Ok(signals) = registry().lock() else {
-            return;
+            return -3;
         };
         signals.get(&signal).cloned().unwrap_or_default()
     };
     let has_runtime_handlers = loader::has_event_handlers(&signal);
     if subscribers.is_empty() && !has_runtime_handlers {
-        return;
+        return 0;
     }
     let Ok(signal_utf8) = std::ffi::CString::new(signal.as_str()) else {
-        return;
+        return -1;
     };
     for subscriber in subscribers {
         let code = unsafe {
@@ -225,12 +232,13 @@ fn emit_host_bytes(signal: &str, payload: &[u8]) {
             )
         };
         if code != 0 {
-            return;
+            return code;
         }
     }
     if has_runtime_handlers {
         dispatch_runtime_event(&signal, payload.as_ptr(), payload.len());
     }
+    0
 }
 
 unsafe fn signal_name(raw: *const c_char) -> Option<String> {

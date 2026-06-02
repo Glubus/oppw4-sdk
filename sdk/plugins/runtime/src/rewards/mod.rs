@@ -1,3 +1,4 @@
+mod apply;
 mod commit_hook;
 mod item_hook;
 
@@ -14,7 +15,8 @@ impl RuntimeExposure for RewardCommitExposure {
     type Config = RewardProbeConfig;
 
     fn install(host: OwnedHostApi, config: Self::Config) {
-        commit_hook::install(host, config);
+        commit_hook::install(host.clone(), config);
+        commit_hook::install_mutation_applicators(host);
     }
 }
 

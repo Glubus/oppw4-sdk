@@ -6,6 +6,7 @@
     const modules = registryModules();
     const namespaces = installSchemaModules(modules, mod);
     const registerHandler = createHandlerRegistrar(handlers);
+    const typedProjectors = typedEventProjectors();
 
     exposeNamespaces(namespaces);
     installGlobalApi({

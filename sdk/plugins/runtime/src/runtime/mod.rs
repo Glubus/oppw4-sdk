@@ -18,8 +18,8 @@ use crate::{
         result::{PlayerResultExposure, ResultMemoryExposure, ResultStateExposure},
     },
     reverse::{
-        DamageFormulaExposure, EntityCounterExposure, FixedDataExposure, SpawnScalingExposure,
-        ValueScanExposure,
+        DamageFormulaExposure, EnemySpawnExposure, EntityCounterExposure, FixedDataExposure,
+        SpawnScalingExposure, ValueScanExposure,
     },
     rewards::{ItemRewardExposure, RewardCommitExposure},
     runtime::exposure::RuntimeExposure,
@@ -53,8 +53,12 @@ fn install_exposures(host: OwnedHostApi, config: config::RuntimeConfig) {
     PlayerResultExposure::install(host.clone(), config.player_result_probe);
     ResultMemoryExposure::install(host.clone(), config.result_probe);
     EntityCounterExposure::install(host.clone(), config.entity_counter_probe);
+    EnemySpawnExposure::install(host.clone(), config.enemy_spawn_probe);
     FixedDataExposure::install(host.clone(), config.fixed_data_probe);
-    DamageFormulaExposure::install(host.clone(), config.damage_formula_probe);
+    DamageFormulaExposure::install(
+        host.clone(),
+        (config.damage_formula_probe, config.enemy_stats_probe),
+    );
     SpawnScalingExposure::install(host.clone(), config.spawn_scaling_probe);
     ValueScanExposure::install(host, config.value_probe);
 }

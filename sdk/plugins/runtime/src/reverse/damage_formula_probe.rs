@@ -9,7 +9,10 @@ use std::{
 use hooks::{HookBuilder, InlineHook, Signature};
 use plugin_sdk::OwnedHostApi;
 
-use crate::{config::DamageFormulaProbeConfig, runtime::probe::PLUGIN_ID};
+use crate::{
+    config::{DamageFormulaProbeConfig, EnemyStatsProbeConfig},
+    runtime::probe::PLUGIN_ID,
+};
 
 const ACTOR_STAT_INIT_SIGNATURE: Signature = Signature::new(
     "actor_stat_init_141231100",
@@ -28,11 +31,22 @@ type ActorStatInitFn = extern "system" fn(usize, usize, i32);
 static HOST: OnceLock<OwnedHostApi> = OnceLock::new();
 static HOOK: OnceLock<InlineHook> = OnceLock::new();
 static TRAMPOLINE: AtomicUsize = AtomicUsize::new(0);
+static DAMAGE_FORMULA_ENABLED: AtomicUsize = AtomicUsize::new(0);
 static LOG_COUNT: AtomicUsize = AtomicUsize::new(0);
 static MAX_LOGS: AtomicUsize = AtomicUsize::new(0);
+static ENEMY_STATS_LOG_COUNT: AtomicUsize = AtomicUsize::new(0);
+static ENEMY_STATS_MAX_LOGS: AtomicUsize = AtomicUsize::new(0);
+static ENEMY_STATS_ENABLED: AtomicUsize = AtomicUsize::new(0);
+static ENEMY_STATS_WRITE_REQUESTED: AtomicUsize = AtomicUsize::new(0);
+static ENEMY_STATS_HP_MULTIPLIER: AtomicUsize = AtomicUsize::new(1);
+static ENEMY_STATS_ATTACK_MULTIPLIER: AtomicUsize = AtomicUsize::new(1);
 
-pub(crate) fn install(host: OwnedHostApi, config: DamageFormulaProbeConfig) {
-    if !config.enabled {
+pub(crate) fn install(
+    host: OwnedHostApi,
+    config: DamageFormulaProbeConfig,
+    enemy_stats: EnemyStatsProbeConfig,
+) {
+    if !config.enabled && !enemy_stats.enabled {
         let _ = host
             .log()
             .write(PLUGIN_ID, "actor_stat_init_probe disabled by config");
@@ -40,7 +54,9 @@ pub(crate) fn install(host: OwnedHostApi, config: DamageFormulaProbeConfig) {
     }
 
     let _ = HOST.set(host.clone());
+    DAMAGE_FORMULA_ENABLED.store(usize::from(config.enabled), Ordering::Relaxed);
     MAX_LOGS.store(config.max_logs, Ordering::Relaxed);
+    configure_enemy_stats_probe(&host, enemy_stats);
 
     if HOOK.get().is_some() {
         let _ = host
@@ -93,9 +109,13 @@ extern "system" fn actor_stat_init_detour(actor: usize, source: usize, mode: i32
 
     let stats = ActorStats::read(actor);
     log_actor_stat_init(actor, source, mode, stats);
+    log_enemy_stats_probe(actor, source, mode, stats);
 }
 
 fn log_actor_stat_init(actor: usize, source: usize, mode: i32, stats: ActorStats) {
+    if DAMAGE_FORMULA_ENABLED.load(Ordering::Relaxed) == 0 {
+        return;
+    }
     let call = LOG_COUNT.fetch_add(1, Ordering::Relaxed) + 1;
     if call > MAX_LOGS.load(Ordering::Relaxed) {
         return;
@@ -109,6 +129,57 @@ fn log_actor_stat_init(actor: usize, source: usize, mode: i32, stats: ActorStats
                 "actor_stat_init_probe call={call} mode={mode} actor=0x{actor:x} source=0x{source:x} actor_stats={} source_stats={}",
                 stats.format(),
                 source_snapshot.format(),
+            ),
+        );
+    }
+}
+
+fn configure_enemy_stats_probe(host: &OwnedHostApi, config: EnemyStatsProbeConfig) {
+    ENEMY_STATS_ENABLED.store(usize::from(config.enabled), Ordering::Relaxed);
+    ENEMY_STATS_MAX_LOGS.store(config.max_logs, Ordering::Relaxed);
+    ENEMY_STATS_WRITE_REQUESTED.store(usize::from(config.write_stats), Ordering::Relaxed);
+    ENEMY_STATS_HP_MULTIPLIER.store(config.hp_multiplier, Ordering::Relaxed);
+    ENEMY_STATS_ATTACK_MULTIPLIER.store(config.attack_multiplier, Ordering::Relaxed);
+
+    if config.enabled {
+        let _ = host.log().write(
+            PLUGIN_ID,
+            format!(
+                "enemy_stats_probe armed max_logs={} write_stats={} hp_multiplier={} attack_multiplier={} writes_refused_until_enemy_filter_is_confirmed=true",
+                config.max_logs,
+                config.write_stats,
+                config.hp_multiplier,
+                config.attack_multiplier,
+            ),
+        );
+    }
+}
+
+fn log_enemy_stats_probe(actor: usize, source: usize, mode: i32, stats: ActorStats) {
+    if ENEMY_STATS_ENABLED.load(Ordering::Relaxed) == 0 {
+        return;
+    }
+    let call = ENEMY_STATS_LOG_COUNT.fetch_add(1, Ordering::Relaxed) + 1;
+    if call > ENEMY_STATS_MAX_LOGS.load(Ordering::Relaxed) {
+        return;
+    }
+
+    let write_requested = ENEMY_STATS_WRITE_REQUESTED.load(Ordering::Relaxed) != 0;
+    let source_snapshot = SourceStats::read(source);
+    if let Some(host) = HOST.get() {
+        let _ = host.log().write(
+            PLUGIN_ID,
+            format!(
+                "enemy_stats_probe call={call} mode={mode} actor=0x{actor:x} source=0x{source:x} actor_stats={} source_stats={} hp_multiplier={} attack_multiplier={} write_status={}",
+                stats.format(),
+                source_snapshot.format(),
+                ENEMY_STATS_HP_MULTIPLIER.load(Ordering::Relaxed),
+                ENEMY_STATS_ATTACK_MULTIPLIER.load(Ordering::Relaxed),
+                if write_requested {
+                    "refused:no_confirmed_enemy_filter"
+                } else {
+                    "read_only"
+                },
             ),
         );
     }

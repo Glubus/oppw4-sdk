@@ -23,7 +23,12 @@ impl BridgeRegistry {
                 bridge_id: context.bridge_id.as_str().to_string(),
             });
         };
-        let report = bridge.load_mod(&context);
+        let report = bridge
+            .lock()
+            .map_err(|_| BridgeError::MissingBridge {
+                bridge_id: context.bridge_id.as_str().to_string(),
+            })?
+            .load_mod(&context);
         let BridgeModContext {
             mod_id, bridge_id, ..
         } = context;
@@ -89,7 +94,12 @@ impl BridgeRegistry {
         let mut matches = self
             .bridges
             .iter()
-            .filter(|(_, bridge)| bridge.supports(request))
+            .filter(|(_, bridge)| {
+                bridge
+                    .lock()
+                    .map(|bridge| bridge.supports(request))
+                    .unwrap_or(false)
+            })
             .map(|(id, _)| id.clone());
         let Some(first) = matches.next() else {
             return Err(BridgeError::NoBridgeForMod {

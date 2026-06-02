@@ -1,4 +1,5 @@
 mod damage_formula_probe;
+mod enemy_spawn_probe;
 mod entity_counter_probe;
 mod fixed_data_probe;
 mod spawn_scaling_probe;
@@ -8,8 +9,8 @@ use plugin_sdk::OwnedHostApi;
 
 use crate::{
     config::{
-        DamageFormulaProbeConfig, EntityCounterProbeConfig, FixedDataProbeConfig,
-        SpawnScalingProbeConfig, ValueProbeConfig,
+        DamageFormulaProbeConfig, EnemySpawnProbeConfig, EnemyStatsProbeConfig,
+        EntityCounterProbeConfig, FixedDataProbeConfig, SpawnScalingProbeConfig, ValueProbeConfig,
     },
     runtime::exposure::RuntimeExposure,
 };
@@ -19,6 +20,8 @@ pub(crate) struct FixedDataExposure;
 pub(crate) struct EntityCounterExposure;
 
 pub(crate) struct DamageFormulaExposure;
+
+pub(crate) struct EnemySpawnExposure;
 
 pub(crate) struct SpawnScalingExposure;
 
@@ -41,10 +44,18 @@ impl RuntimeExposure for EntityCounterExposure {
 }
 
 impl RuntimeExposure for DamageFormulaExposure {
-    type Config = DamageFormulaProbeConfig;
+    type Config = (DamageFormulaProbeConfig, EnemyStatsProbeConfig);
 
     fn install(host: OwnedHostApi, config: Self::Config) {
-        damage_formula_probe::install(host, config);
+        damage_formula_probe::install(host, config.0, config.1);
+    }
+}
+
+impl RuntimeExposure for EnemySpawnExposure {
+    type Config = EnemySpawnProbeConfig;
+
+    fn install(host: OwnedHostApi, config: Self::Config) {
+        enemy_spawn_probe::install(host, config);
     }
 }
 

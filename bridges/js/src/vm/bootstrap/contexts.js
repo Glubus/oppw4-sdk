@@ -1,3 +1,33 @@
+    function typedEventProjectors() {
+        return freeze({
+            "sdk.player.character_changed": (registryModuleList, callback, ctx) =>
+                callback(freeze(projectCharacterChangedContext(registryModuleList, ctx))),
+            "sdk.difficulty.applied": (_registryModuleList, callback, ctx) =>
+                callback(freeze(projectDifficultyAppliedContext(ctx))),
+            "sdk.rank.result": (_registryModuleList, callback, ctx) =>
+                callback(freeze(projectRankResultContext(ctx))),
+            "sdk.rewards.event": (_registryModuleList, callback, ctx) =>
+                callback(freeze(projectRewardsEventContext(ctx))),
+            "sdk.rewards.medals": (_registryModuleList, callback, ctx) =>
+                callback(freeze(projectRewardsItemsContext(ctx))),
+            "sdk.mission.rewards": (_registryModuleList, callback, ctx) =>
+                callMissionRewardsProjector(callback, ctx),
+        });
+    }
+
+    function callMissionRewardsProjector(callback, ctx) {
+        const typedCtx = projectMissionRewardsContext(ctx);
+        callback(freeze(typedCtx));
+        return {
+            mutations: typedCtx.mutations.map((mutation) =>
+                freeze({
+                    key: "sdk.runtime.rewards.berry.set_total",
+                    payload: { total: mutation.total },
+                })
+            ),
+        };
+    }
+
     function projectCharacterChangedContext(registryModuleList, ctx) {
         let payloadLoaded = false;
         let payload = null;
@@ -322,7 +352,6 @@
                 }
                 total = Math.trunc(next);
                 ctx.payload.berry = total;
-                invokeRegistry(ctx.mod, "sdk.mission.set_reward_berry_total", [total]);
                 mutations.push(
                     freeze({
                         kind: "berry.set_total",

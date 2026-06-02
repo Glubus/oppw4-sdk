@@ -133,6 +133,42 @@ fn dispatch_event_preserves_mod_logs_for_each_handler() {
 }
 
 #[test]
+fn dispatch_plan_can_execute_after_registry_access() {
+    let mut registry = BridgeRegistry::new();
+    let mod_id = mod_id("events");
+    let bridge_id = bridge_id("fake");
+    let event_key = event_key("sdk.runtime.tick");
+    registry.register_runtime(FakeBridge::new("fake"));
+    registry
+        .register_loaded_mod(
+            mod_id.clone(),
+            bridge_id.clone(),
+            BridgeLoadReport {
+                handlers: vec![HandlerDescriptor {
+                    mod_id,
+                    bridge_id,
+                    event_key: event_key.clone(),
+                    handler_ref: HandlerRef::new("on_tick").expect("handler"),
+                }],
+                ..BridgeLoadReport::default()
+            },
+        )
+        .expect("register mod");
+
+    let plan = registry.dispatch_plan(&EventEnvelope {
+        key: event_key.clone(),
+        payload_json: "{}".to_string().into(),
+    });
+
+    assert!(registry.has_handlers(&event_key));
+
+    let report = plan.execute();
+
+    assert_eq!(report.errors, []);
+    assert_eq!(report.logs, ["dispatch:on_tick"]);
+}
+
+#[test]
 fn has_handlers_is_false_for_unknown_events() {
     let registry = BridgeRegistry::new();
 

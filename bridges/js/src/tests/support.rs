@@ -2,7 +2,7 @@ pub(super) use std::fs;
 pub(super) use std::sync::atomic::Ordering;
 use std::{
     ffi::c_void,
-    sync::{atomic::AtomicUsize, Arc, Mutex, OnceLock},
+    sync::{atomic::AtomicUsize, Arc},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -18,7 +18,6 @@ use crate::JsModule;
 
 pub(super) static REGISTER_CALLS: AtomicUsize = AtomicUsize::new(0);
 pub(super) static REGISTER_MASK: AtomicUsize = AtomicUsize::new(0);
-pub(super) static MISSION_BERRY_TOTALS: OnceLock<Mutex<Vec<u64>>> = OnceLock::new();
 unsafe extern "system" fn counted_register(module_context: *mut c_void, _js: *mut c_void) -> i32 {
     REGISTER_CALLS.fetch_add(1, Ordering::SeqCst);
     REGISTER_MASK.fetch_or(module_context as usize, Ordering::SeqCst);
@@ -290,24 +289,6 @@ pub(super) fn rewards_schema() -> RegistryModuleSchema {
             "sdk.runtime.rewards.medals",
             RegistryTypeRef::Json,
         ))
-}
-
-pub(super) fn mission_invoke(function_name: &str, args_json: &str) -> Result<String, String> {
-    if function_name != "set_reward_berry_total" {
-        return Err(format!("unsupported function: {function_name}"));
-    }
-    let args = serde_json::from_str::<Vec<serde_json::Value>>(args_json)
-        .map_err(|error| format!("bad args json: {error}"))?;
-    let total = args
-        .first()
-        .and_then(serde_json::Value::as_u64)
-        .ok_or_else(|| "mission.set_reward_berry_total expects total".to_string())?;
-    MISSION_BERRY_TOTALS
-        .get_or_init(|| Mutex::new(Vec::new()))
-        .lock()
-        .expect("mission berry totals")
-        .push(total);
-    Ok("null".to_string())
 }
 
 pub(super) fn snapshot_invoke(function_name: &str, _args_json: &str) -> Result<String, String> {

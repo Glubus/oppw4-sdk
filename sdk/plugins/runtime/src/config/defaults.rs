@@ -15,6 +15,19 @@ scan_bytes = 196608
 max_value = 5000
 max_changes = 48
 
+[enemy_spawn_probe]
+enabled = false
+max_logs = 128
+
+[enemy_stats_probe]
+enabled = false
+max_logs = 128
+# Read-only by default. Enable write_stats only after confirming actor filters
+# in Ghidra/runtime logs.
+write_stats = false
+hp_multiplier = 1
+attack_multiplier = 1
+
 [fixed_data_probe]
 enabled = true
 interval_ms = 1000

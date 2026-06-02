@@ -93,11 +93,12 @@ mod tests {
             update_snapshot as update_difficulty_snapshot, DifficultyId, DifficultyMode,
             DifficultySnapshot,
         },
-        player::{update_snapshot as update_player_snapshot, PlayerSnapshot},
+        player::{test_snapshot_lock, update_snapshot as update_player_snapshot, PlayerSnapshot},
     };
 
     #[test]
     fn snapshot_invoke_returns_runtime_state() {
+        let _lock = test_snapshot_lock();
         update_difficulty_snapshot(
             DifficultySnapshot::new(DifficultyMode::new("free_log"), DifficultyId::new("hard"))
                 .with_mission_id(35),

@@ -497,19 +497,13 @@ fn typed_registry_schema_projects_mission_rewards_mutator_context() {
     .expect("script");
 
     let mut registry = BridgeRegistry::new();
-    MISSION_BERRY_TOTALS
-        .get_or_init(|| std::sync::Mutex::new(Vec::new()))
-        .lock()
-        .expect("mission berry totals")
-        .clear();
     register_js_bridge(
         &mut registry,
-        vec![schema_module_with_invoke(
+        vec![schema_module(
             "sdk_runtime",
             "sdk.mission",
             mission_schema(),
             RegistryModuleLoad::Always,
-            mission_invoke,
         )],
     );
     let lifecycle = load_js_mod(
@@ -541,14 +535,6 @@ fn typed_registry_schema_projects_mission_rewards_mutator_context() {
     assert_eq!(
         report.mutations[0].payload_json,
         serde_json::json!({ "total": 642 }).to_string()
-    );
-    assert_eq!(
-        *MISSION_BERRY_TOTALS
-            .get()
-            .expect("mission berry totals")
-            .lock()
-            .expect("mission berry totals"),
-        vec![642]
     );
     assert_eq!(
         report.logs,

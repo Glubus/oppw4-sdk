@@ -1,4 +1,7 @@
-use std::collections::BTreeMap;
+use std::{
+    collections::BTreeMap,
+    sync::{Arc, Mutex},
+};
 
 use crate::{
     BridgeId, BridgeModEffect, EventKey, HandlerDescriptor, ModId, ModRecord, MutationEnvelope,
@@ -13,7 +16,7 @@ mod tests;
 
 #[derive(Default)]
 pub struct BridgeRegistry {
-    bridges: BTreeMap<BridgeId, Box<dyn RuntimeAdapter>>,
+    bridges: BTreeMap<BridgeId, SharedRuntimeAdapter>,
     modules: Vec<RegistryModuleDescriptor>,
     mods: BTreeMap<ModId, ModRecord>,
     handlers_by_event: BTreeMap<EventKey, Vec<HandlerDescriptor>>,
@@ -28,7 +31,8 @@ impl BridgeRegistry {
     }
 
     pub fn register_runtime(&mut self, runtime: impl RuntimeAdapter + 'static) {
-        self.bridges.insert(runtime.id(), Box::new(runtime));
+        self.bridges
+            .insert(runtime.id(), Arc::new(Mutex::new(Box::new(runtime))));
     }
 
     pub fn register_module(&mut self, module: RegistryModuleDescriptor) {
@@ -47,3 +51,5 @@ impl BridgeRegistry {
         std::mem::take(&mut self.load_logs)
     }
 }
+
+pub(crate) type SharedRuntimeAdapter = Arc<Mutex<Box<dyn RuntimeAdapter>>>;

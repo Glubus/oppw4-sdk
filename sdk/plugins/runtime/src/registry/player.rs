@@ -67,10 +67,11 @@ unsafe fn write_invoke_output(bytes: &[u8], out_json: *mut u8, out_json_len: *mu
 
 #[cfg(test)]
 mod tests {
-    use crate::runtime::core::player::{update_snapshot, PlayerSnapshot};
+    use crate::runtime::core::player::{test_snapshot_lock, update_snapshot, PlayerSnapshot};
 
     #[test]
     fn player_invoke_returns_active_characters() {
+        let _lock = test_snapshot_lock();
         update_snapshot(
             PlayerSnapshot::new()
                 .with_active_character("luffy")

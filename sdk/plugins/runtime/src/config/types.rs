@@ -21,6 +21,8 @@ impl Default for DifficultyProbeConfig {
 pub(crate) struct RuntimeConfig {
     pub(crate) difficulty_probe: DifficultyProbeConfig,
     pub(crate) entity_counter_probe: EntityCounterProbeConfig,
+    pub(crate) enemy_spawn_probe: EnemySpawnProbeConfig,
+    pub(crate) enemy_stats_probe: EnemyStatsProbeConfig,
     pub(crate) fixed_data_probe: FixedDataProbeConfig,
     pub(crate) spawn_scaling_probe: SpawnScalingProbeConfig,
     pub(crate) damage_formula_probe: DamageFormulaProbeConfig,
@@ -33,6 +35,42 @@ pub(crate) struct RuntimeConfig {
     pub(crate) item_reward_probe: ItemRewardProbeConfig,
     pub(crate) result_state_probe: ResultStateProbeConfig,
     pub(crate) value_probe: ValueProbeConfig,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct EnemySpawnProbeConfig {
+    pub(crate) enabled: bool,
+    pub(crate) max_logs: usize,
+}
+
+impl Default for EnemySpawnProbeConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            max_logs: 128,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct EnemyStatsProbeConfig {
+    pub(crate) enabled: bool,
+    pub(crate) max_logs: usize,
+    pub(crate) write_stats: bool,
+    pub(crate) hp_multiplier: usize,
+    pub(crate) attack_multiplier: usize,
+}
+
+impl Default for EnemyStatsProbeConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            max_logs: 128,
+            write_stats: false,
+            hp_multiplier: 1,
+            attack_multiplier: 1,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

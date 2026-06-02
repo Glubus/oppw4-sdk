@@ -16,7 +16,7 @@ use sdk_bridge::{
 };
 use sdk_mod_loader::{DiscoveredMod, ModSource};
 
-use super::{logs, signals};
+use super::{logs, mutations, signals};
 use plugin::LoadedPlugin;
 
 static LOADED: OnceLock<Mutex<Vec<LoadedPlugin>>> = OnceLock::new();
@@ -220,8 +220,11 @@ pub(crate) fn dispatch_event(event: EventEnvelope) -> i32 {
     let Some(registry) = BRIDGES.get() else {
         return 0;
     };
-    let mut registry = registry.lock().expect("bridge registry lock");
-    let report = registry.dispatch_event(&event);
+    let plan = {
+        let registry = registry.lock().expect("bridge registry lock");
+        registry.dispatch_plan(&event)
+    };
+    let report = plan.execute();
     for log_entry in report.mod_logs {
         log::write_line(format!(
             "plugin host: event log key={} {}",
@@ -249,10 +252,11 @@ pub(crate) fn dispatch_event(event: EventEnvelope) -> i32 {
     }
     if !report.mutations.is_empty() {
         log::write_line(format!(
-            "plugin host: event mutations pending key={} count={}",
+            "plugin host: event mutations received key={} count={}",
             event.key.as_str(),
             report.mutations.len()
         ));
+        apply_mutations(report.mutations);
     }
     if report.metrics.dispatch_us >= 1_000 {
         log::write_line(format!(
@@ -268,12 +272,40 @@ pub(crate) fn dispatch_event(event: EventEnvelope) -> i32 {
     0
 }
 
+fn apply_mutations(mutation_envelopes: Vec<sdk_bridge::MutationEnvelope>) {
+    for report in mutations::apply_all(mutation_envelopes) {
+        match report.status {
+            mutations::MutationApplyStatus::Applied => {
+                log::write_line(format!(
+                    "plugin host: mutation applied key={} mod={}",
+                    report.key, report.source_mod
+                ));
+            }
+            mutations::MutationApplyStatus::Refused { reason } => {
+                log::write_line(format!(
+                    "plugin host: mutation refused key={} mod={} reason={reason}",
+                    report.key, report.source_mod
+                ));
+            }
+            mutations::MutationApplyStatus::Failed { reason } => {
+                log::write_line(format!(
+                    "plugin host: mutation failed key={} mod={} reason={reason}",
+                    report.key, report.source_mod
+                ));
+            }
+        }
+    }
+}
+
 pub(crate) fn query_event(event: EventEnvelope) -> Option<String> {
     let Some(registry) = BRIDGES.get() else {
         return None;
     };
-    let mut registry = registry.lock().expect("bridge registry lock");
-    let report = registry.query_event(&event);
+    let plan = {
+        let registry = registry.lock().expect("bridge registry lock");
+        registry.query_plan(&event)
+    };
+    let report = plan.execute();
     for log_entry in report.mod_logs {
         log::write_line(format!(
             "plugin host: query log key={} {}",

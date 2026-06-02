@@ -4,6 +4,8 @@ use crate::config::RuntimeConfig;
 pub(super) fn parse_all(value: &toml::Value, config: &mut RuntimeConfig) {
     parse_difficulty_probe(value, config);
     parse_entity_counter_probe(value, config);
+    parse_enemy_spawn_probe(value, config);
+    parse_enemy_stats_probe(value, config);
     parse_fixed_data_probe(value, config);
     parse_spawn_scaling_probe(value, config);
     parse_damage_formula_probe(value, config);
@@ -16,6 +18,53 @@ pub(super) fn parse_all(value: &toml::Value, config: &mut RuntimeConfig) {
     parse_item_reward_probe(value, config);
     parse_result_state_probe(value, config);
     parse_value_probe(value, config);
+}
+
+fn parse_enemy_spawn_probe(value: &toml::Value, config: &mut RuntimeConfig) {
+    let Some(probe) = value.get("enemy_spawn_probe") else {
+        return;
+    };
+    set_bool(probe, "enabled", &mut config.enemy_spawn_probe.enabled);
+    set_usize_range(
+        probe,
+        "max_logs",
+        1,
+        4096,
+        &mut config.enemy_spawn_probe.max_logs,
+    );
+}
+
+fn parse_enemy_stats_probe(value: &toml::Value, config: &mut RuntimeConfig) {
+    let Some(probe) = value.get("enemy_stats_probe") else {
+        return;
+    };
+    set_bool(probe, "enabled", &mut config.enemy_stats_probe.enabled);
+    set_usize_range(
+        probe,
+        "max_logs",
+        1,
+        4096,
+        &mut config.enemy_stats_probe.max_logs,
+    );
+    set_bool(
+        probe,
+        "write_stats",
+        &mut config.enemy_stats_probe.write_stats,
+    );
+    set_usize_range(
+        probe,
+        "hp_multiplier",
+        1,
+        100,
+        &mut config.enemy_stats_probe.hp_multiplier,
+    );
+    set_usize_range(
+        probe,
+        "attack_multiplier",
+        1,
+        100,
+        &mut config.enemy_stats_probe.attack_multiplier,
+    );
 }
 
 fn parse_damage_formula_probe(value: &toml::Value, config: &mut RuntimeConfig) {

@@ -5,7 +5,7 @@ use crate::{
     HandlerDescriptor, ModId, RegistryDispatchReport, RegistryQueryReport,
 };
 
-use super::BridgeRegistry;
+use super::{BridgeRegistry, SharedRuntimeAdapter};
 
 impl BridgeRegistry {
     pub fn handlers_for(&self, event_key: &EventKey) -> &[HandlerDescriptor] {
@@ -56,54 +56,140 @@ impl BridgeRegistry {
             .collect()
     }
 
-    pub fn dispatch_event(&mut self, event: &EventEnvelope) -> RegistryDispatchReport {
-        let started = std::time::Instant::now();
+    pub fn dispatch_plan(&self, event: &EventEnvelope) -> RegistryDispatchPlan {
         let handlers = self
             .handlers_by_event
             .get(&event.key)
-            .map(Vec::as_slice)
-            .unwrap_or(&[]);
-        let grouped_handlers = handlers_by_bridge(handlers);
-        let mut report = RegistryDispatchReport::default();
-        report.metrics.payload_bytes = event.payload_json.len();
-        report.metrics.handler_count = handlers.len();
-
+            .cloned()
+            .unwrap_or_default();
+        let handler_count = handlers.len();
+        let grouped_handlers = owned_handlers_by_bridge(handlers);
+        let mut batches = Vec::new();
+        let mut missing = Vec::new();
         for (bridge_id, bridge_handlers) in grouped_handlers {
-            let Some(bridge) = self.bridges.get_mut(&bridge_id) else {
-                for handler in bridge_handlers {
-                    report.errors.push(BridgeDispatchError {
-                        mod_id: handler.mod_id.clone(),
-                        bridge_id: handler.bridge_id.clone(),
-                        message: "runtime adapter is not registered".to_string(),
-                    });
-                }
-                continue;
-            };
+            if let Some(bridge) = self.bridges.get(&bridge_id) {
+                batches.push(RegistryDispatchBatch {
+                    bridge_id,
+                    bridge: bridge.clone(),
+                    handlers: bridge_handlers,
+                });
+            } else {
+                missing.extend(bridge_handlers);
+            }
+        }
+        RegistryDispatchPlan {
+            event: event.clone(),
+            handler_count,
+            batches,
+            missing,
+        }
+    }
+
+    pub fn dispatch_event(&self, event: &EventEnvelope) -> RegistryDispatchReport {
+        self.dispatch_plan(event).execute()
+    }
+
+    pub fn query_plan(&self, event: &EventEnvelope) -> RegistryQueryPlan {
+        let handlers = self
+            .handlers_by_event
+            .get(&event.key)
+            .cloned()
+            .unwrap_or_default();
+        let handler_count = handlers.len();
+        let handlers = handlers
+            .into_iter()
+            .map(|handler| {
+                let bridge = self.bridges.get(&handler.bridge_id).cloned();
+                RegistryQueryHandler { bridge, handler }
+            })
+            .collect();
+        RegistryQueryPlan {
+            event: event.clone(),
+            handler_count,
+            handlers,
+        }
+    }
+
+    pub fn query_event(&self, event: &EventEnvelope) -> RegistryQueryReport {
+        self.query_plan(event).execute()
+    }
+}
+
+#[derive(Clone)]
+pub struct RegistryDispatchPlan {
+    event: EventEnvelope,
+    handler_count: usize,
+    batches: Vec<RegistryDispatchBatch>,
+    missing: Vec<HandlerDescriptor>,
+}
+
+impl RegistryDispatchPlan {
+    pub fn execute(self) -> RegistryDispatchReport {
+        let started = std::time::Instant::now();
+        let mut report = RegistryDispatchReport::default();
+        report.metrics.payload_bytes = self.event.payload_json.len();
+        report.metrics.handler_count = self.handler_count;
+
+        for handler in self.missing {
+            report.errors.push(BridgeDispatchError {
+                mod_id: handler.mod_id.clone(),
+                bridge_id: handler.bridge_id.clone(),
+                message: "runtime adapter is not registered".to_string(),
+            });
+        }
+
+        for batch in self.batches {
             report.metrics.bridge_batch_count += 1;
-            let bridge_report = bridge.dispatch_many(&bridge_handlers, event);
-            report.metrics.vm_batch_count += bridge_report.vm_batch_count;
-            report.mutations.extend(bridge_report.mutations);
-            report.logs.extend(bridge_report.logs);
-            report.mod_logs.extend(bridge_report.mod_logs);
-            report.errors.extend(bridge_report.errors);
+            match batch.bridge.lock() {
+                Ok(mut bridge) => {
+                    let handler_refs = batch.handlers.iter().collect::<Vec<_>>();
+                    let bridge_report = bridge.dispatch_many(&handler_refs, &self.event);
+                    report.metrics.vm_batch_count += bridge_report.vm_batch_count;
+                    report.mutations.extend(bridge_report.mutations);
+                    report.logs.extend(bridge_report.logs);
+                    report.mod_logs.extend(bridge_report.mod_logs);
+                    report.errors.extend(bridge_report.errors);
+                }
+                Err(_) => {
+                    for handler in batch.handlers {
+                        report.errors.push(BridgeDispatchError {
+                            mod_id: handler.mod_id,
+                            bridge_id: batch.bridge_id.clone(),
+                            message: "runtime adapter lock is poisoned".to_string(),
+                        });
+                    }
+                }
+            };
         }
         report.metrics.dispatch_us = started.elapsed().as_micros();
         report
     }
+}
 
-    pub fn query_event(&mut self, event: &EventEnvelope) -> RegistryQueryReport {
+#[derive(Clone)]
+struct RegistryDispatchBatch {
+    bridge_id: BridgeId,
+    bridge: SharedRuntimeAdapter,
+    handlers: Vec<HandlerDescriptor>,
+}
+
+#[derive(Clone)]
+pub struct RegistryQueryPlan {
+    event: EventEnvelope,
+    handler_count: usize,
+    handlers: Vec<RegistryQueryHandler>,
+}
+
+impl RegistryQueryPlan {
+    pub fn execute(self) -> RegistryQueryReport {
         let started = std::time::Instant::now();
-        let handlers = self
-            .handlers_by_event
-            .get(&event.key)
-            .map(Vec::as_slice)
-            .unwrap_or(&[]);
         let mut report = RegistryQueryReport::default();
-        report.metrics.payload_bytes = event.payload_json.len();
-        report.metrics.handler_count = handlers.len();
+        report.metrics.payload_bytes = self.event.payload_json.len();
+        report.metrics.handler_count = self.handler_count;
 
-        for handler in handlers {
-            let Some(bridge) = self.bridges.get_mut(&handler.bridge_id) else {
+        for query_handler in self.handlers {
+            let handler = query_handler.handler;
+            let Some(bridge) = query_handler.bridge else {
                 report.errors.push(BridgeDispatchError {
                     mod_id: handler.mod_id.clone(),
                     bridge_id: handler.bridge_id.clone(),
@@ -112,19 +198,34 @@ impl BridgeRegistry {
                 continue;
             };
             report.metrics.bridge_batch_count += 1;
-            let bridge_report = bridge.query(handler, event);
-            report.metrics.vm_batch_count += bridge_report.vm_batch_count.max(1);
-            report.logs.extend(bridge_report.logs.iter().cloned());
-            report.mod_logs.extend(bridge_report.mod_logs);
-            report.errors.extend(bridge_report.errors);
-            if bridge_report.result_json.is_some() {
-                report.result_json = bridge_report.result_json;
-                break;
-            }
+            match bridge.lock() {
+                Ok(mut bridge) => {
+                    let bridge_report = bridge.query(&handler, &self.event);
+                    report.metrics.vm_batch_count += bridge_report.vm_batch_count.max(1);
+                    report.logs.extend(bridge_report.logs.iter().cloned());
+                    report.mod_logs.extend(bridge_report.mod_logs);
+                    report.errors.extend(bridge_report.errors);
+                    if bridge_report.result_json.is_some() {
+                        report.result_json = bridge_report.result_json;
+                        break;
+                    }
+                }
+                Err(_) => report.errors.push(BridgeDispatchError {
+                    mod_id: handler.mod_id,
+                    bridge_id: handler.bridge_id,
+                    message: "runtime adapter lock is poisoned".to_string(),
+                }),
+            };
         }
         report.metrics.dispatch_us = started.elapsed().as_micros();
         report
     }
+}
+
+#[derive(Clone)]
+struct RegistryQueryHandler {
+    bridge: Option<SharedRuntimeAdapter>,
+    handler: HandlerDescriptor,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -144,10 +245,10 @@ fn unique_handler_mods(handlers: &[HandlerDescriptor]) -> Vec<ModId> {
     mods
 }
 
-fn handlers_by_bridge(
-    handlers: &[HandlerDescriptor],
-) -> BTreeMap<BridgeId, Vec<&HandlerDescriptor>> {
-    let mut grouped: BTreeMap<BridgeId, Vec<&HandlerDescriptor>> = BTreeMap::new();
+fn owned_handlers_by_bridge(
+    handlers: Vec<HandlerDescriptor>,
+) -> BTreeMap<BridgeId, Vec<HandlerDescriptor>> {
+    let mut grouped: BTreeMap<BridgeId, Vec<HandlerDescriptor>> = BTreeMap::new();
     for handler in handlers {
         grouped
             .entry(handler.bridge_id.clone())

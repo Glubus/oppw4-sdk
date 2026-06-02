@@ -110,6 +110,7 @@
     }
 
     function callTypedEventCallback(registryModuleList, schema, event, callback, ctx) {
+        const eventKey = `${String(schema.namespace)}.${String(schema.importName)}.${String(event.name)}`;
         const generatedResult = generatedCallTypedEventCallback(
             registryModuleList,
             schema,
@@ -120,56 +121,9 @@
         if (generatedResult !== undefined) {
             return generatedResult;
         }
-        if (
-            String(schema.namespace) === "sdk" &&
-            String(schema.importName) === "player" &&
-            String(event.name) === "character_changed"
-        ) {
-            return callback(freeze(projectCharacterChangedContext(registryModuleList, ctx)));
-        }
-        if (
-            String(schema.namespace) === "sdk" &&
-            String(schema.importName) === "difficulty" &&
-            String(event.name) === "applied"
-        ) {
-            return callback(freeze(projectDifficultyAppliedContext(ctx)));
-        }
-        if (
-            String(schema.namespace) === "sdk" &&
-            String(schema.importName) === "rank" &&
-            String(event.name) === "result"
-        ) {
-            return callback(freeze(projectRankResultContext(ctx)));
-        }
-        if (
-            String(schema.namespace) === "sdk" &&
-            String(schema.importName) === "rewards" &&
-            String(event.name) === "event"
-        ) {
-            return callback(freeze(projectRewardsEventContext(ctx)));
-        }
-        if (
-            String(schema.namespace) === "sdk" &&
-            String(schema.importName) === "rewards" &&
-            String(event.name) === "medals"
-        ) {
-            return callback(freeze(projectRewardsItemsContext(ctx)));
-        }
-        if (
-            String(schema.namespace) === "sdk" &&
-            String(schema.importName) === "mission" &&
-            String(event.name) === "rewards"
-        ) {
-            const typedCtx = projectMissionRewardsContext(ctx);
-            callback(freeze(typedCtx));
-            return {
-                mutations: typedCtx.mutations.map((mutation) =>
-                    freeze({
-                        key: "sdk.runtime.rewards.berry.set_total",
-                        payload: { total: mutation.total },
-                    })
-                ),
-            };
+        const projector = typedProjectors[eventKey];
+        if (projector) {
+            return projector(registryModuleList, callback, ctx);
         }
         let wrapped = false;
         let payload = null;

@@ -80,6 +80,7 @@ const SDK_SERVICES: &[SdkService] = &[
         ],
         registry_modules: &[
             "sdk.player",
+            "sdk.snapshot",
             "sdk.difficulty",
             "sdk.rank",
             "sdk.rewards",

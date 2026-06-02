@@ -21,6 +21,17 @@ fn parses_probe_config() {
         max_value = 99999999
         max_changes = 999
 
+        [enemy_spawn_probe]
+        enabled = true
+        max_logs = 99999
+
+        [enemy_stats_probe]
+        enabled = true
+        max_logs = 99999
+        write_stats = true
+        hp_multiplier = 999
+        attack_multiplier = 2
+
         [fixed_data_probe]
         enabled = false
         interval_ms = 10
@@ -102,6 +113,13 @@ fn parses_probe_config() {
     assert_eq!(config.entity_counter_probe.scan_bytes, 0x100000);
     assert_eq!(config.entity_counter_probe.max_value, 1_000_000);
     assert_eq!(config.entity_counter_probe.max_changes, 512);
+    assert!(config.enemy_spawn_probe.enabled);
+    assert_eq!(config.enemy_spawn_probe.max_logs, 4096);
+    assert!(config.enemy_stats_probe.enabled);
+    assert_eq!(config.enemy_stats_probe.max_logs, 4096);
+    assert!(config.enemy_stats_probe.write_stats);
+    assert_eq!(config.enemy_stats_probe.hp_multiplier, 100);
+    assert_eq!(config.enemy_stats_probe.attack_multiplier, 2);
     assert!(!config.fixed_data_probe.enabled);
     assert_eq!(config.fixed_data_probe.interval_ms, 250);
     assert_eq!(config.fixed_data_probe.snapshot_interval_ms, 4000);
