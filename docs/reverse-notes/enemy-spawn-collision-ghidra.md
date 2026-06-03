@@ -30,8 +30,10 @@ game-owned spawn/request/init functions.
   It remains config-gated and only logs request data/callsite source.
 - `enemy_stats_probe` reuses the existing actor stat init hook and is read-only
   by default.
-- Even if `write_stats = true`, writes are refused until Ghidra/runtime logs
-  prove a reliable enemy-only filter. This prevents touching player/allies/bosses.
+- If `write_stats = true`, writes are filtered to the confirmed common mob
+  family only: `source_stats.byte00` in `1|5` and `stat3c/stat40 = 390/390`.
+  This prevents touching minibosses, boss-like units, and unknown special
+  sources.
 
 ## Ghidra Workflow
 
@@ -218,6 +220,10 @@ Follow-up log:
 - The safest first write prototype remains stats-only on the common
   `stat3c=390/stat40=390` family. Spawn scaling is still blocked on a cleaner
   spawn/floor/collision path.
+- First write prototype implemented after the `2026-06-03-202608.log` check:
+  only `byte00=1|5` with `stat3c/stat40=390/390` can be mutated. HP fields
+  `actor+0x3c` and `actor+0x40` are scaled by `hp_multiplier`; unknown/sentinel
+  attack-like fields are skipped unless they contain normal scalable values.
 
 ### `FUN_141231100`
 

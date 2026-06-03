@@ -22,8 +22,8 @@ max_logs = 128
 [enemy_stats_probe]
 enabled = false
 max_logs = 128
-# Read-only by default. Enable write_stats only after confirming actor filters
-# in Ghidra/runtime logs.
+# Read-only by default. When write_stats is enabled, writes are filtered to
+# confirmed common mobs only: stat3c/stat40 = 390 and source byte00 = 1 or 5.
 write_stats = false
 hp_multiplier = 1
 attack_multiplier = 1

@@ -42,6 +42,7 @@ static ENEMY_STATS_HP_MULTIPLIER: AtomicUsize = AtomicUsize::new(1);
 static ENEMY_STATS_ATTACK_MULTIPLIER: AtomicUsize = AtomicUsize::new(1);
 static ENEMY_STATS_SUMMARY: Mutex<EnemyStatsSummary> = Mutex::new(EnemyStatsSummary::new());
 const ENEMY_STATS_SUMMARY_GROUPS: usize = 128;
+const BASIC_ENEMY_HP_STAT: u32 = 390;
 
 pub(crate) fn install(
     host: OwnedHostApi,
@@ -147,7 +148,7 @@ fn configure_enemy_stats_probe(host: &OwnedHostApi, config: EnemyStatsProbeConfi
         let _ = host.log().write(
             PLUGIN_ID,
             format!(
-                "enemy_stats_probe armed max_logs={} write_stats={} hp_multiplier={} attack_multiplier={} writes_refused_until_enemy_filter_is_confirmed=true",
+                "enemy_stats_probe armed max_logs={} write_stats={} hp_multiplier={} attack_multiplier={} write_filter=basic_enemy_390_byte00_1_5",
                 config.max_logs,
                 config.write_stats,
                 config.hp_multiplier,
@@ -169,22 +170,101 @@ fn log_enemy_stats_probe(actor: usize, source: usize, mode: i32, stats: ActorSta
     let write_requested = ENEMY_STATS_WRITE_REQUESTED.load(Ordering::Relaxed) != 0;
     let source_snapshot = SourceStats::read(source);
     record_enemy_stats_summary(call, source_snapshot, stats);
+    let write_status = if write_requested {
+        apply_basic_enemy_stats(actor, source_snapshot, stats)
+    } else {
+        "read_only".to_string()
+    };
+    let stats_after = if write_requested {
+        ActorStats::read(actor)
+    } else {
+        stats
+    };
     if let Some(host) = HOST.get() {
         let _ = host.log().write(
             PLUGIN_ID,
             format!(
-                "enemy_stats_probe call={call} mode={mode} actor=0x{actor:x} source=0x{source:x} actor_stats={} source_stats={} hp_multiplier={} attack_multiplier={} write_status={}",
+                "enemy_stats_probe call={call} mode={mode} actor=0x{actor:x} source=0x{source:x} actor_stats={} actor_stats_after={} source_stats={} hp_multiplier={} attack_multiplier={} write_status={}",
                 stats.format(),
+                stats_after.format(),
                 source_snapshot.format(),
                 ENEMY_STATS_HP_MULTIPLIER.load(Ordering::Relaxed),
                 ENEMY_STATS_ATTACK_MULTIPLIER.load(Ordering::Relaxed),
-                if write_requested {
-                    "refused:no_confirmed_enemy_filter"
-                } else {
-                    "read_only"
-                },
+                write_status,
             ),
         );
+    }
+}
+
+fn apply_basic_enemy_stats(actor: usize, source: SourceStats, stats: ActorStats) -> String {
+    if actor == 0 {
+        return "refused:null_actor".to_string();
+    }
+    if !is_basic_enemy_stats(source, stats) {
+        return "refused:filter".to_string();
+    }
+
+    let hp_multiplier = ENEMY_STATS_HP_MULTIPLIER.load(Ordering::Relaxed);
+    let attack_multiplier = ENEMY_STATS_ATTACK_MULTIPLIER.load(Ordering::Relaxed);
+    let hp_3c = scaled_stat(stats.stat_3c, hp_multiplier);
+    let hp_40 = scaled_stat(stats.stat_40, hp_multiplier);
+    let attack_34 = scalable_optional_stat(stats.field_34).map(|value| {
+        let scaled = scaled_stat(value, attack_multiplier);
+        (value, scaled)
+    });
+    let attack_38 = scalable_optional_stat(stats.field_38).map(|value| {
+        let scaled = scaled_stat(value, attack_multiplier);
+        (value, scaled)
+    });
+
+    unsafe {
+        let ptr = actor as *mut u8;
+        write_u32(ptr, 0x3c, hp_3c);
+        write_u32(ptr, 0x40, hp_40);
+        if let Some((_, value)) = attack_34 {
+            write_u32(ptr, 0x34, value);
+        }
+        if let Some((_, value)) = attack_38 {
+            write_u32(ptr, 0x38, value);
+        }
+    }
+
+    format!(
+        "applied:basic_enemy hp={}->{}:{}->{} attack34={} attack38={}",
+        stats.stat_3c,
+        hp_3c,
+        stats.stat_40,
+        hp_40,
+        format_optional_scale(attack_34),
+        format_optional_scale(attack_38)
+    )
+}
+
+fn is_basic_enemy_stats(source: SourceStats, stats: ActorStats) -> bool {
+    matches!(source.byte_00, 1 | 5)
+        && stats.stat_3c == BASIC_ENEMY_HP_STAT
+        && stats.stat_40 == BASIC_ENEMY_HP_STAT
+}
+
+fn scaled_stat(value: u32, multiplier: usize) -> u32 {
+    if multiplier <= 1 {
+        return value;
+    }
+    value.saturating_mul(multiplier.min(u32::MAX as usize) as u32)
+}
+
+fn scalable_optional_stat(value: u32) -> Option<u32> {
+    if value == 0 || value == u32::MAX {
+        None
+    } else {
+        Some(value)
+    }
+}
+
+fn format_optional_scale(scale: Option<(u32, u32)>) -> String {
+    match scale {
+        Some((before, after)) => format!("{before}->{after}"),
+        None => "skipped".to_string(),
     }
 }
 
@@ -390,9 +470,16 @@ unsafe fn read_u32(ptr: *const u8, offset: usize) -> u32 {
     (ptr.add(offset) as *const u32).read_unaligned()
 }
 
+unsafe fn write_u32(ptr: *mut u8, offset: usize, value: u32) {
+    (ptr.add(offset) as *mut u32).write_unaligned(value);
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{ActorStats, EnemyStatsSummary, SourceStats};
+    use super::{
+        is_basic_enemy_stats, scalable_optional_stat, scaled_stat, ActorStats, EnemyStatsSummary,
+        SourceStats,
+    };
 
     #[test]
     fn enemy_stats_summary_groups_by_source_and_stats() {
@@ -422,5 +509,56 @@ mod tests {
         assert!(summary.format_checkpoint(63).is_none());
         assert!(summary.format_checkpoint(64).is_some());
         assert!(summary.format_checkpoint(512).is_some());
+    }
+
+    #[test]
+    fn basic_enemy_filter_accepts_only_confirmed_common_mobs() {
+        let stats = ActorStats {
+            stat_3c: 390,
+            stat_40: 390,
+            ..ActorStats::default()
+        };
+
+        assert!(is_basic_enemy_stats(
+            SourceStats {
+                byte_00: 1,
+                ..SourceStats::default()
+            },
+            stats
+        ));
+        assert!(is_basic_enemy_stats(
+            SourceStats {
+                byte_00: 5,
+                ..SourceStats::default()
+            },
+            stats
+        ));
+        assert!(!is_basic_enemy_stats(
+            SourceStats {
+                byte_00: 65,
+                ..SourceStats::default()
+            },
+            stats
+        ));
+        assert!(!is_basic_enemy_stats(
+            SourceStats {
+                byte_00: 5,
+                ..SourceStats::default()
+            },
+            ActorStats {
+                stat_3c: 585,
+                stat_40: 585,
+                ..ActorStats::default()
+            }
+        ));
+    }
+
+    #[test]
+    fn enemy_stat_scaling_saturates_and_skips_sentinels() {
+        assert_eq!(scaled_stat(390, 2), 780);
+        assert_eq!(scaled_stat(u32::MAX - 1, 2), u32::MAX);
+        assert_eq!(scalable_optional_stat(0), None);
+        assert_eq!(scalable_optional_stat(u32::MAX), None);
+        assert_eq!(scalable_optional_stat(12), Some(12));
     }
 }
