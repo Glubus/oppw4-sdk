@@ -30,10 +30,10 @@ game-owned spawn/request/init functions.
   It remains config-gated and only logs request data/callsite source.
 - `enemy_stats_probe` reuses the existing actor stat init hook and is read-only
   by default.
-- If `write_stats = true`, writes are filtered to the confirmed common mob
-  family only: `source_stats.byte00` in `1|5` and `stat3c/stat40 = 390/390`.
-  This prevents touching minibosses, boss-like units, and unknown special
-  sources.
+- If `write_stats = true`, writes are filtered to the observed commander /
+  officer candidate family only: `source_stats.byte00` in `1|5` and
+  `stat3c/stat40 = 390/390`. In-game validation showed this is not the small
+  mob family.
 
 ## Ghidra Workflow
 
@@ -175,7 +175,7 @@ Observed stat families:
 
 | Actor stats | Count | Current guess |
 | --- | ---: | --- |
-| `stat3c=390 stat40=390` | 509 | Standard spawned troops/mobs. |
+| `stat3c=390 stat40=390` | 509 | Commander/officer candidate family; in-game HP x10 affected commandants, not small mobs. |
 | `stat3c=585 stat40=585` | 2 | Likely minibosses; user observed only two spawned from points. |
 | `stat3c=1125 stat40=1184` | 1 | Special/boss-like actor or non-standard important unit. |
 
@@ -197,9 +197,10 @@ Notes:
 - `mode` cycles `0..7` across repeated actors from the same source, so mode is
   not enough by itself to classify enemy type. It may represent slot/index
   within a group or spawn batch.
-- The first safe write prototype should target only the common
-  `stat3c=390/stat40=390` family, and still exclude unknown special `byte00`
-  values until we verify player/allies/bosses are not included.
+- The first write prototype targets only the observed
+  `stat3c=390/stat40=390` family, now known from in-game validation to affect
+  commandants/officers rather than small mobs. Keep unknown special `byte00`
+  values excluded.
 - Runtime probe was updated to emit compact summaries at calls `64`, `128`,
   `256`, and `512` so future logs can be analyzed without manually parsing 512
   individual lines.
@@ -217,13 +218,17 @@ Follow-up log:
 - The compact summary no longer overflowed at calls `64`, `128`, and `256`, but
   still overflowed by `70` groups at call `512`. The runtime summary capacity
   was increased from 32 to 128 groups after this log.
-- The safest first write prototype remains stats-only on the common
-  `stat3c=390/stat40=390` family. Spawn scaling is still blocked on a cleaner
-  spawn/floor/collision path.
+- The first write prototype remains stats-only on the
+  `stat3c=390/stat40=390` family, now classified as commander/officer
+  candidate from in-game validation. Spawn scaling is still blocked on a
+  cleaner spawn/floor/collision path.
 - First write prototype implemented after the `2026-06-03-202608.log` check:
   only `byte00=1|5` with `stat3c/stat40=390/390` can be mutated. HP fields
   `actor+0x3c` and `actor+0x40` are scaled by `hp_multiplier`; unknown/sentinel
   attack-like fields are skipped unless they contain normal scalable values.
+- In-game HP x10 validation: this filter increased commandants' HP, not small
+  mobs. The runtime game config was switched back to `write_stats=false` after
+  this result.
 
 ### `FUN_141231100`
 

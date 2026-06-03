@@ -42,7 +42,7 @@ static ENEMY_STATS_HP_MULTIPLIER: AtomicUsize = AtomicUsize::new(1);
 static ENEMY_STATS_ATTACK_MULTIPLIER: AtomicUsize = AtomicUsize::new(1);
 static ENEMY_STATS_SUMMARY: Mutex<EnemyStatsSummary> = Mutex::new(EnemyStatsSummary::new());
 const ENEMY_STATS_SUMMARY_GROUPS: usize = 128;
-const BASIC_ENEMY_HP_STAT: u32 = 390;
+const COMMANDER_CANDIDATE_HP_STAT: u32 = 390;
 
 pub(crate) fn install(
     host: OwnedHostApi,
@@ -148,7 +148,7 @@ fn configure_enemy_stats_probe(host: &OwnedHostApi, config: EnemyStatsProbeConfi
         let _ = host.log().write(
             PLUGIN_ID,
             format!(
-                "enemy_stats_probe armed max_logs={} write_stats={} hp_multiplier={} attack_multiplier={} write_filter=basic_enemy_390_byte00_1_5",
+                "enemy_stats_probe armed max_logs={} write_stats={} hp_multiplier={} attack_multiplier={} write_filter=commander_candidate_390_byte00_1_5",
                 config.max_logs,
                 config.write_stats,
                 config.hp_multiplier,
@@ -171,7 +171,7 @@ fn log_enemy_stats_probe(actor: usize, source: usize, mode: i32, stats: ActorSta
     let source_snapshot = SourceStats::read(source);
     record_enemy_stats_summary(call, source_snapshot, stats);
     let write_status = if write_requested {
-        apply_basic_enemy_stats(actor, source_snapshot, stats)
+        apply_commander_candidate_stats(actor, source_snapshot, stats)
     } else {
         "read_only".to_string()
     };
@@ -196,11 +196,11 @@ fn log_enemy_stats_probe(actor: usize, source: usize, mode: i32, stats: ActorSta
     }
 }
 
-fn apply_basic_enemy_stats(actor: usize, source: SourceStats, stats: ActorStats) -> String {
+fn apply_commander_candidate_stats(actor: usize, source: SourceStats, stats: ActorStats) -> String {
     if actor == 0 {
         return "refused:null_actor".to_string();
     }
-    if !is_basic_enemy_stats(source, stats) {
+    if !is_commander_candidate_stats(source, stats) {
         return "refused:filter".to_string();
     }
 
@@ -230,7 +230,7 @@ fn apply_basic_enemy_stats(actor: usize, source: SourceStats, stats: ActorStats)
     }
 
     format!(
-        "applied:basic_enemy hp={}->{}:{}->{} attack34={} attack38={}",
+        "applied:commander_candidate hp={}->{}:{}->{} attack34={} attack38={}",
         stats.stat_3c,
         hp_3c,
         stats.stat_40,
@@ -240,10 +240,10 @@ fn apply_basic_enemy_stats(actor: usize, source: SourceStats, stats: ActorStats)
     )
 }
 
-fn is_basic_enemy_stats(source: SourceStats, stats: ActorStats) -> bool {
+fn is_commander_candidate_stats(source: SourceStats, stats: ActorStats) -> bool {
     matches!(source.byte_00, 1 | 5)
-        && stats.stat_3c == BASIC_ENEMY_HP_STAT
-        && stats.stat_40 == BASIC_ENEMY_HP_STAT
+        && stats.stat_3c == COMMANDER_CANDIDATE_HP_STAT
+        && stats.stat_40 == COMMANDER_CANDIDATE_HP_STAT
 }
 
 fn scaled_stat(value: u32, multiplier: usize) -> u32 {
@@ -477,8 +477,8 @@ unsafe fn write_u32(ptr: *mut u8, offset: usize, value: u32) {
 #[cfg(test)]
 mod tests {
     use super::{
-        is_basic_enemy_stats, scalable_optional_stat, scaled_stat, ActorStats, EnemyStatsSummary,
-        SourceStats,
+        is_commander_candidate_stats, scalable_optional_stat, scaled_stat, ActorStats,
+        EnemyStatsSummary, SourceStats,
     };
 
     #[test]
@@ -512,35 +512,35 @@ mod tests {
     }
 
     #[test]
-    fn basic_enemy_filter_accepts_only_confirmed_common_mobs() {
+    fn commander_candidate_filter_accepts_observed_officer_family_only() {
         let stats = ActorStats {
             stat_3c: 390,
             stat_40: 390,
             ..ActorStats::default()
         };
 
-        assert!(is_basic_enemy_stats(
+        assert!(is_commander_candidate_stats(
             SourceStats {
                 byte_00: 1,
                 ..SourceStats::default()
             },
             stats
         ));
-        assert!(is_basic_enemy_stats(
+        assert!(is_commander_candidate_stats(
             SourceStats {
                 byte_00: 5,
                 ..SourceStats::default()
             },
             stats
         ));
-        assert!(!is_basic_enemy_stats(
+        assert!(!is_commander_candidate_stats(
             SourceStats {
                 byte_00: 65,
                 ..SourceStats::default()
             },
             stats
         ));
-        assert!(!is_basic_enemy_stats(
+        assert!(!is_commander_candidate_stats(
             SourceStats {
                 byte_00: 5,
                 ..SourceStats::default()
