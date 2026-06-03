@@ -22,7 +22,7 @@ max_logs = 128
 [enemy_stats_probe]
 enabled = false
 max_logs = 128
-# Read-only by default. Current write filter targets the observed small-mob
+# Read-only by default. Current write filter targets the observed elite/miniboss
 # candidate: actor_stats.head_u16[0] = 224 and stat3c/stat40 = 390.
 write_stats = false
 hp_multiplier = 1
