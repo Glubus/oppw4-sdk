@@ -91,6 +91,74 @@ Current runtime decision:
 - This makes `FUN_141254a70` a better next target for placement/floor-snap study
   than patching `FUN_1415d1320` directly.
 
+## Runtime Log Analysis 2026-06-03
+
+Log: `D:\SteamLibrary\steamapps\common\OPPW4\plugins\sdk\logs\sdk_runtime\2026-06-03-082343.log`
+
+Install result:
+
+- `enemy_spawn_probe` installed on `FUN_1415d1320`.
+- All three spawn-table callsites installed:
+  - `direct_141254a70`
+  - `extra_1412505b0`
+  - `weighted_141250830`
+- No callsite byte mismatch or install failure.
+
+Observed request summary:
+
+| Request | Source | Type | Notes |
+| --- | --- | --- | --- |
+| call 1 | unknown caller | `4` | Generic `FUN_1415d1320` caller; not one of the three wrapped spawn-table paths. |
+| call 2 | `direct_141254a70` | `5` | Immediately followed by a large entity-counter jump. |
+| call 3 | unknown caller | `0` | Same timestamp as call 2; likely another request produced by the same spawn burst or another unwrapped caller. |
+| call 4 | `direct_141254a70` | `0` | Direct path can emit multiple request types, not only one fixed type. |
+| call 5 | `extra_1412505b0` | `6` | Matches Ghidra: this path computes `6` or `7` from `param_1+6`. |
+| call 6 | `extra_1412505b0` | `6` | Repeated later, still accepted with `result=1`. |
+| call 7 | unknown caller | `0` | Generic unwrapped caller; needs source classification before use. |
+
+Counter correlation:
+
+- At `08:25:23`, `direct_141254a70 type=5` plus a nearby unwrapped `type=0`
+  are followed by:
+  - `+0x44c: 374 -> 605`
+  - `+0x904: 4 -> 6`
+  - `+0x90c: 31 -> 82`
+  - `+0xee0: 374 -> 605`
+- At `08:26:00`, `extra_1412505b0 type=6` plus a nearby unwrapped `type=0`
+  are followed by:
+  - `+0x44c: 819 -> 930`
+  - `+0x480: 3 -> 6`
+  - `+0x904: 7 -> 9`
+  - `+0x90c: 95 -> 116`
+  - `+0xee0: 819 -> 930`
+
+Current interpretation:
+
+- `FUN_1415d1320` is confirmed as a request enqueue path, not the final actor
+  allocation/init function. It is still useful because accepted requests
+  correlate with visible mission entity-count changes.
+- `direct_141254a70` appears to be the main table-driven request path. It
+  includes terrain/floor adjustment before enqueue and can emit at least
+  `type=0` and `type=5`.
+- `extra_1412505b0` appears to be a secondary/special request path. Runtime
+  confirms `type=6`; Ghidra suggests it can also emit `type=7`.
+- `weighted_141250830` installed cleanly but did not fire in this run. Keep it
+  wrapped for future missions.
+- Unwrapped `type=0` and `type=4` requests prove there are still other callers
+  into `FUN_1415d1320`. These must not be used for spawn scaling until their
+  caller is identified.
+
+Next safest work:
+
+1. Add return/caller classification for remaining unwrapped `FUN_1415d1320`
+   calls, or add callsite wrappers for the other Ghidra callers listed in the
+   export.
+2. Enable/read `actor_stat_init_probe` in read-only mode and correlate stat-init
+   bursts with the request timestamps above.
+3. Do not multiply `FUN_1415d1320` calls yet. The safer first prototype is still
+   enemy stats classification, then spawn scaling on a confirmed enemy-only
+   request path with placement/floor handling.
+
 ### `FUN_141231100`
 
 This is confirmed actor stat init:
