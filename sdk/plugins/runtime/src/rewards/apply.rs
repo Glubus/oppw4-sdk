@@ -1,7 +1,4 @@
-use std::sync::{
-    atomic::{AtomicBool, AtomicU64, Ordering},
-    OnceLock,
-};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use plugin_sdk::OwnedHostApi;
 
@@ -171,7 +168,7 @@ fn adjust_balance(balance: u64, delta: i128) -> u64 {
 
 #[cfg(test)]
 pub(super) fn pending_test_lock() -> std::sync::MutexGuard<'static, ()> {
-    static LOCK: OnceLock<std::sync::Mutex<()>> = OnceLock::new();
+    static LOCK: std::sync::OnceLock<std::sync::Mutex<()>> = std::sync::OnceLock::new();
     LOCK.get_or_init(|| std::sync::Mutex::new(()))
         .lock()
         .expect("lock")
