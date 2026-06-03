@@ -229,6 +229,11 @@ Follow-up log:
 - In-game HP x10 validation: this filter increased commandants' HP, not small
   mobs. The runtime game config was switched back to `write_stats=false` after
   this result.
+- `source_stats.word08` is now the strongest visible candidate for a character
+  type/row id, while `word0a` changes too often and likely represents a
+  variation, instance, or spawn-slot value. The runtime log now includes
+  `source_stats.head_u16` for offsets `+0x00..+0x1e` so the next run can map
+  real mob/commander ids instead of filtering by HP-like stats.
 
 ### `FUN_141231100`
 

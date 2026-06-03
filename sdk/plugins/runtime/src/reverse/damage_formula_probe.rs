@@ -413,6 +413,7 @@ impl ActorStats {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 struct SourceStats {
     byte_00: u8,
+    head_words: [u16; 16],
     word_06: u16,
     word_08: u16,
     word_0a: u16,
@@ -432,6 +433,7 @@ impl SourceStats {
             let ptr = source as *const u8;
             Self {
                 byte_00: read_u8(ptr, 0x00),
+                head_words: read_u16_head(ptr),
                 word_06: read_u16(ptr, 0x06),
                 word_08: read_u16(ptr, 0x08),
                 word_0a: read_u16(ptr, 0x0a),
@@ -445,11 +447,12 @@ impl SourceStats {
 
     fn format(self) -> String {
         format!(
-            "byte00={} word06={} word08={} word0a={} field34={} field38={} field44={} field238={}",
+            "byte00={} word06={} word08={} word0a={} head_u16={} field34={} field38={} field44={} field238={}",
             self.byte_00,
             self.word_06,
             self.word_08,
             self.word_0a,
+            format_u16_head(self.head_words),
             self.field_34,
             self.field_38,
             self.field_44,
@@ -466,6 +469,14 @@ unsafe fn read_u16(ptr: *const u8, offset: usize) -> u16 {
     (ptr.add(offset) as *const u16).read_unaligned()
 }
 
+unsafe fn read_u16_head(ptr: *const u8) -> [u16; 16] {
+    let mut words = [0; 16];
+    for (index, word) in words.iter_mut().enumerate() {
+        *word = read_u16(ptr, index * 2);
+    }
+    words
+}
+
 unsafe fn read_u32(ptr: *const u8, offset: usize) -> u32 {
     (ptr.add(offset) as *const u32).read_unaligned()
 }
@@ -474,11 +485,20 @@ unsafe fn write_u32(ptr: *mut u8, offset: usize, value: u32) {
     (ptr.add(offset) as *mut u32).write_unaligned(value);
 }
 
+fn format_u16_head(words: [u16; 16]) -> String {
+    words
+        .iter()
+        .enumerate()
+        .map(|(index, word)| format!("{:02x}:{word}", index * 2))
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        is_commander_candidate_stats, scalable_optional_stat, scaled_stat, ActorStats,
-        EnemyStatsSummary, SourceStats,
+        format_u16_head, is_commander_candidate_stats, scalable_optional_stat, scaled_stat,
+        ActorStats, EnemyStatsSummary, SourceStats,
     };
 
     #[test]
@@ -560,5 +580,17 @@ mod tests {
         assert_eq!(scalable_optional_stat(0), None);
         assert_eq!(scalable_optional_stat(u32::MAX), None);
         assert_eq!(scalable_optional_stat(12), Some(12));
+    }
+
+    #[test]
+    fn source_head_words_format_preserves_offsets() {
+        let mut words = [0; 16];
+        words[4] = 47;
+        words[5] = 398;
+
+        let formatted = format_u16_head(words);
+
+        assert!(formatted.contains("08:47"));
+        assert!(formatted.contains("0a:398"));
     }
 }
