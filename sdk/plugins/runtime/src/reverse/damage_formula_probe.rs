@@ -375,6 +375,7 @@ impl EnemyStatsSummary {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 struct ActorStats {
+    head_words: [u16; 16],
     field_34: u32,
     field_38: u32,
     stat_3c: u32,
@@ -392,6 +393,7 @@ impl ActorStats {
         unsafe {
             let ptr = actor as *const u8;
             Self {
+                head_words: read_u16_head(ptr),
                 field_34: read_u32(ptr, 0x34),
                 field_38: read_u32(ptr, 0x38),
                 stat_3c: read_u32(ptr, 0x3c),
@@ -404,8 +406,14 @@ impl ActorStats {
 
     fn format(self) -> String {
         format!(
-            "field34={} field38={} stat3c={} stat40={} byte48={} byte_d7={}",
-            self.field_34, self.field_38, self.stat_3c, self.stat_40, self.field_48, self.field_d7
+            "head_u16={} field34={} field38={} stat3c={} stat40={} byte48={} byte_d7={}",
+            format_u16_head(self.head_words),
+            self.field_34,
+            self.field_38,
+            self.stat_3c,
+            self.stat_40,
+            self.field_48,
+            self.field_d7
         )
     }
 }

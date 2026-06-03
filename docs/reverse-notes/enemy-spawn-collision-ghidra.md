@@ -234,6 +234,10 @@ Follow-up log:
   variation, instance, or spawn-slot value. The runtime log now includes
   `source_stats.head_u16` for offsets `+0x00..+0x1e` so the next run can map
   real mob/commander ids instead of filtering by HP-like stats.
+- Ghidra shows `FUN_141231100` writes actor/output ids into the beginning of
+  `param_1`: `param_1[0]`, `param_1[1]`, `param_1[2]`, and related head fields.
+  Runtime logging now includes `actor_stats.head_u16` too; this should be the
+  next place to identify the real small-mob character/type id.
 
 ### `FUN_141231100`
 
