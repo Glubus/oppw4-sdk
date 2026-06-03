@@ -2,7 +2,7 @@ use std::{
     mem,
     sync::{
         atomic::{AtomicUsize, Ordering},
-        OnceLock,
+        Mutex, OnceLock,
     },
 };
 
@@ -40,6 +40,8 @@ static ENEMY_STATS_ENABLED: AtomicUsize = AtomicUsize::new(0);
 static ENEMY_STATS_WRITE_REQUESTED: AtomicUsize = AtomicUsize::new(0);
 static ENEMY_STATS_HP_MULTIPLIER: AtomicUsize = AtomicUsize::new(1);
 static ENEMY_STATS_ATTACK_MULTIPLIER: AtomicUsize = AtomicUsize::new(1);
+static ENEMY_STATS_SUMMARY: Mutex<EnemyStatsSummary> = Mutex::new(EnemyStatsSummary::new());
+const ENEMY_STATS_SUMMARY_GROUPS: usize = 128;
 
 pub(crate) fn install(
     host: OwnedHostApi,
@@ -166,6 +168,7 @@ fn log_enemy_stats_probe(actor: usize, source: usize, mode: i32, stats: ActorSta
 
     let write_requested = ENEMY_STATS_WRITE_REQUESTED.load(Ordering::Relaxed) != 0;
     let source_snapshot = SourceStats::read(source);
+    record_enemy_stats_summary(call, source_snapshot, stats);
     if let Some(host) = HOST.get() {
         let _ = host.log().write(
             PLUGIN_ID,
@@ -182,6 +185,111 @@ fn log_enemy_stats_probe(actor: usize, source: usize, mode: i32, stats: ActorSta
                 },
             ),
         );
+    }
+}
+
+fn record_enemy_stats_summary(call: usize, source: SourceStats, stats: ActorStats) {
+    let Ok(mut summary) = ENEMY_STATS_SUMMARY.lock() else {
+        return;
+    };
+    summary.record(source, stats);
+    if let Some(text) = summary.format_checkpoint(call) {
+        if let Some(host) = HOST.get() {
+            let _ = host.log().write(PLUGIN_ID, text);
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct EnemyStatsSummaryEntry {
+    byte_00: u8,
+    word_08: u16,
+    stat_3c: u32,
+    stat_40: u32,
+    count: usize,
+}
+
+impl EnemyStatsSummaryEntry {
+    const fn empty() -> Self {
+        Self {
+            byte_00: 0,
+            word_08: 0,
+            stat_3c: 0,
+            stat_40: 0,
+            count: 0,
+        }
+    }
+
+    fn matches(self, source: SourceStats, stats: ActorStats) -> bool {
+        self.byte_00 == source.byte_00
+            && self.word_08 == source.word_08
+            && self.stat_3c == stats.stat_3c
+            && self.stat_40 == stats.stat_40
+    }
+}
+
+#[derive(Debug)]
+struct EnemyStatsSummary {
+    entries: [EnemyStatsSummaryEntry; ENEMY_STATS_SUMMARY_GROUPS],
+    overflow: usize,
+}
+
+impl EnemyStatsSummary {
+    const fn new() -> Self {
+        Self {
+            entries: [EnemyStatsSummaryEntry::empty(); ENEMY_STATS_SUMMARY_GROUPS],
+            overflow: 0,
+        }
+    }
+
+    fn record(&mut self, source: SourceStats, stats: ActorStats) {
+        for entry in &mut self.entries {
+            if entry.count != 0 && entry.matches(source, stats) {
+                entry.count += 1;
+                return;
+            }
+        }
+
+        for entry in &mut self.entries {
+            if entry.count == 0 {
+                *entry = EnemyStatsSummaryEntry {
+                    byte_00: source.byte_00,
+                    word_08: source.word_08,
+                    stat_3c: stats.stat_3c,
+                    stat_40: stats.stat_40,
+                    count: 1,
+                };
+                return;
+            }
+        }
+
+        self.overflow += 1;
+    }
+
+    fn format_checkpoint(&self, call: usize) -> Option<String> {
+        if !matches!(call, 64 | 128 | 256 | 512) {
+            return None;
+        }
+
+        let mut entries = self.entries;
+        entries.sort_by(|left, right| right.count.cmp(&left.count));
+        let groups = entries
+            .iter()
+            .filter(|entry| entry.count != 0)
+            .take(12)
+            .map(|entry| {
+                format!(
+                    "byte00={} word08={} stat3c={} stat40={} count={}",
+                    entry.byte_00, entry.word_08, entry.stat_3c, entry.stat_40, entry.count
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("|");
+
+        Some(format!(
+            "enemy_stats_probe summary call={call} top=[{groups}] overflow={}",
+            self.overflow
+        ))
     }
 }
 
@@ -280,4 +388,39 @@ unsafe fn read_u16(ptr: *const u8, offset: usize) -> u16 {
 
 unsafe fn read_u32(ptr: *const u8, offset: usize) -> u32 {
     (ptr.add(offset) as *const u32).read_unaligned()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ActorStats, EnemyStatsSummary, SourceStats};
+
+    #[test]
+    fn enemy_stats_summary_groups_by_source_and_stats() {
+        let mut summary = EnemyStatsSummary::new();
+        let source = SourceStats {
+            byte_00: 5,
+            word_08: 13,
+            ..SourceStats::default()
+        };
+        let stats = ActorStats {
+            stat_3c: 390,
+            stat_40: 390,
+            ..ActorStats::default()
+        };
+
+        summary.record(source, stats);
+        summary.record(source, stats);
+
+        let formatted = summary.format_checkpoint(64).unwrap();
+        assert!(formatted.contains("byte00=5 word08=13 stat3c=390 stat40=390 count=2"));
+    }
+
+    #[test]
+    fn enemy_stats_summary_only_logs_checkpoints() {
+        let summary = EnemyStatsSummary::new();
+
+        assert!(summary.format_checkpoint(63).is_none());
+        assert!(summary.format_checkpoint(64).is_some());
+        assert!(summary.format_checkpoint(512).is_some());
+    }
 }

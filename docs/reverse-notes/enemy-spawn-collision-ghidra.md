@@ -159,6 +159,66 @@ Next safest work:
    enemy stats classification, then spawn scaling on a confirmed enemy-only
    request path with placement/floor handling.
 
+## Runtime Stats Analysis 2026-06-03
+
+Log: `D:\SteamLibrary\steamapps\common\OPPW4\plugins\sdk\logs\sdk_runtime\2026-06-03-182853.log`
+
+Install result:
+
+- `enemy_stats_probe` armed with `write_stats=false`.
+- `actor_stat_init_probe` installed.
+- 512 stat-init calls logged, all `write_status=read_only`.
+
+Observed stat families:
+
+| Actor stats | Count | Current guess |
+| --- | ---: | --- |
+| `stat3c=390 stat40=390` | 509 | Standard spawned troops/mobs. |
+| `stat3c=585 stat40=585` | 2 | Likely minibosses; user observed only two spawned from points. |
+| `stat3c=1125 stat40=1184` | 1 | Special/boss-like actor or non-standard important unit. |
+
+Observed source categories:
+
+| `source_stats.byte00` | Count | Current guess |
+| --- | ---: | --- |
+| `1` | 370 | Random/basic mob family. |
+| `5` | 123 | Random/basic mob family. |
+| `65` | 12 | Unknown; possibly loop/script/special wave group. |
+| `71` | 1 | Unknown special source. |
+| `97` | 6 | Unknown special source. |
+
+Notes:
+
+- `source_stats.word08` varies like an enemy/source row id. Frequent values in
+  this run included `47`, `20`, `48`, `49`, `16`, `21`, `46`, `13`, `14`,
+  `17`, and `15`.
+- `mode` cycles `0..7` across repeated actors from the same source, so mode is
+  not enough by itself to classify enemy type. It may represent slot/index
+  within a group or spawn batch.
+- The first safe write prototype should target only the common
+  `stat3c=390/stat40=390` family, and still exclude unknown special `byte00`
+  values until we verify player/allies/bosses are not included.
+- Runtime probe was updated to emit compact summaries at calls `64`, `128`,
+  `256`, and `512` so future logs can be analyzed without manually parsing 512
+  individual lines.
+
+Follow-up log:
+`D:\SteamLibrary\steamapps\common\OPPW4\plugins\sdk\logs\sdk_runtime\2026-06-03-200924.log`
+
+- Probe stayed read-only: `write_stats=false`, every stat-init write status was
+  `read_only`.
+- Spawn request trace stayed stable:
+  - `extra_1412505b0` emitted `type=6` requests.
+  - `direct_141254a70` emitted `type=0` and `type=4` requests.
+  - Additional direct `FUN_1415d1320` calls still emitted `type=0` and
+    `type=5`, confirming there are more request callsites to classify.
+- The compact summary no longer overflowed at calls `64`, `128`, and `256`, but
+  still overflowed by `70` groups at call `512`. The runtime summary capacity
+  was increased from 32 to 128 groups after this log.
+- The safest first write prototype remains stats-only on the common
+  `stat3c=390/stat40=390` family. Spawn scaling is still blocked on a cleaner
+  spawn/floor/collision path.
+
 ### `FUN_141231100`
 
 This is confirmed actor stat init:
