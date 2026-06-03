@@ -21,7 +21,9 @@ game-owned spawn/request/init functions.
 
 | Function | Current read | Confidence | Next check |
 | --- | --- | --- | --- |
-| `actor_stat_init_141231100` | Runtime signature exists. Logs actor/source/mode and actor fields `+0x34`, `+0x38`, `+0x3c`, `+0x40`. | High | Use as read-only enemy stats probe until actor team/type filters are proven. |
+| `actor_stat_init_141231100` | Runtime signature exists. Logs actor/source/mode and actor fields `+0x34`, `+0x38`, `+0x3c`, `+0x40`. In-game writes hit elite/miniboss/commander-style actors, not the low-value crowd mobs. | High for elite/miniboss path | Keep read-only unless targeting the validated elite/miniboss family. |
+| `FUN_141230b20` | Initializes another actor stats block from fixed rows `+0x334`, `+0x33c`, `+0x340` and source fields around `+0x1d6`, `+0x232`, `+0x235`, `+0x237`, `+0x23a`, `+0x2e8`. | Medium/High as crowd/minimob candidate | Runtime read-only probe added; verify whether it fires on small mobs. |
+| `FUN_141235a90` | Wrapper around `FUN_141230b20`; stores source pointer at actor `+0x238`, kind/id at `+0x240`, copies `source+0x2e8`, then applies transform-ish fields. | Medium/High | Use as caller context for entity/source classification. |
 | `FUN_14124e670` | Combat pressure scalar clamped `0..9`, feeds behavior/chance paths. | Medium | Keep separate from spawn; useful for enemy aggression/pressure later. |
 
 ## Runtime Probe Policy
@@ -29,9 +31,10 @@ game-owned spawn/request/init functions.
 - `enemy_spawn_probe` has a confirmed runtime signature for `FUN_1415d1320`.
   It remains config-gated and only logs request data/callsite source.
 - `enemy_stats_probe` reuses the existing actor stat init hook and is read-only
-  by default.
+  by default. It now also installs a read-only `crowd_stat_init_probe` on
+  `FUN_141230b20` when enabled.
 - If `write_stats = true`, writes are filtered to the observed commander /
-  officer candidate family only: `source_stats.byte00` in `1|5` and
+  officer/miniboss candidate only: `actor_stats.head_u16[0] = 224` and
   `stat3c/stat40 = 390/390`. In-game validation showed this is not the small
   mob family.
 
@@ -218,6 +221,39 @@ Follow-up log:
 - The compact summary no longer overflowed at calls `64`, `128`, and `256`, but
   still overflowed by `70` groups at call `512`. The runtime summary capacity
   was increased from 32 to 128 groups after this log.
+
+### Ghidra Follow-up: Crowd Stat Candidate
+
+Correct headless export was rerun against project `oppw4_game` and process
+`/OPPW4.exe` (`image_base=140000000`).
+
+`FUN_141230b20(param_1, param_2, param_3, param_4)` is a strong candidate for
+the low-value crowd/minimob stat path:
+
+- caller: `FUN_141235a90` at `141235ac0`;
+- `FUN_141235a90` stores:
+  - `param_1 + 0x238 = param_3/source`;
+  - `param_1 + 0x240 = param_2/kind`;
+  - `param_1 + 0x08 = *(u16 *)(source + 0x2e8)`;
+  - transform-ish values from `source + 0x30`, `source + 0x38`, and
+    `source + 0xd8`;
+- `FUN_141230b20` computes and writes:
+  - `actor + 0x20`, `+0x24`, `+0x28`: HP/current/max-like value from fixed row
+    `+0x334`;
+  - `actor + 0x2c`, `+0x30`: secondary HP/stagger-like value from fixed row
+    `+0x334`;
+  - `actor + 0x34`: attack-like value from fixed row `+0x33c`;
+  - `actor + 0x38`: defense-like value from fixed row `+0x340`;
+  - `actor + 0x3c`, `+0x40`: constant `100`;
+  - `actor + 0x0d`: class/team-ish byte from source `+0x235` or fallback `4`.
+
+Runtime decision:
+
+- Added `crowd_stat_init_probe` on `FUN_141230b20`.
+- The hook is read-only, even if `enemy_stats_probe.write_stats = true`.
+- Next in-game run should show whether this path corresponds to the missing
+  small mobs. If yes, future writes should target `+0x20/+0x24/+0x28` for HP
+  and `+0x34/+0x38` for attack/defense after source/type filters are validated.
 - The first write prototype remains stats-only on the
   `stat3c=390/stat40=390` family, now classified as commander/officer
   candidate from in-game validation. Spawn scaling is still blocked on a

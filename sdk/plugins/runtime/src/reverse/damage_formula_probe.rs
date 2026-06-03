@@ -24,17 +24,31 @@ const ACTOR_STAT_INIT_SIGNATURE: Signature = Signature::new(
     &[1; 32],
 );
 
+const CROWD_STAT_INIT_SIGNATURE: Signature = Signature::new(
+    "crowd_stat_init_141230b20",
+    &[
+        0x40, 0x53, 0x55, 0x57, 0x48, 0x83, 0xec, 0x30, 0x4c, 0x89, 0x6c, 0x24, 0x60, 0x41, 0x8b,
+        0xe8, 0x48, 0x8b, 0xfa, 0x48, 0x8b, 0xd9, 0xe8, 0xd5, 0xfe, 0xff, 0xff, 0x48, 0x83, 0x09,
+        0x01, 0x85,
+    ],
+    &[1; 32],
+);
+
 const OVERWRITE_LEN: usize = 15;
 
 type ActorStatInitFn = extern "system" fn(usize, usize, i32);
+type CrowdStatInitFn = extern "system" fn(usize, usize, i32, i32);
 
 static HOST: OnceLock<OwnedHostApi> = OnceLock::new();
 static HOOK: OnceLock<InlineHook> = OnceLock::new();
+static CROWD_HOOK: OnceLock<InlineHook> = OnceLock::new();
 static TRAMPOLINE: AtomicUsize = AtomicUsize::new(0);
+static CROWD_TRAMPOLINE: AtomicUsize = AtomicUsize::new(0);
 static DAMAGE_FORMULA_ENABLED: AtomicUsize = AtomicUsize::new(0);
 static LOG_COUNT: AtomicUsize = AtomicUsize::new(0);
 static MAX_LOGS: AtomicUsize = AtomicUsize::new(0);
 static ENEMY_STATS_LOG_COUNT: AtomicUsize = AtomicUsize::new(0);
+static CROWD_STATS_LOG_COUNT: AtomicUsize = AtomicUsize::new(0);
 static ENEMY_STATS_MAX_LOGS: AtomicUsize = AtomicUsize::new(0);
 static ENEMY_STATS_ENABLED: AtomicUsize = AtomicUsize::new(0);
 static ENEMY_STATS_WRITE_REQUESTED: AtomicUsize = AtomicUsize::new(0);
@@ -100,6 +114,10 @@ pub(crate) fn install(
             );
         }
     }
+
+    if enemy_stats.enabled {
+        install_crowd_stats_probe(&host);
+    }
 }
 
 extern "system" fn actor_stat_init_detour(actor: usize, source: usize, mode: i32) {
@@ -114,6 +132,59 @@ extern "system" fn actor_stat_init_detour(actor: usize, source: usize, mode: i32
     let stats = ActorStats::read(actor);
     log_actor_stat_init(actor, source, mode, stats);
     log_enemy_stats_probe(actor, source, mode, stats);
+}
+
+fn install_crowd_stats_probe(host: &OwnedHostApi) {
+    if CROWD_HOOK.get().is_some() {
+        let _ = host
+            .log()
+            .write(PLUGIN_ID, "crowd_stat_init_probe already installed");
+        return;
+    }
+
+    let result = unsafe {
+        HookBuilder::new(CROWD_STAT_INIT_SIGNATURE)
+            .overwrite_len(OVERWRITE_LEN)
+            .scan()
+            .and_then(|builder| {
+                let site = builder.site();
+                let hook =
+                    builder.install_abs_jump(crowd_stat_init_detour as *const () as usize)?;
+                Ok((site, hook))
+            })
+    };
+
+    match result {
+        Ok((site, hook)) => {
+            CROWD_TRAMPOLINE.store(hook.trampoline, Ordering::SeqCst);
+            let hook_trampoline = hook.trampoline;
+            let _ = CROWD_HOOK.set(hook);
+            let _ = host.log().write(
+                PLUGIN_ID,
+                format!(
+                    "crowd_stat_init_probe installed site=0x{site:x} trampoline=0x{hook_trampoline:x}",
+                ),
+            );
+        }
+        Err(error) => {
+            let _ = host.log().write(
+                PLUGIN_ID,
+                format!("crowd_stat_init_probe install failed: {error}"),
+            );
+        }
+    }
+}
+
+extern "system" fn crowd_stat_init_detour(actor: usize, source: usize, param_3: i32, param_4: i32) {
+    let original = CROWD_TRAMPOLINE.load(Ordering::SeqCst);
+    if original == 0 {
+        return;
+    }
+
+    let original: CrowdStatInitFn = unsafe { mem::transmute(original) };
+    original(actor, source, param_3, param_4);
+
+    log_crowd_stats_probe(actor, source, param_3, param_4);
 }
 
 fn log_actor_stat_init(actor: usize, source: usize, mode: i32, stats: ActorStats) {
@@ -192,6 +263,30 @@ fn log_enemy_stats_probe(actor: usize, source: usize, mode: i32, stats: ActorSta
                 ENEMY_STATS_HP_MULTIPLIER.load(Ordering::Relaxed),
                 ENEMY_STATS_ATTACK_MULTIPLIER.load(Ordering::Relaxed),
                 write_status,
+            ),
+        );
+    }
+}
+
+fn log_crowd_stats_probe(actor: usize, source: usize, param_3: i32, param_4: i32) {
+    if ENEMY_STATS_ENABLED.load(Ordering::Relaxed) == 0 {
+        return;
+    }
+
+    let call = CROWD_STATS_LOG_COUNT.fetch_add(1, Ordering::Relaxed) + 1;
+    if call > ENEMY_STATS_MAX_LOGS.load(Ordering::Relaxed) {
+        return;
+    }
+
+    let actor_stats = CrowdActorStats::read(actor);
+    let source_stats = CrowdSourceStats::read(source);
+    if let Some(host) = HOST.get() {
+        let _ = host.log().write(
+            PLUGIN_ID,
+            format!(
+                "crowd_stat_init_probe call={call} param3={param_3} param4={param_4} actor=0x{actor:x} source=0x{source:x} actor_stats={} source_stats={} write_status=read_only",
+                actor_stats.format(),
+                source_stats.format(),
             ),
         );
     }
@@ -420,6 +515,69 @@ impl ActorStats {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct CrowdActorStats {
+    head_words: [u16; 16],
+    field_0d: u8,
+    stat_20: u32,
+    stat_24: u32,
+    stat_28: u32,
+    stat_2c: u32,
+    stat_30: u32,
+    stat_34: u32,
+    stat_38: u32,
+    stat_3c: u32,
+    stat_40: u32,
+    source_ptr_238: usize,
+    kind_240: u32,
+}
+
+impl CrowdActorStats {
+    fn read(actor: usize) -> Self {
+        if actor == 0 {
+            return Self::default();
+        }
+
+        unsafe {
+            let ptr = actor as *const u8;
+            Self {
+                head_words: read_u16_head(ptr),
+                field_0d: read_u8(ptr, 0x0d),
+                stat_20: read_u32(ptr, 0x20),
+                stat_24: read_u32(ptr, 0x24),
+                stat_28: read_u32(ptr, 0x28),
+                stat_2c: read_u32(ptr, 0x2c),
+                stat_30: read_u32(ptr, 0x30),
+                stat_34: read_u32(ptr, 0x34),
+                stat_38: read_u32(ptr, 0x38),
+                stat_3c: read_u32(ptr, 0x3c),
+                stat_40: read_u32(ptr, 0x40),
+                source_ptr_238: read_usize(ptr, 0x238),
+                kind_240: read_u32(ptr, 0x240),
+            }
+        }
+    }
+
+    fn format(self) -> String {
+        format!(
+            "head_u16={} byte0d={} stat20={} stat24={} stat28={} stat2c={} stat30={} stat34={} stat38={} stat3c={} stat40={} source238=0x{:x} kind240={}",
+            format_u16_head(self.head_words),
+            self.field_0d,
+            self.stat_20,
+            self.stat_24,
+            self.stat_28,
+            self.stat_2c,
+            self.stat_30,
+            self.stat_34,
+            self.stat_38,
+            self.stat_3c,
+            self.stat_40,
+            self.source_ptr_238,
+            self.kind_240,
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 struct SourceStats {
     byte_00: u8,
     head_words: [u16; 16],
@@ -470,6 +628,69 @@ impl SourceStats {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct CrowdSourceStats {
+    byte_00: u8,
+    head_words: [u16; 16],
+    field_30: usize,
+    field_38: usize,
+    byte_d8: u8,
+    byte_d9: u8,
+    byte_ed: u8,
+    byte_232: u8,
+    byte_235: u8,
+    byte_237: u8,
+    word_1d6: u16,
+    word_23a: u16,
+    word_2e8: u16,
+}
+
+impl CrowdSourceStats {
+    fn read(source: usize) -> Self {
+        if source == 0 {
+            return Self::default();
+        }
+
+        unsafe {
+            let ptr = source as *const u8;
+            Self {
+                byte_00: read_u8(ptr, 0x00),
+                head_words: read_u16_head(ptr),
+                field_30: read_usize(ptr, 0x30),
+                field_38: read_usize(ptr, 0x38),
+                byte_d8: read_u8(ptr, 0xd8),
+                byte_d9: read_u8(ptr, 0xd9),
+                byte_ed: read_u8(ptr, 0xed),
+                byte_232: read_u8(ptr, 0x232),
+                byte_235: read_u8(ptr, 0x235),
+                byte_237: read_u8(ptr, 0x237),
+                word_1d6: read_u16(ptr, 0x1d6),
+                word_23a: read_u16(ptr, 0x23a),
+                word_2e8: read_u16(ptr, 0x2e8),
+            }
+        }
+    }
+
+    fn format(self) -> String {
+        format!(
+            "byte00={} head_u16={} pos30=0x{:x} pos38=0x{:x} byte_d8={} byte_d9={} byte_ed={} byte232={} byte235={} byte237={} word1d6={} word23a={} word2e8={}",
+            self.byte_00,
+            format_u16_head(self.head_words),
+            self.field_30,
+            self.field_38,
+            self.byte_d8,
+            self.byte_d9,
+            self.byte_ed,
+            self.byte_232,
+            self.byte_235,
+            self.byte_237,
+            self.word_1d6,
+            self.word_23a,
+            self.word_2e8,
+        )
+    }
+}
+
 unsafe fn read_u8(ptr: *const u8, offset: usize) -> u8 {
     ptr.add(offset).read()
 }
@@ -488,6 +709,10 @@ unsafe fn read_u16_head(ptr: *const u8) -> [u16; 16] {
 
 unsafe fn read_u32(ptr: *const u8, offset: usize) -> u32 {
     (ptr.add(offset) as *const u32).read_unaligned()
+}
+
+unsafe fn read_usize(ptr: *const u8, offset: usize) -> usize {
+    (ptr.add(offset) as *const usize).read_unaligned()
 }
 
 unsafe fn write_u32(ptr: *mut u8, offset: usize, value: u32) {

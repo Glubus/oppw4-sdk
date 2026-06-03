@@ -3,6 +3,391 @@ image_base=140000000
 
 
 ============================================================
+FUNCTION FUN_141230780 @ 141230780
+BODY [[141230780, 1412307e9]]
+CALLEES:
+  1412307a6 -> 1412f9be0 FUN_1412f9be0
+DECOMPILE:
+
+int FUN_141230780(undefined8 param_1,longlong param_2)
+
+{
+  longlong lVar1;
+  int iVar2;
+  
+  lVar1 = *(longlong *)(*(longlong *)(DAT_141eba750 + 0x18) + 0x28);
+  iVar2 = FUN_1412f9be0(*(undefined2 *)(lVar1 + 0x1d750),*(undefined1 *)(lVar1 + 0x1d756));
+  return (int)((float)(*(int *)((longlong)iVar2 * 0x6c + 0x340 +
+                               *(longlong *)(*(longlong *)(DAT_141eba738 + 0x18) + 0x20)) *
+                      (uint)*(ushort *)(param_2 + 10)) / 100.0);
+}
+
+
+CALLERS:
+WINDOW around 141230780
+141230768  89 53 44                          MOV dword ptr [RBX + 0x44],EDX
+14123076b  89 43 38                          MOV dword ptr [RBX + 0x38],EAX
+14123076e  48 8b 5c 24 30                    MOV RBX,qword ptr [RSP + 0x30]
+141230773  48 83 c4 20                       ADD RSP,0x20
+141230777  5f                                POP RDI
+141230778  c3                                RET
+141230780  40 53                             PUSH RBX
+141230782  48 83 ec 20                       SUB RSP,0x20
+141230786  48 8b 05 c3 9f c8 00              MOV RAX,qword ptr [0x141eba750]
+14123078d  48 8b da                          MOV RBX,RDX
+141230790  48 8b 48 18                       MOV RCX,qword ptr [RAX + 0x18]
+141230794  48 8b 41 28                       MOV RAX,qword ptr [RCX + 0x28]
+141230798  0f b6 90 56 d7 01 00              MOVZX EDX,byte ptr [RAX + 0x1d756]
+14123079f  0f b7 88 50 d7 01 00              MOVZX ECX,word ptr [RAX + 0x1d750]
+1412307a6  e8 35 94 0c 00                    CALL 0x1412f9be0
+1412307ab  48 63 c8                          MOVSXD RCX,EAX
+1412307ae  0f 57 c0                          XORPS XMM0,XMM0
+1412307b1  48 8b 05 80 9f c8 00              MOV RAX,qword ptr [0x141eba738]
+1412307b8  4c 6b c1 6c                       IMUL R8,RCX,0x6c
+1412307bc  48 8b 48 18                       MOV RCX,qword ptr [RAX + 0x18]
+1412307c0  48 8b 41 20                       MOV RAX,qword ptr [RCX + 0x20]
+1412307c4  0f b7 4b 0a                       MOVZX ECX,word ptr [RBX + 0xa]
+1412307c8  41 8b 84 00 40 03 00 00           MOV EAX,dword ptr [R8 + RAX*0x1 + 0x340]
+
+============================================================
+FUNCTION FUN_141230830 @ 141230830
+BODY [[141230830, 141230899]]
+CALLEES:
+  141230856 -> 1412f9be0 FUN_1412f9be0
+DECOMPILE:
+
+int FUN_141230830(undefined8 param_1,longlong param_2)
+
+{
+  longlong lVar1;
+  int iVar2;
+  
+  lVar1 = *(longlong *)(*(longlong *)(DAT_141eba750 + 0x18) + 0x28);
+  iVar2 = FUN_1412f9be0(*(undefined2 *)(lVar1 + 0x1d750),*(undefined1 *)(lVar1 + 0x1d756));
+  return (int)((float)(*(int *)((longlong)iVar2 * 0x6c + 0x33c +
+                               *(longlong *)(*(longlong *)(DAT_141eba738 + 0x18) + 0x20)) *
+                      (uint)*(ushort *)(param_2 + 8)) / 100.0);
+}
+
+
+CALLERS:
+WINDOW around 141230830
+1412307d3  f3 48 0f 2a c0                    CVTSI2SS XMM0,RAX
+1412307d8  f3 0f 5e 05 c0 13 84 00           DIVSS XMM0,dword ptr [0x141a71ba0]
+1412307e0  f3 0f 2c c0                       CVTTSS2SI EAX,XMM0
+1412307e4  48 83 c4 20                       ADD RSP,0x20
+1412307e8  5b                                POP RBX
+1412307e9  c3                                RET
+141230830  40 53                             PUSH RBX
+141230832  48 83 ec 20                       SUB RSP,0x20
+141230836  48 8b 05 13 9f c8 00              MOV RAX,qword ptr [0x141eba750]
+14123083d  48 8b da                          MOV RBX,RDX
+141230840  48 8b 48 18                       MOV RCX,qword ptr [RAX + 0x18]
+141230844  48 8b 41 28                       MOV RAX,qword ptr [RCX + 0x28]
+141230848  0f b6 90 56 d7 01 00              MOVZX EDX,byte ptr [RAX + 0x1d756]
+14123084f  0f b7 88 50 d7 01 00              MOVZX ECX,word ptr [RAX + 0x1d750]
+141230856  e8 85 93 0c 00                    CALL 0x1412f9be0
+14123085b  48 63 c8                          MOVSXD RCX,EAX
+14123085e  0f 57 c0                          XORPS XMM0,XMM0
+141230861  48 8b 05 d0 9e c8 00              MOV RAX,qword ptr [0x141eba738]
+141230868  4c 6b c1 6c                       IMUL R8,RCX,0x6c
+14123086c  48 8b 48 18                       MOV RCX,qword ptr [RAX + 0x18]
+141230870  48 8b 41 20                       MOV RAX,qword ptr [RCX + 0x20]
+141230874  0f b7 4b 08                       MOVZX ECX,word ptr [RBX + 0x8]
+141230878  41 8b 84 00 3c 03 00 00           MOV EAX,dword ptr [R8 + RAX*0x1 + 0x33c]
+
+============================================================
+FUNCTION FUN_1412308e0 @ 1412308e0
+BODY [[1412308e0, 141230949]]
+CALLEES:
+  141230906 -> 1412f9be0 FUN_1412f9be0
+DECOMPILE:
+
+int FUN_1412308e0(undefined8 param_1,longlong param_2)
+
+{
+  longlong lVar1;
+  int iVar2;
+  
+  lVar1 = *(longlong *)(*(longlong *)(DAT_141eba750 + 0x18) + 0x28);
+  iVar2 = FUN_1412f9be0(*(undefined2 *)(lVar1 + 0x1d750),*(undefined1 *)(lVar1 + 0x1d756));
+  return (int)((float)(*(int *)((longlong)iVar2 * 0x6c + 0x334 +
+                               *(longlong *)(*(longlong *)(DAT_141eba738 + 0x18) + 0x20)) *
+                      (uint)*(ushort *)(param_2 + 6)) / 100.0);
+}
+
+
+CALLERS:
+WINDOW around 1412308e0
+141230883  f3 48 0f 2a c0                    CVTSI2SS XMM0,RAX
+141230888  f3 0f 5e 05 10 13 84 00           DIVSS XMM0,dword ptr [0x141a71ba0]
+141230890  f3 0f 2c c0                       CVTTSS2SI EAX,XMM0
+141230894  48 83 c4 20                       ADD RSP,0x20
+141230898  5b                                POP RBX
+141230899  c3                                RET
+1412308e0  40 53                             PUSH RBX
+1412308e2  48 83 ec 20                       SUB RSP,0x20
+1412308e6  48 8b 05 63 9e c8 00              MOV RAX,qword ptr [0x141eba750]
+1412308ed  48 8b da                          MOV RBX,RDX
+1412308f0  48 8b 48 18                       MOV RCX,qword ptr [RAX + 0x18]
+1412308f4  48 8b 41 28                       MOV RAX,qword ptr [RCX + 0x28]
+1412308f8  0f b6 90 56 d7 01 00              MOVZX EDX,byte ptr [RAX + 0x1d756]
+1412308ff  0f b7 88 50 d7 01 00              MOVZX ECX,word ptr [RAX + 0x1d750]
+141230906  e8 d5 92 0c 00                    CALL 0x1412f9be0
+14123090b  48 63 c8                          MOVSXD RCX,EAX
+14123090e  0f 57 c0                          XORPS XMM0,XMM0
+141230911  48 8b 05 20 9e c8 00              MOV RAX,qword ptr [0x141eba738]
+141230918  4c 6b c1 6c                       IMUL R8,RCX,0x6c
+14123091c  48 8b 48 18                       MOV RCX,qword ptr [RAX + 0x18]
+141230920  48 8b 41 20                       MOV RAX,qword ptr [RCX + 0x20]
+141230924  0f b7 4b 06                       MOVZX ECX,word ptr [RBX + 0x6]
+141230928  41 8b 84 00 34 03 00 00           MOV EAX,dword ptr [R8 + RAX*0x1 + 0x334]
+
+============================================================
+FUNCTION FUN_141230b20 @ 141230b20
+BODY [[141230b20, 141230ee1]]
+CALLEES:
+  141230b36 -> 141230a10 FUN_141230a10
+  141230bbf -> 1412306a0 FUN_1412306a0
+  141230c53 -> 1412f9be0 FUN_1412f9be0
+  141230cbc -> 1412f9be0 FUN_1412f9be0
+  141230d1d -> 1412f9be0 FUN_1412f9be0
+  141230d78 -> 1412f9be0 FUN_1412f9be0
+  141230dec -> 1412fa090 FUN_1412fa090
+  141230e23 -> 1415e2800 FUN_1415e2800
+DECOMPILE:
+
+void FUN_141230b20(ulonglong *param_1,ulonglong *param_2,int param_3,int param_4)
+
+{
+  ushort uVar1;
+  ulonglong uVar2;
+  longlong lVar3;
+  byte bVar4;
+  int iVar5;
+  longlong lVar6;
+  ulonglong *puVar7;
+  ulonglong *puVar8;
+  uint uVar9;
+  ulonglong uVar10;
+  float fVar11;
+  
+  puVar7 = param_1;
+  puVar8 = param_2;
+  FUN_141230a10();
+  *puVar7 = *puVar7 | 1;
+  if (param_3 == 0) {
+    *puVar7 = *puVar7 | 4;
+  }
+  *(undefined1 *)((longlong)puVar7 + 0xc) = *(undefined1 *)((longlong)puVar8 + 0x232);
+  if ((*(char *)((longlong)puVar8 + 0x237) == '\0') ||
+     ((*(byte *)((longlong)puVar8 + 0x235) < 2 && (param_3 == 0)))) {
+    *(undefined1 *)((longlong)puVar7 + 0x19) = 0;
+  }
+  else {
+    *(undefined1 *)((longlong)puVar7 + 0x19) = 7;
+  }
+  bVar4 = *(byte *)((longlong)puVar7 + 0x19);
+  uVar2 = *param_1;
+  uVar9 = (uint)bVar4;
+  *(byte *)(param_1 + 3) = bVar4;
+  if (((byte)uVar2 >> 5 & 1) == 0) {
+    bVar4 = bVar4 + 1;
+  }
+  *(byte *)((longlong)param_1 + 0x1a) = bVar4;
+  if ((((byte)*param_2 >> 1 & 1) == 0) || (param_4 == 0)) {
+    uVar1 = *(ushort *)((longlong)param_2 + 0x1d6);
+    uVar10 = (ulonglong)uVar1;
+    if ((uVar2 >> 2 & 1) != 0) {
+      if ((*param_2 >> 0x15 & 1) == 0) {
+        uVar10 = (ulonglong)(ushort)param_2[0x3a];
+      }
+      else {
+        uVar10 = (ulonglong)*(ushort *)((longlong)param_2 + 0x23a);
+      }
+    }
+    lVar6 = *(longlong *)(*(longlong *)(DAT_141eba738 + 0x18) + 0x18);
+    if ((uVar2 >> 2 & 1) == 0) {
+      *(undefined1 *)((longlong)param_1 + 0xd) = 4;
+    }
+    else {
+      *(undefined1 *)((longlong)param_1 + 0xd) = *(undefined1 *)((longlong)param_2 + 0x235);
+    }
+    lVar3 = *(longlong *)(*(longlong *)(DAT_141eba750 + 0x18) + 0x28);
+    iVar5 = FUN_1412f9be0(*(undefined2 *)(lVar3 + 0x1d750),*(undefined1 *)(lVar3 + 0x1d756));
+    fVar11 = 100.0;
+    iVar5 = (int)((float)(*(int *)((longlong)iVar5 * 0x6c + 0x334 +
+                                  *(longlong *)(*(longlong *)(DAT_141eba738 + 0x18) + 0x20)) *
+                         (uint)*(ushort *)(lVar6 + 0x16 + uVar10 * 0x12)) / 100.0);
+    *(int *)((longlong)param_1 + 0x24) = iVar5;
+    *(int *)(param_1 + 5) = iVar5;
+    *(int *)(param_1 + 4) = iVar5;
+    lVar3 = *(longlong *)(*(longlong *)(DAT_141eba750 + 0x18) + 0x28);
+    iVar5 = FUN_1412f9be0(*(undefined2 *)(lVar3 + 0x1d750),*(undefined1 *)(lVar3 + 0x1d756));
+    iVar5 = (int)((float)(*(int *)((longlong)iVar5 * 0x6c + 0x334 +
+                                  *(longlong *)(*(longlong *)(DAT_141eba738 + 0x18) + 0x20)) *
+                         (uint)*(ushort *)(lVar6 + 0x16 + (ulonglong)uVar1 * 0x12)) / fVar11) *
+            uVar9;
+    *(int *)(param_1 + 6) = iVar5;
+    *(int *)((longlong)param_1 + 0x2c) = iVar5;
+    lVar3 = *(longlong *)(*(longlong *)(DAT_141eba750 + 0x18) + 0x28);
+    iVar5 = FUN_1412f9be0(*(undefined2 *)(lVar3 + 0x1d750),*(undefined1 *)(lVar3 + 0x1d756));
+    *(int *)((longlong)param_1 + 0x34) =
+         (int)((float)(*(int *)((longlong)iVar5 * 0x6c + 0x33c +
+                               *(longlong *)(*(longlong *)(DAT_141eba738 + 0x18) + 0x20)) *
+                      (uint)*(ushort *)(lVar6 + 0x18 + uVar10 * 0x12)) / fVar11);
+    lVar3 = *(longlong *)(*(longlong *)(DAT_141eba750 + 0x18) + 0x28);
+    iVar5 = FUN_1412f9be0(*(undefined2 *)(lVar3 + 0x1d750),*(undefined1 *)(lVar3 + 0x1d756));
+    *(int *)(param_1 + 7) =
+         (int)((float)(*(int *)((longlong)iVar5 * 0x6c + 0x340 +
+                               *(longlong *)(*(longlong *)(DAT_141eba738 + 0x18) + 0x20)) *
+                      (uint)*(ushort *)(lVar6 + 0x1a + uVar10 * 0x12)) / fVar11);
+    *(undefined4 *)((longlong)param_1 + 0x44) = 0;
+  }
+  else {
+    *(undefined2 *)(param_1 + 3) = 0;
+    *param_1 = uVar2 | 2;
+    FUN_1412306a0(param_1,*(undefined1 *)((longlong)param_2 + 0xed));
+    *(undefined1 *)((longlong)param_1 + 0xd) = 0;
+  }
+  *(undefined4 *)((longlong)param_1 + 0x3c) = 100;
+  *(undefined4 *)(param_1 + 8) = 100;
+  *(undefined4 *)(param_1 + 9) = 0x3f800000;
+  *(undefined4 *)((longlong)param_1 + 0x4c) = 0x3f800000;
+  iVar5 = FUN_1412fa090((short)param_2[0x3a]);
+  if (*(ushort *)
+       ((longlong)iVar5 * 0x1e + 0xd92c + *(longlong *)(*(longlong *)(DAT_141eba738 + 0x18) + 8)) <
+      0x35e) {
+    lVar6 = FUN_1415e2800(DAT_141eba7f0);
+    if (lVar6 != 0) {
+      *(float *)(param_1 + 10) = (float)*(ushort *)(lVar6 + 8);
+    }
+  }
+  *(undefined2 *)(param_1 + 0x21) = 999;
+  uVar2 = param_2[0x1b];
+  param_1[0x1f] = 0;
+  param_1[0x20] = 0;
+  *(undefined1 *)((longlong)param_1 + 0x10a) = 0;
+  *(undefined4 *)((longlong)param_1 + 0xf4) = 0xbf800000;
+  *(float *)(param_1 + 0x1e) = (float)(byte)uVar2 * 0.7853982 + 0.0;
+  *(undefined1 *)((longlong)param_1 + 0x10b) = *(undefined1 *)((longlong)param_2 + 0xd9);
+  *(undefined1 *)((longlong)param_1 + 0x10c) = 0;
+  *(undefined4 *)(param_1 + 0x22) = 0;
+  if (((byte)(int)*param_2 >> 5 & 1) != 0) {
+    *param_1 = *param_1 | 8;
+  }
+  if (((*param_2 >> 0x22 & 1) != 0) && ((uint)*(byte *)((longlong)param_2 + 0x237) <= param_3 + 2U))
+  {
+    *param_1 = *param_1 | 0x88;
+  }
+  return;
+}
+
+
+CALLERS:
+  141235ac0 from FUN_141235a90
+WINDOW around 141230b20
+141230af9  83 c8 ff                          OR EAX,0xffffffff
+141230afc  4d 89 43 08                       MOV qword ptr [R11 + 0x8],R8
+141230b00  66 89 81 14 01 00 00              MOV word ptr [RCX + 0x114],AX
+141230b07  4d 89 43 08                       MOV qword ptr [R11 + 0x8],R8
+141230b0b  44 89 81 10 01 00 00              MOV dword ptr [RCX + 0x110],R8D
+141230b12  c3                                RET
+141230b20  40 53                             PUSH RBX
+141230b22  55                                PUSH RBP
+141230b23  57                                PUSH RDI
+141230b24  48 83 ec 30                       SUB RSP,0x30
+141230b28  4c 89 6c 24 60                    MOV qword ptr [RSP + 0x60],R13
+141230b2d  41 8b e8                          MOV EBP,R8D
+141230b30  48 8b fa                          MOV RDI,RDX
+141230b33  48 8b d9                          MOV RBX,RCX
+141230b36  e8 d5 fe ff ff                    CALL 0x141230a10
+141230b3b  48 83 09 01                       OR qword ptr [RCX],0x1
+141230b3f  85 ed                             TEST EBP,EBP
+141230b41  75 04                             JNZ 0x141230b47
+141230b43  48 83 09 04                       OR qword ptr [RCX],0x4
+141230b47  0f b6 82 32 02 00 00              MOVZX EAX,byte ptr [RDX + 0x232]
+141230b4e  88 41 0c                          MOV byte ptr [RCX + 0xc],AL
+141230b51  80 ba 37 02 00 00 00              CMP byte ptr [RDX + 0x237],0x0
+141230b58  74 13                             JZ 0x141230b6d
+
+============================================================
+FUNCTION FUN_141235a90 @ 141235a90
+BODY [[141235a90, 141235b58]]
+CALLEES:
+  141235ac0 -> 141230b20 FUN_141230b20
+  141235ae8 -> 1412372c0 FUN_1412372c0
+  141235b38 -> 14125c510 FUN_14125c510
+DECOMPILE:
+
+undefined8
+FUN_141235a90(longlong param_1,undefined4 param_2,longlong param_3,undefined4 param_4,
+             undefined4 param_5)
+
+{
+  undefined8 uVar1;
+  undefined8 uVar2;
+  undefined8 local_28;
+  undefined8 uStack_20;
+  
+  *(undefined4 *)(param_1 + 0x240) = param_2;
+  *(longlong *)(param_1 + 0x238) = param_3;
+  FUN_141230b20(param_1,param_3,param_4,param_5);
+  *(undefined2 *)(param_1 + 8) = *(undefined2 *)(param_3 + 0x2e8);
+  uVar2 = *(undefined8 *)(*(longlong *)(param_1 + 0x238) + 0x30);
+  uVar1 = *(undefined8 *)(*(longlong *)(param_1 + 0x238) + 0x38);
+  local_28 = uVar2;
+  uStack_20 = uVar1;
+  FUN_1412372c0(param_1,&local_28);
+  *(undefined8 *)(param_1 + 0xa0) = uVar2;
+  *(undefined8 *)(param_1 + 0xa8) = uVar1;
+  *(float *)(param_1 + 0xf0) = (float)*(byte *)(param_3 + 0xd8) * 0.7853982 + 0.0;
+  if (*(longlong *)(param_1 + 0x248) == 0) {
+    uVar2 = FUN_14125c510(*(undefined8 *)(*(longlong *)(param_1 + 0x270) + 0x7bc8),
+                          *(longlong *)(param_1 + 0x270),param_1);
+    *(undefined8 *)(param_1 + 0x248) = uVar2;
+  }
+  return 1;
+}
+
+
+CALLERS:
+  141237eb8 from FUN_141237cd0
+  14123e022 from FUN_14123dbf0
+  14123e3f3 from FUN_14123e130
+  14123e992 from FUN_14123e730
+  14123ee54 from FUN_14123eb90
+  14123f165 from FUN_14123eb90
+  14123f530 from FUN_14123eb90
+  14123f7e0 from FUN_14123eb90
+  141237c27 from FUN_141237ac0
+  141238451 from FUN_141238320
+WINDOW around 141235a90
+141235a63  48 c7 83 58 02 00 00 00 00 00 00  MOV qword ptr [RBX + 0x258],0x0
+141235a6e  c7 83 40 02 00 00 e7 03 00 00     MOV dword ptr [RBX + 0x240],0x3e7
+141235a78  b8 01 00 00 00                    MOV EAX,0x1
+141235a7d  48 83 c4 30                       ADD RSP,0x30
+141235a81  5b                                POP RBX
+141235a82  c3                                RET
+141235a90  48 89 5c 24 08                    MOV qword ptr [RSP + 0x8],RBX
+141235a95  57                                PUSH RDI
+141235a96  48 83 ec 40                       SUB RSP,0x40
+141235a9a  49 8b d8                          MOV RBX,R8
+141235a9d  89 91 40 02 00 00                 MOV dword ptr [RCX + 0x240],EDX
+141235aa3  41 8b c1                          MOV EAX,R9D
+141235aa6  0f 29 74 24 30                    MOVAPS xmmword ptr [RSP + 0x30],XMM6
+141235aab  44 8b 4c 24 70                    MOV R9D,dword ptr [RSP + 0x70]
+141235ab0  44 8b c0                          MOV R8D,EAX
+141235ab3  48 8b d3                          MOV RDX,RBX
+141235ab6  48 89 99 38 02 00 00              MOV qword ptr [RCX + 0x238],RBX
+141235abd  48 8b f9                          MOV RDI,RCX
+141235ac0  e8 5b b0 ff ff                    CALL 0x141230b20
+141235ac5  0f b7 83 e8 02 00 00              MOVZX EAX,word ptr [RBX + 0x2e8]
+141235acc  48 8d 54 24 20                    LEA RDX,[RSP + 0x20]
+141235ad1  66 89 47 08                       MOV word ptr [RDI + 0x8],AX
+141235ad5  48 8b cf                          MOV RCX,RDI
+
+============================================================
 FUNCTION FUN_1412505b0 @ 1412505b0
 BODY [[1412505b0, 14125081d]]
 CALLEES:
@@ -416,6 +801,241 @@ WINDOW around 141250830
 141250860  4c 8b f1                          MOV R14,RCX
 141250863  41 8b df                          MOV EBX,R15D
 141250866  48 85 c0                          TEST RAX,RAX
+
+============================================================
+FUNCTION FUN_141254340 @ 141254340
+BODY [[141254340, 14125450b]]
+CALLEES:
+  141254390 -> 1412457f0 FUN_1412457f0
+  1412543d4 -> 1412450c0 FUN_1412450c0
+  1412543e9 -> 141231100 FUN_141231100
+  141254423 -> 1412538c0 FUN_1412538c0
+  1412544ee -> 14127a940 FUN_14127a940
+DECOMPILE:
+
+char * FUN_141254340(longlong param_1,char *param_2)
+
+{
+  char *pcVar1;
+  char cVar2;
+  undefined8 uVar3;
+  int iVar4;
+  short *psVar5;
+  longlong lVar6;
+  char *pcVar7;
+  undefined1 uVar8;
+  int iVar9;
+  short local_res8 [4];
+  
+  lVar6 = (longlong)local_res8 - (longlong)param_2;
+  iVar4 = 2;
+  do {
+    cVar2 = *param_2;
+    if (*param_2 == -1) {
+      cVar2 = -1;
+    }
+    param_2[lVar6] = cVar2;
+    param_2 = param_2 + 1;
+    iVar4 = iVar4 + -1;
+  } while (iVar4 != 0);
+  uVar3 = FUN_1412457f0(*(undefined8 *)(param_1 + 0x430),(int)local_res8[0]);
+  *(undefined8 *)(param_1 + 0xf0) = uVar3;
+  psVar5 = local_res8;
+  iVar4 = 2;
+  do {
+    iVar9 = iVar4;
+    cVar2 = *param_2;
+    if (cVar2 == -1) {
+      cVar2 = -1;
+    }
+    param_2 = param_2 + 1;
+    *(char *)psVar5 = cVar2;
+    iVar4 = iVar9 + -1;
+    psVar5 = (short *)((longlong)psVar5 + 1);
+  } while (iVar4 != 0);
+  uVar3 = FUN_1412450c0(*(undefined8 *)(param_1 + 0x430),(int)local_res8[0]);
+  *(undefined8 *)(param_1 + 0xf8) = uVar3;
+  FUN_141231100(param_1,uVar3,0);
+  iVar9 = iVar9 + 0x6f;
+  pcVar7 = (char *)(param_1 + 0x20);
+  do {
+    cVar2 = *param_2;
+    pcVar1 = pcVar7 + 1;
+    if (cVar2 == -1) {
+      cVar2 = -1;
+    }
+    param_2 = param_2 + 1;
+    *pcVar7 = cVar2;
+    iVar9 = iVar9 + -1;
+    pcVar7 = pcVar1;
+  } while (iVar9 != 0);
+  FUN_1412538c0(param_1,pcVar1,0,*(undefined1 *)(param_1 + 6));
+  (**(code **)(**(longlong **)(param_1 + 0x198) + 0x28))(*(longlong **)(param_1 + 0x198),param_1);
+  local_res8[2] = -1;
+  local_res8[3] = -1;
+  local_res8[0] = 0;
+  local_res8[1] = 0;
+  *(undefined8 *)(param_1 + 0x168) = 0xffffffff00000000;
+  *(undefined8 *)(param_1 + 0x170) = 0;
+  *(undefined8 *)(param_1 + 0x178) = 0;
+  *(undefined8 *)(param_1 + 0x180) = 0;
+  *(undefined8 *)(param_1 + 0x188) = 0;
+  *(undefined8 *)(param_1 + 400) = 0;
+  if ((*(uint *)(param_1 + 0x20) >> 0xc & 1) == 0) {
+    uVar8 = 4;
+  }
+  else {
+    uVar8 = *(undefined1 *)(*(longlong *)(param_1 + 0xf0) + 0xed);
+  }
+  FUN_14127a940(*(undefined2 *)(param_1 + 4),*(undefined1 *)(*(longlong *)(param_1 + 0xf0) + 0x232),
+                uVar8,param_1 + 0x1d0,param_1 + 0x1dc,param_1 + 0x1d4,param_1 + 0x1d8,
+                param_1 + 0x1e0,param_1 + 0x1e4);
+  return param_2;
+}
+
+
+CALLERS:
+  14124171f from FUN_141241550
+WINDOW around 141254340
+1412542a9  74 0f                             JZ 0x1412542ba
+1412542ab  48 8b 81 f0 00 00 00              MOV RAX,qword ptr [RCX + 0xf0]
+1412542b2  0f b6 80 ed 00 00 00              MOVZX EAX,byte ptr [RAX + 0xed]
+1412542b9  c3                                RET
+1412542ba  b8 04 00 00 00                    MOV EAX,0x4
+1412542bf  c3                                RET
+141254340  48 89 5c 24 10                    MOV qword ptr [RSP + 0x10],RBX
+141254345  48 89 6c 24 18                    MOV qword ptr [RSP + 0x18],RBP
+14125434a  56                                PUSH RSI
+14125434b  57                                PUSH RDI
+14125434c  41 56                             PUSH R14
+14125434e  48 83 ec 50                       SUB RSP,0x50
+141254352  48 8b da                          MOV RBX,RDX
+141254355  bf 02 00 00 00                    MOV EDI,0x2
+14125435a  48 8d 54 24 70                    LEA RDX,[RSP + 0x70]
+14125435f  4c 8b f1                          MOV R14,RCX
+141254362  48 2b d3                          SUB RDX,RBX
+141254365  8b cf                             MOV ECX,EDI
+141254367  be ff 00 00 00                    MOV ESI,0xff
+14125436c  0f 1f 40 00                       NOP dword ptr [RAX]
+141254370  0f b6 03                          MOVZX EAX,byte ptr [RBX]
+141254373  40 3a c6                          CMP AL,SIL
+141254376  0f 43 c6                          CMOVNC EAX,ESI
+
+============================================================
+FUNCTION FUN_1412547e0 @ 1412547e0
+BODY [[1412547e0, 141254a69]]
+CALLEES:
+  141254869 -> 141231100 FUN_141231100
+  1412548e5 -> 14127a940 FUN_14127a940
+  1412548fd -> 1412538c0 FUN_1412538c0
+  141254921 -> 141255330 FUN_141255330
+  14125494a -> 140016c30 FUN_140016c30
+  1412549a1 -> 141254100 FUN_141254100
+  1412549c1 -> 141255eb0 FUN_141255eb0
+  1412549ff -> 1415ce170 FUN_1415ce170
+  141254a4c -> 141375320 FUN_141375320
+DECOMPILE:
+
+undefined8 FUN_1412547e0(longlong param_1,uint *param_2,undefined4 param_3)
+
+{
+  int iVar1;
+  undefined1 uVar2;
+  float local_res8 [4];
+  longlong lVar3;
+  undefined4 uVar4;
+  
+  local_res8[1] = -NAN;
+  local_res8[0] = 0.0;
+  *(undefined8 *)(param_1 + 0x168) = 0xffffffff00000000;
+  *(undefined8 *)(param_1 + 0x170) = 0;
+  *(undefined2 *)(param_1 + 0x1be) = 10000;
+  *(undefined8 *)(param_1 + 0x178) = 0;
+  *(undefined8 *)(param_1 + 0x188) = 0;
+  *(undefined8 *)(param_1 + 400) = 0;
+  *(undefined4 *)(param_1 + 0x1b8) = 0;
+  *(undefined4 *)(param_1 + 0x1e8) = 0xffffffff;
+  *(undefined8 *)(param_1 + 0x1f0) = 0;
+  *(uint **)(param_1 + 0xf8) = param_2;
+  *(undefined8 *)(param_1 + 0xf0) = *(undefined8 *)(param_2 + 0x8e);
+  FUN_141231100();
+  if ((*(uint *)(param_1 + 0x20) >> 0xc & 1) == 0) {
+    uVar2 = 4;
+  }
+  else {
+    uVar2 = *(undefined1 *)(*(longlong *)(param_1 + 0xf0) + 0xed);
+  }
+  lVar3 = param_1 + 0x1dc;
+  iVar1 = FUN_14127a940(*(undefined2 *)(param_1 + 4),
+                        *(undefined1 *)(*(longlong *)(param_1 + 0xf0) + 0x232),uVar2,param_1 + 0x1d0
+                        ,lVar3,param_1 + 0x1d4,param_1 + 0x1d8,param_1 + 0x1e0,param_1 + 0x1e4);
+  uVar4 = (undefined4)((ulonglong)lVar3 >> 0x20);
+  if (iVar1 != 0) {
+    FUN_1412538c0(param_1);
+    FUN_141255330(param_1,param_3,param_1 + 0x60,param_1 + 0x70,
+                  CONCAT44(uVar4,(uint)*(byte *)(*(longlong *)(param_1 + 0xf0) + 0xef)));
+    if ((*param_2 >> 0xe & 1) != 0) {
+      FUN_140016c30(param_2[0x3c],local_res8,local_res8 + 2);
+      *(undefined4 *)(param_1 + 0x74) = 0;
+      *(undefined4 *)(param_1 + 0x7c) = 0;
+      *(float *)(param_1 + 0x70) = local_res8[0] * 0.0 + local_res8[2];
+      *(float *)(param_1 + 0x78) = local_res8[2] * 0.0 - local_res8[0];
+    }
+    if ((*param_2 & 0x2004000) != 0) {
+      *(ulonglong *)(param_1 + 0x20) = *(ulonglong *)(param_1 + 0x20) | 0x100000;
+    }
+    iVar1 = FUN_141254100(param_1,0);
+    if (iVar1 != 0) {
+      (**(code **)(**(longlong **)(param_1 + 0x198) + 0x28))
+                (*(longlong **)(param_1 + 0x198),param_1);
+      FUN_141255eb0(param_1);
+      *(undefined2 *)(param_1 + 0x1bc) = 0;
+      if (((*(uint *)(param_1 + 0x20) >> 0xc & 1) != 0) &&
+         ((((*(uint *)(*(longlong *)(param_1 + 0xf0) + 8) >> 0x1b & 1) != 0 ||
+           ((*(uint *)(*(longlong *)(param_1 + 0xf0) + 0x10) >> 0x1b & 1) != 0)) &&
+          (DAT_141dcfbfc == 2)))) {
+        iVar1 = FUN_1415ce170();
+        if (iVar1 != 0) {
+          *(uint *)(*(longlong *)(param_1 + 0xf0) + 0x300) =
+               (uint)*(byte *)(*(longlong *)(*(longlong *)(DAT_141eba750 + 0x18) + 0x28) + 0x31);
+        }
+        FUN_141375320(*(undefined2 *)(*(longlong *)(param_1 + 0xf0) + 0x2e8),1,
+                      *(undefined1 *)
+                       (*(longlong *)(*(longlong *)(DAT_141eba750 + 0x18) + 0x28) + 0x31));
+      }
+      return 1;
+    }
+  }
+  return 0;
+}
+
+
+CALLERS:
+  1412337ad from FUN_141233620
+WINDOW around 1412547e0
+1412547a2  48 09 08                          OR qword ptr [RAX],RCX
+1412547a5  48 8b 5c 24 38                    MOV RBX,qword ptr [RSP + 0x38]
+1412547aa  48 8b 74 24 40                    MOV RSI,qword ptr [RSP + 0x40]
+1412547af  48 83 c4 20                       ADD RSP,0x20
+1412547b3  5f                                POP RDI
+1412547b4  c3                                RET
+1412547e0  48 8b c4                          MOV RAX,RSP
+1412547e3  48 89 58 18                       MOV qword ptr [RAX + 0x18],RBX
+1412547e7  55                                PUSH RBP
+1412547e8  56                                PUSH RSI
+1412547e9  57                                PUSH RDI
+1412547ea  41 56                             PUSH R14
+1412547ec  41 57                             PUSH R15
+1412547ee  48 83 ec 50                       SUB RSP,0x50
+1412547f2  45 33 ff                          XOR R15D,R15D
+1412547f5  c7 40 0c ff ff ff ff              MOV dword ptr [RAX + 0xc],0xffffffff
+1412547fc  44 89 78 08                       MOV dword ptr [RAX + 0x8],R15D
+141254800  41 8b e8                          MOV EBP,R8D
+141254803  48 8b 40 08                       MOV RAX,qword ptr [RAX + 0x8]
+141254807  4c 8b f2                          MOV R14,RDX
+14125480a  48 89 81 68 01 00 00              MOV qword ptr [RCX + 0x168],RAX
+141254811  48 8b f1                          MOV RSI,RCX
+141254814  b8 10 27 00 00                    MOV EAX,0x2710
 
 ============================================================
 FUNCTION FUN_141254a70 @ 141254a70

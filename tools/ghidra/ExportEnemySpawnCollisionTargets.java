@@ -19,8 +19,15 @@ public class ExportEnemySpawnCollisionTargets extends GhidraScript {
         "C:/Users/Osef/Documents/Codex/oppw4-sdk-split/oppw4-sdk/docs/reverse-notes/enemy-spawn-collision-targets-2026-06-02.txt";
 
     private static final String[] FUNCTIONS = {
+        "141230780",
+        "141230830",
+        "1412308e0",
+        "141230b20",
+        "141235a90",
         "1412505b0",
         "141250830",
+        "141254340",
+        "1412547e0",
         "141254a70",
         "14124e670",
         "1415d1320",
