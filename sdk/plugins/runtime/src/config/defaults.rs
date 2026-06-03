@@ -22,8 +22,8 @@ max_logs = 128
 [enemy_stats_probe]
 enabled = false
 max_logs = 128
-# Read-only by default. Current write filter targets the observed commander /
-# officer candidate family: stat3c/stat40 = 390 and source byte00 = 1 or 5.
+# Read-only by default. Current write filter targets the observed small-mob
+# candidate: actor_stats.head_u16[0] = 224 and stat3c/stat40 = 390.
 write_stats = false
 hp_multiplier = 1
 attack_multiplier = 1

@@ -238,6 +238,10 @@ Follow-up log:
   `param_1`: `param_1[0]`, `param_1[1]`, `param_1[2]`, and related head fields.
   Runtime logging now includes `actor_stats.head_u16` too; this should be the
   next place to identify the real small-mob character/type id.
+- Runtime `2026-06-03-221538.log` showed candidate Wano small-mob ids matching
+  the old CT notes: `actor_stats.head_u16[0]=224`, `head_u16[1]=262`,
+  `head_u16[2]=910`, with `stat3c/stat40=390/390`. The active write test now
+  targets only `actor00=224` instead of the broad commander/officer family.
 
 ### `FUN_141231100`
 

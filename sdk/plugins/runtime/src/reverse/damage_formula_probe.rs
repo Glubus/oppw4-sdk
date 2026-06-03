@@ -42,7 +42,8 @@ static ENEMY_STATS_HP_MULTIPLIER: AtomicUsize = AtomicUsize::new(1);
 static ENEMY_STATS_ATTACK_MULTIPLIER: AtomicUsize = AtomicUsize::new(1);
 static ENEMY_STATS_SUMMARY: Mutex<EnemyStatsSummary> = Mutex::new(EnemyStatsSummary::new());
 const ENEMY_STATS_SUMMARY_GROUPS: usize = 128;
-const COMMANDER_CANDIDATE_HP_STAT: u32 = 390;
+const TARGET_SMALL_MOB_ACTOR_ID: u16 = 224;
+const TARGET_SMALL_MOB_HP_STAT: u32 = 390;
 
 pub(crate) fn install(
     host: OwnedHostApi,
@@ -148,7 +149,7 @@ fn configure_enemy_stats_probe(host: &OwnedHostApi, config: EnemyStatsProbeConfi
         let _ = host.log().write(
             PLUGIN_ID,
             format!(
-                "enemy_stats_probe armed max_logs={} write_stats={} hp_multiplier={} attack_multiplier={} write_filter=commander_candidate_390_byte00_1_5",
+                "enemy_stats_probe armed max_logs={} write_stats={} hp_multiplier={} attack_multiplier={} write_filter=small_mob_actor00_224_stat_390",
                 config.max_logs,
                 config.write_stats,
                 config.hp_multiplier,
@@ -171,7 +172,7 @@ fn log_enemy_stats_probe(actor: usize, source: usize, mode: i32, stats: ActorSta
     let source_snapshot = SourceStats::read(source);
     record_enemy_stats_summary(call, source_snapshot, stats);
     let write_status = if write_requested {
-        apply_commander_candidate_stats(actor, source_snapshot, stats)
+        apply_small_mob_candidate_stats(actor, stats)
     } else {
         "read_only".to_string()
     };
@@ -196,11 +197,11 @@ fn log_enemy_stats_probe(actor: usize, source: usize, mode: i32, stats: ActorSta
     }
 }
 
-fn apply_commander_candidate_stats(actor: usize, source: SourceStats, stats: ActorStats) -> String {
+fn apply_small_mob_candidate_stats(actor: usize, stats: ActorStats) -> String {
     if actor == 0 {
         return "refused:null_actor".to_string();
     }
-    if !is_commander_candidate_stats(source, stats) {
+    if !is_small_mob_candidate_stats(stats) {
         return "refused:filter".to_string();
     }
 
@@ -230,7 +231,7 @@ fn apply_commander_candidate_stats(actor: usize, source: SourceStats, stats: Act
     }
 
     format!(
-        "applied:commander_candidate hp={}->{}:{}->{} attack34={} attack38={}",
+        "applied:small_mob_candidate hp={}->{}:{}->{} attack34={} attack38={}",
         stats.stat_3c,
         hp_3c,
         stats.stat_40,
@@ -240,10 +241,10 @@ fn apply_commander_candidate_stats(actor: usize, source: SourceStats, stats: Act
     )
 }
 
-fn is_commander_candidate_stats(source: SourceStats, stats: ActorStats) -> bool {
-    matches!(source.byte_00, 1 | 5)
-        && stats.stat_3c == COMMANDER_CANDIDATE_HP_STAT
-        && stats.stat_40 == COMMANDER_CANDIDATE_HP_STAT
+fn is_small_mob_candidate_stats(stats: ActorStats) -> bool {
+    stats.head_words[0] == TARGET_SMALL_MOB_ACTOR_ID
+        && stats.stat_3c == TARGET_SMALL_MOB_HP_STAT
+        && stats.stat_40 == TARGET_SMALL_MOB_HP_STAT
 }
 
 fn scaled_stat(value: u32, multiplier: usize) -> u32 {
@@ -505,7 +506,7 @@ fn format_u16_head(words: [u16; 16]) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        format_u16_head, is_commander_candidate_stats, scalable_optional_stat, scaled_stat,
+        format_u16_head, is_small_mob_candidate_stats, scalable_optional_stat, scaled_stat,
         ActorStats, EnemyStatsSummary, SourceStats,
     };
 
@@ -540,45 +541,39 @@ mod tests {
     }
 
     #[test]
-    fn commander_candidate_filter_accepts_observed_officer_family_only() {
+    fn small_mob_candidate_filter_accepts_only_actor00_224() {
         let stats = ActorStats {
+            head_words: {
+                let mut words = [0; 16];
+                words[0] = 224;
+                words
+            },
             stat_3c: 390,
             stat_40: 390,
             ..ActorStats::default()
         };
 
-        assert!(is_commander_candidate_stats(
-            SourceStats {
-                byte_00: 1,
-                ..SourceStats::default()
+        assert!(is_small_mob_candidate_stats(stats));
+        assert!(!is_small_mob_candidate_stats(ActorStats {
+            head_words: {
+                let mut words = [0; 16];
+                words[0] = 410;
+                words
             },
-            stats
-        ));
-        assert!(is_commander_candidate_stats(
-            SourceStats {
-                byte_00: 5,
-                ..SourceStats::default()
+            stat_3c: 390,
+            stat_40: 390,
+            ..ActorStats::default()
+        }));
+        assert!(!is_small_mob_candidate_stats(ActorStats {
+            head_words: {
+                let mut words = [0; 16];
+                words[0] = 224;
+                words
             },
-            stats
-        ));
-        assert!(!is_commander_candidate_stats(
-            SourceStats {
-                byte_00: 65,
-                ..SourceStats::default()
-            },
-            stats
-        ));
-        assert!(!is_commander_candidate_stats(
-            SourceStats {
-                byte_00: 5,
-                ..SourceStats::default()
-            },
-            ActorStats {
-                stat_3c: 585,
-                stat_40: 585,
-                ..ActorStats::default()
-            }
-        ));
+            stat_3c: 585,
+            stat_40: 585,
+            ..ActorStats::default()
+        }));
     }
 
     #[test]
